@@ -3,7 +3,16 @@
     "allow": [
       "Bash(npx:*)",
       "Bash(printf 'n\\\\nn\\\\n')",
-      "Bash(yes \"\")"
+      "Bash(yes \"\")",
+      "Bash(npm install:*)",
+      "Bash(grep -E \"@wix/\\(sdk|ecom|media\\)$\")",
+      "Bash(grep -E \"^\\(sdk|ecom|media\\)$\")",
+      "Bash(find /c/dev/solitairec/node_modules/@wix/headless-ecom -maxdepth 2 -name *.d.ts)",
+      "Bash(npm search:*)",
+      "Bash(npm view:*)",
+      "Bash(ls:*)",
+      "Bash(find /c/dev/solitairec/node_modules/@wix/auto_sdk_stores_products* -name *.d.ts)",
+      "Bash(find /c/dev/solitairec/docs -type f \\\\\\(-name *.md -o -name *.html \\\\\\))"
     ]
   }
 }

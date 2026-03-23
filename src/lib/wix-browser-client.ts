@@ -1,0 +1,73 @@
+import { createClient, OAuthStrategy } from "@wix/sdk";
+import { currentCart, checkout } from "@wix/ecom";
+
+let clientInstance: ReturnType<typeof createClient> | null = null;
+let visitorTokenPromise: Promise<void> | null = null;
+
+const TOKENS_KEY = "wix_tokens";
+
+/**
+ * Browser-side Wix client — singleton with localStorage token persistence.
+ * Safe for client components. Handles visitor sessions automatically.
+ */
+export function getBrowserWixClient() {
+  if (clientInstance) return clientInstance;
+
+  const clientId = process.env.NEXT_PUBLIC_WIX_CLIENT_ID;
+  if (!clientId) {
+    throw new Error("Missing NEXT_PUBLIC_WIX_CLIENT_ID environment variable");
+  }
+
+  clientInstance = createClient({
+    modules: { currentCart, checkout },
+    auth: OAuthStrategy({
+      clientId,
+      tokens: loadTokens() ?? undefined,
+    }),
+  });
+
+  return clientInstance;
+}
+
+/**
+ * Ensure the client has valid visitor tokens.
+ * Deduplicates concurrent calls to prevent race conditions.
+ */
+export async function ensureVisitorTokens(
+  client: ReturnType<typeof createClient>
+) {
+  const tokens = client.auth.getTokens();
+  if (tokens.accessToken?.value) return;
+
+  if (!visitorTokenPromise) {
+    visitorTokenPromise = client.auth
+      .generateVisitorTokens()
+      .then(() => {
+        saveTokens(client.auth.getTokens());
+      })
+      .finally(() => {
+        visitorTokenPromise = null;
+      });
+  }
+
+  await visitorTokenPromise;
+}
+
+function loadTokens() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(TOKENS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveTokens(tokens: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
+  } catch {
+    // storage full or blocked — ignore
+  }
+}

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SOLITAIRE | COLLECTIONS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-bright": "#f9f9f9",
+              "surface-container-highest": "#e2e2e2",
+              "on-secondary-fixed": "#390c00",
+              "on-tertiary": "#ffffff",
+              "outline-variant": "#cfc4c5",
+              "surface-dim": "#dadada",
+              "inverse-primary": "#c6c6c6",
+              "on-secondary-fixed-variant": "#783118",
+              "secondary-fixed": "#ffdbd0",
+              "on-surface-variant": "#4c4546",
+              "on-background": "#1a1c1c",
+              "outline": "#7e7576",
+              "on-primary": "#ffffff",
+              "secondary-fixed-dim": "#ffb59d",
+              "error": "#ba1a1a",
+              "on-primary-container": "#848484",
+              "on-primary-fixed": "#1b1b1b",
+              "on-error-container": "#93000a",
+              "background": "#f9f9f9",
+              "on-tertiary-fixed": "#1b1c1c",
+              "surface": "#f9f9f9",
+              "surface-container": "#eeeeee",
+              "surface-container-high": "#e8e8e8",
+              "inverse-on-surface": "#f1f1f1",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-container": "#848384",
+              "primary-container": "#1b1b1b",
+              "surface-tint": "#5e5e5e",
+              "secondary": "#96482d",
+              "surface-container-low": "#f3f3f3",
+              "primary": "#000000",
+              "on-primary-fixed-variant": "#474747",
+              "on-surface": "#1a1c1c",
+              "tertiary": "#000000",
+              "tertiary-fixed": "#e4e2e2",
+              "tertiary-fixed-dim": "#c8c6c6",
+              "inverse-surface": "#2f3131",
+              "error-container": "#ffdad6",
+              "on-secondary": "#ffffff",
+              "surface-variant": "#e2e2e2",
+              "tertiary-container": "#1b1c1c",
+              "on-secondary-container": "#763017",
+              "secondary-container": "#fd9a79",
+              "on-tertiary-fixed-variant": "#474747",
+              "on-error": "#ffffff",
+              "primary-fixed": "#e2e2e2",
+              "primary-fixed-dim": "#c6c6c6"
+            },
+            fontFamily: {
+              "notoSerif": ["Noto Serif", "serif"],
+              "inter": ["Inter", "sans-serif"],
+              "headline": ["Noto Serif", "serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+        body {
+            background-color: #f9f9f9;
+            color: #1a1c1c;
+            -webkit-font-smoothing: antialiased;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body selection:bg-secondary/20">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl">
+<div class="flex justify-between items-center px-6 h-16 w-full">
+<button class="text-black dark:text-white hover:opacity-60 transition-opacity duration-300">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-notoSerif font-bold tracking-[0.3em] text-xl text-black dark:text-white">SOLITAIRE</h1>
+<button class="text-black dark:text-white hover:opacity-60 transition-opacity duration-300">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+<div class="bg-neutral-100 dark:bg-neutral-800 h-[1px] w-full"></div>
+</header>
+<main class="pt-24 pb-24 px-6">
+<!-- Editorial Header Section -->
+<section class="mb-12">
+<span class="font-inter text-[10px] tracking-[0.25em] text-on-surface-variant mb-4 block">COLLECTIONS / 24</span>
+<h2 class="font-notoSerif text-5xl tracking-tighter leading-none mb-6">Essential<br/><span class="italic text-secondary">Silhouettes</span></h2>
+<p class="font-inter text-sm text-on-surface-variant max-w-[280px] leading-relaxed">
+                A curation of structural integrity and refined materiality for the modern globalist.
+            </p>
+</section>
+<!-- Category Filters (Horizontal Pill List) -->
+<section class="mb-10 -mx-6">
+<div class="flex overflow-x-auto hide-scrollbar px-6 gap-3">
+<button class="whitespace-nowrap px-6 py-2 bg-primary text-on-primary font-inter text-[11px] tracking-widest transition-all">ALL</button>
+<button class="whitespace-nowrap px-6 py-2 bg-surface-container text-on-surface-variant font-inter text-[11px] tracking-widest hover:bg-surface-container-high transition-all">JACKETS</button>
+<button class="whitespace-nowrap px-6 py-2 bg-surface-container text-on-surface-variant font-inter text-[11px] tracking-widest hover:bg-surface-container-high transition-all">TOPS</button>
+<button class="whitespace-nowrap px-6 py-2 bg-surface-container text-on-surface-variant font-inter text-[11px] tracking-widest hover:bg-surface-container-high transition-all">TROUSERS</button>
+<button class="whitespace-nowrap px-6 py-2 bg-surface-container text-on-surface-variant font-inter text-[11px] tracking-widest hover:bg-surface-container-high transition-all">KNITWEAR</button>
+</div>
+</section>
+<!-- Product Grid (2-Column Asymmetric/Minimalist) -->
+<section class="grid grid-cols-2 gap-x-4 gap-y-12">
+<!-- Product Card 1 -->
+<div class="flex flex-col">
+<div class="aspect-[3/4] bg-surface-container-low mb-4 relative overflow-hidden">
+<img alt="Minimalist Wool Blazer" class="w-full h-full object-cover" data-alt="Editorial shot of high-end wool blazer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
+<button class="absolute top-3 right-3 text-white/80 hover:text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">favorite</span>
+</button>
+</div>
+<div class="px-1">
+<h3 class="font-inter text-[11px] tracking-[0.12em] font-medium text-primary mb-1">STRUCTURED WOOL BLAZER</h3>
+<p class="font-inter text-[10px] tracking-widest text-on-surface-variant">$490.00</p>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="flex flex-col mt-8">
+<div class="aspect-[3/4] bg-surface-container-low mb-4 relative overflow-hidden">
+<img alt="Oversized Cotton Shirt" class="w-full h-full object-cover" data-alt="Modern white oversized cotton button down shirt" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
+<button class="absolute top-3 right-3 text-white/80 hover:text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">favorite</span>
+</button>
+</div>
+<div class="px-1">
+<h3 class="font-inter text-[11px] tracking-[0.12em] font-medium text-primary mb-1">POPELIN OVERSIZED SHIRT</h3>
+<p class="font-inter text-[10px] tracking-widest text-on-surface-variant">$185.00</p>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="flex flex-col">
+<div class="aspect-[3/4] bg-surface-container-low mb-4 relative overflow-hidden">
+<img alt="Relaxed Silk Trousers" class="w-full h-full object-cover" data-alt="Flowing minimalist silk trousers in champagne" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
+<button class="absolute top-3 right-3 text-white/80 hover:text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">favorite</span>
+</button>
+</div>
+<div class="px-1">
+<h3 class="font-inter text-[11px] tracking-[0.12em] font-medium text-primary mb-1">RELAXED SILK TROUSERS</h3>
+<p class="font-inter text-[10px] tracking-widest text-on-surface-variant">$320.00</p>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="flex flex-col mt-8">
+<div class="aspect-[3/4] bg-surface-container-low mb-4 relative overflow-hidden">
+<img alt="Asymmetric Knit Top" class="w-full h-full object-cover" data-alt="Close up of fine knit asymmetric top" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
+<button class="absolute top-3 right-3 text-white/80 hover:text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">favorite</span>
+</button>
+</div>
+<div class="px-1">
+<h3 class="font-inter text-[11px] tracking-[0.12em] font-medium text-primary mb-1">ASYMMETRIC MESH KNIT</h3>
+<p class="font-inter text-[10px] tracking-widest text-on-surface-variant">$145.00</p>
+</div>
+</div>
+<!-- Product Card 5 (Full Width Highlighting) -->
+<div class="col-span-2 flex flex-col py-8">
+<div class="aspect-[16/9] bg-surface-container-low mb-6 relative overflow-hidden">
+<img alt="The Trench" class="w-full h-full object-cover grayscale opacity-90" data-alt="Wide cinematic shot of luxury trench coat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
+<div class="absolute inset-0 bg-black/5"></div>
+<div class="absolute bottom-6 left-6">
+<span class="bg-white px-3 py-1 text-[9px] tracking-[0.3em] font-medium">NEW ARRIVAL</span>
+</div>
+</div>
+<div class="flex justify-between items-end border-b border-outline-variant/20 pb-4">
+<div>
+<h3 class="font-notoSerif text-2xl tracking-tight text-primary">Technical Gabardine Trench</h3>
+<p class="font-inter text-[10px] tracking-widest text-on-surface-variant mt-1 uppercase">Liminal Collection Exclusive</p>
+</div>
+<p class="font-inter text-sm tracking-widest text-primary">$890.00</p>
+</div>
+</div>
+<!-- Product Card 6 -->
+<div class="flex flex-col">
+<div class="aspect-[3/4] bg-surface-container-low mb-4 relative overflow-hidden">
+<img alt="Pleated Culottes" class="w-full h-full object-cover" data-alt="Architectural pleated trousers detail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
+<button class="absolute top-3 right-3 text-white/80 hover:text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">favorite</span>
+</button>
+</div>
+<div class="px-1">
+<h3 class="font-inter text-[11px] tracking-[0.12em] font-medium text-primary mb-1">ARCHITECTURAL PLEAT PANT</h3>
+<p class="font-inter text-[10px] tracking-widest text-on-surface-variant">$265.00</p>
+</div>
+</div>
+<!-- Product Card 7 -->
+<div class="flex flex-col mt-8">
+<div class="aspect-[3/4] bg-surface-container-low mb-4 relative overflow-hidden">
+<img alt="Tailored Shorts" class="w-full h-full object-cover" data-alt="Minimalist tailored black wool shorts" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
+<button class="absolute top-3 right-3 text-white/80 hover:text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">favorite</span>
+</button>
+</div>
+<div class="px-1">
+<h3 class="font-inter text-[11px] tracking-[0.12em] font-medium text-primary mb-1">WOOL TAILORED SHORT</h3>
+<p class="font-inter text-[10px] tracking-widest text-on-surface-variant">$210.00</p>
+</div>
+</div>
+</section>
+<!-- Load More Section -->
+<div class="mt-20 flex flex-col items-center">
+<button class="group flex flex-col items-center gap-2">
+<span class="font-inter text-[10px] tracking-[0.4em] text-primary">EXPLORE MORE</span>
+<span class="material-symbols-outlined text-secondary group-hover:translate-y-1 transition-transform">expand_more</span>
+</button>
+</div>
+</main>
+<!-- NavigationDrawer (Mobile Interaction Visual Placeholder) -->
+<!-- Not visible by default but classes match the Design System & SC -->
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center py-3 pb-safe px-8 bg-white/90 dark:bg-black/90 backdrop-blur-xl z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] border-t border-neutral-100 dark:border-neutral-900">
+<a class="flex flex-col items-center justify-center text-black dark:text-white font-medium hover:text-black dark:hover:text-white active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">storefront</span>
+<span class="font-inter text-[10px] tracking-[0.15em] font-light mt-1">SHOP</span>
+</a>
+<a class="flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-600 hover:text-black dark:hover:text-white active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined">shopping_bag</span>
+<span class="font-inter text-[10px] tracking-[0.15em] font-light mt-1">BAG</span>
+</a>
+<a class="flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-600 hover:text-black dark:hover:text-white active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-inter text-[10px] tracking-[0.15em] font-light mt-1">ACCOUNT</span>
+</a>
+</nav>
+<!-- Floating Filter Icon (Task-focused) -->
+<button class="fixed bottom-24 right-6 w-12 h-12 bg-primary text-on-primary flex items-center justify-center shadow-xl active:scale-90 transition-transform">
+<span class="material-symbols-outlined">tune</span>
+</button>
+</body></html>
