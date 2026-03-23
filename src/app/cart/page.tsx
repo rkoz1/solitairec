@@ -7,6 +7,7 @@ import {
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
 import type { cart } from "@wix/ecom";
+import LoadingIndicator from "@/components/LoadingIndicator";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -63,11 +64,7 @@ export default function CartPage() {
   }
 
   if (loading) {
-    return (
-      <div className="px-6 pt-12">
-        <p className="text-on-surface-variant text-sm">Loading cart...</p>
-      </div>
-    );
+    return <LoadingIndicator />;
   }
 
   const items: LineItem[] = cartData?.lineItems ?? [];

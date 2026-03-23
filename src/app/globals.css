@@ -45,6 +45,7 @@
   --color-outline-variant: var(--color-outline-variant);
   --font-serif: var(--font-noto-serif);
   --font-sans: var(--font-inter);
+  --animate-brand-pulse: brand-pulse 2s ease-in-out infinite;
 }
 
 body {
@@ -62,6 +63,11 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@keyframes brand-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 
 /* Material Symbols configuration */
