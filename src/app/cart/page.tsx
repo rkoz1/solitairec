@@ -26,8 +26,16 @@ export default function CartPage() {
       await ensureVisitorTokens(wix);
       const current = await wix.currentCart.getCurrentCart();
       setCartData(current);
-    } catch (error) {
-      console.error("Failed to load cart:", error);
+    } catch (error: unknown) {
+      // Wix throws OWNED_CART_NOT_FOUND when no items have been added yet
+      const isNoCart =
+        error instanceof Object &&
+        "details" in error &&
+        (error as { details?: { applicationError?: { code?: string } } })
+          .details?.applicationError?.code === "OWNED_CART_NOT_FOUND";
+      if (!isNoCart) {
+        console.error("Failed to load cart:", error);
+      }
     } finally {
       setLoading(false);
     }

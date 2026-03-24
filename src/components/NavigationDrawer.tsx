@@ -35,7 +35,7 @@ export default function NavigationDrawer() {
         </button>
 
         <span className="absolute left-1/2 -translate-x-1/2 font-serif font-bold text-lg tracking-[0.3em] text-on-surface">
-          SOLITAIRE
+          SOLITAIREC
         </span>
 
         <Link

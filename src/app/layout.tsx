@@ -19,7 +19,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SOLITAIRE",
+  title: "SOLITAIREC",
   description: "SolitaireC — Clothing Store",
 };
 
@@ -48,7 +48,7 @@ export default function RootLayout({
 
             <Link href="/" className="absolute left-1/2 -translate-x-1/2">
               <span className="font-serif font-bold text-lg tracking-[0.3em] text-on-surface">
-                SOLITAIRE
+                SOLITAIREC
               </span>
             </Link>
 

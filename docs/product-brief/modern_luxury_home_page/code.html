@@ -1,257 +1,423 @@
-<!DOCTYPE html>
+<!doctype html>
 
-<html class="light" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>SOLITAIRE | The Digital Atelier</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-        tailwind.config = {
-          darkMode: "class",
-          theme: {
-            extend: {
-              colors: {
-                "surface-bright": "#f9f9f9",
-                "surface-container-highest": "#e2e2e2",
-                "on-secondary-fixed": "#390c00",
-                "on-tertiary": "#ffffff",
-                "outline-variant": "#cfc4c5",
-                "surface-dim": "#dadada",
-                "inverse-primary": "#c6c6c6",
-                "on-secondary-fixed-variant": "#783118",
-                "secondary-fixed": "#ffdbd0",
-                "on-surface-variant": "#4c4546",
-                "on-background": "#1a1c1c",
-                "outline": "#7e7576",
-                "on-primary": "#ffffff",
-                "secondary-fixed-dim": "#ffb59d",
-                "error": "#ba1a1a",
-                "on-primary-container": "#848484",
-                "on-primary-fixed": "#1b1b1b",
-                "on-error-container": "#93000a",
-                "background": "#f9f9f9",
-                "on-tertiary-fixed": "#1b1c1c",
-                "surface": "#f9f9f9",
-                "surface-container": "#eeeeee",
-                "surface-container-high": "#e8e8e8",
-                "inverse-on-surface": "#f1f1f1",
-                "surface-container-lowest": "#ffffff",
-                "on-tertiary-container": "#848384",
-                "primary-container": "#1b1b1b",
-                "surface-tint": "#5e5e5e",
-                "secondary": "#96482d",
-                "surface-container-low": "#f3f3f3",
-                "primary": "#000000",
-                "on-primary-fixed-variant": "#474747",
-                "on-surface": "#1a1c1c",
-                "tertiary": "#000000",
-                "tertiary-fixed": "#e4e2e2",
-                "tertiary-fixed-dim": "#c8c6c6",
-                "inverse-surface": "#2f3131",
-                "error-container": "#ffdad6",
-                "on-secondary": "#ffffff",
-                "surface-variant": "#e2e2e2",
-                "tertiary-container": "#1b1c1c",
-                "on-secondary-container": "#763017",
-                "secondary-container": "#fd9a79",
-                "on-tertiary-fixed-variant": "#474747",
-                "on-error": "#ffffff",
-                "primary-fixed": "#e2e2e2",
-                "primary-fixed-dim": "#c6c6c6"
-              },
-              fontFamily: {
-                "notoSerif": ["Noto Serif", "serif"],
-                "inter": ["Inter", "sans-serif"],
-                "headline": ["Noto Serif"],
-                "body": ["Inter"],
-                "label": ["Inter"]
-              },
-              borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>SOLITAIREC | The Digital Atelier</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Inter:wght@300;400;500;600&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-bright": "#f9f9f9",
+              "surface-container-highest": "#e2e2e2",
+              "on-secondary-fixed": "#390c00",
+              "on-tertiary": "#ffffff",
+              "outline-variant": "#cfc4c5",
+              "surface-dim": "#dadada",
+              "inverse-primary": "#c6c6c6",
+              "on-secondary-fixed-variant": "#783118",
+              "secondary-fixed": "#ffdbd0",
+              "on-surface-variant": "#4c4546",
+              "on-background": "#1a1c1c",
+              outline: "#7e7576",
+              "on-primary": "#ffffff",
+              "secondary-fixed-dim": "#ffb59d",
+              error: "#ba1a1a",
+              "on-primary-container": "#848484",
+              "on-primary-fixed": "#1b1b1b",
+              "on-error-container": "#93000a",
+              background: "#f9f9f9",
+              "on-tertiary-fixed": "#1b1c1c",
+              surface: "#f9f9f9",
+              "surface-container": "#eeeeee",
+              "surface-container-high": "#e8e8e8",
+              "inverse-on-surface": "#f1f1f1",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-container": "#848384",
+              "primary-container": "#1b1b1b",
+              "surface-tint": "#5e5e5e",
+              secondary: "#96482d",
+              "surface-container-low": "#f3f3f3",
+              primary: "#000000",
+              "on-primary-fixed-variant": "#474747",
+              "on-surface": "#1a1c1c",
+              tertiary: "#000000",
+              "tertiary-fixed": "#e4e2e2",
+              "tertiary-fixed-dim": "#c8c6c6",
+              "inverse-surface": "#2f3131",
+              "error-container": "#ffdad6",
+              "on-secondary": "#ffffff",
+              "surface-variant": "#e2e2e2",
+              "tertiary-container": "#1b1c1c",
+              "on-secondary-container": "#763017",
+              "secondary-container": "#fd9a79",
+              "on-tertiary-fixed-variant": "#474747",
+              "on-error": "#ffffff",
+              "primary-fixed": "#e2e2e2",
+              "primary-fixed-dim": "#c6c6c6",
+            },
+            fontFamily: {
+              notoSerif: ["Noto Serif", "serif"],
+              inter: ["Inter", "sans-serif"],
+              headline: ["Noto Serif"],
+              body: ["Inter"],
+              label: ["Inter"],
+            },
+            borderRadius: {
+              DEFAULT: "0px",
+              lg: "0px",
+              xl: "0px",
+              full: "9999px",
             },
           },
-        }
-      </script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 300,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
     </style>
-<style>
-    body {
-      min-height: max(884px, 100dvh);
-    }
-  </style>
+    <style>
+      body {
+        min-height: max(884px, 100dvh);
+      }
+    </style>
   </head>
-<body class="bg-background text-on-background font-body antialiased">
-<!-- TopAppBar -->
-<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl">
-<div class="flex justify-between items-center px-6 h-16 w-full">
-<button class="text-black hover:opacity-60 transition-opacity duration-300">
-<span class="material-symbols-outlined">menu</span>
-</button>
-<h1 class="font-notoSerif font-bold tracking-[0.3em] text-xl text-black">SOLITAIRE</h1>
-<div class="flex gap-4">
-<button class="text-black hover:opacity-60 transition-opacity duration-300">
-<span class="material-symbols-outlined">search</span>
-</button>
-</div>
-</div>
-<div class="bg-neutral-100 h-[1px] w-full self-end"></div>
-</header>
-<main class="pt-16 pb-24">
-<!-- Hero Section: Editorial Excellence -->
-<section class="relative w-full h-[751px] overflow-hidden">
-<img alt="High-impact editorial fashion" class="w-full h-full object-cover" data-alt="Editorial close up of architectural Japanese avant-garde fashion" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
-<div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
-<div class="absolute bottom-20 left-0 w-full px-8">
-<div class="max-w-md">
-<p class="font-inter text-[10px] tracking-[0.4em] text-black mb-4 uppercase">Autumn / Winter 24</p>
-<h2 class="font-notoSerif text-5xl leading-tight tracking-tighter text-black mb-8 italic">
-                        The Quiet <br/> Modernist
-                    </h2>
-<button class="bg-black text-white px-10 py-4 text-[10px] tracking-[0.3em] font-medium hover:bg-neutral-800 transition-colors">
-                        EXPLORE COLLECTION
-                    </button>
-</div>
-</div>
-</section>
-<!-- New Arrivals: Horizontal Scroll -->
-<section class="mt-20">
-<div class="px-8 flex justify-between items-end mb-8">
-<div>
-<h3 class="font-notoSerif text-2xl tracking-tight">NEW ARRIVALS</h3>
-<div class="h-[1px] w-12 bg-secondary mt-2"></div>
-</div>
-<a class="font-inter text-[10px] tracking-[0.2em] border-b border-black pb-1" href="#">VIEW ALL</a>
-</div>
-<div class="flex overflow-x-auto no-scrollbar gap-6 px-8 snap-x snap-mandatory">
-<!-- Product Card 1 -->
-<div class="min-w-[75%] snap-start group">
-<div class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-4">
-<img alt="Product Shot" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Minimalist beige structured blazer on model" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
-</div>
-<p class="font-inter text-[10px] tracking-widest text-neutral-500 mb-1">TOKYO STUDIO</p>
-<h4 class="font-notoSerif text-lg tracking-tight">Structured Wool Blazer</h4>
-<p class="font-inter text-sm mt-1 text-secondary">¥84,000</p>
-</div>
-<!-- Product Card 2 -->
-<div class="min-w-[75%] snap-start group">
-<div class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-4">
-<img alt="Product Shot" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Draped charcoal grey knit skirt against white wall" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
-</div>
-<p class="font-inter text-[10px] tracking-widest text-neutral-500 mb-1">SEOUL DESIGN HOUSE</p>
-<h4 class="font-notoSerif text-lg tracking-tight">Draped Knit Skirt</h4>
-<p class="font-inter text-sm mt-1 text-secondary">¥42,000</p>
-</div>
-<!-- Product Card 3 -->
-<div class="min-w-[75%] snap-start group">
-<div class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-4">
-<img alt="Product Shot" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="Oversized crisp white cotton poplin shirt" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
-</div>
-<p class="font-inter text-[10px] tracking-widest text-neutral-500 mb-1">ESSENTIALS</p>
-<h4 class="font-notoSerif text-lg tracking-tight">Poplin Shell Shirt</h4>
-<p class="font-inter text-sm mt-1 text-secondary">¥28,500</p>
-</div>
-</div>
-</section>
-<!-- Curated Collections: Vertical List -->
-<section class="mt-24 px-8">
-<h3 class="font-notoSerif text-2xl tracking-tight mb-12 text-center">CURATIONS</h3>
-<div class="space-y-20">
-<!-- Collection 1 -->
-<div class="relative">
-<div class="aspect-[4/5] overflow-hidden mb-6">
-<img alt="Monochrome Collection" class="w-full h-full object-cover" data-alt="Atmospheric shot of monochromatic luxury fabrics" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
-</div>
-<div class="absolute -bottom-6 right-0 bg-white p-6 max-w-[80%] shadow-sm">
-<h4 class="font-notoSerif text-xl tracking-tight italic mb-2">The Monochromatic Lab</h4>
-<p class="font-inter text-[10px] tracking-[0.2em] text-neutral-400">01 / ARCHITECTURAL SILHOUETTES</p>
-</div>
-</div>
-<!-- Collection 2 -->
-<div class="relative pt-12">
-<div class="aspect-[4/5] overflow-hidden mb-6 ml-auto w-[90%]">
-<img alt="Artisan Leather" class="w-full h-full object-cover" data-alt="Handcrafted leather goods with artisanal textures" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"/>
-</div>
-<div class="absolute top-0 left-0 bg-white p-6 max-w-[80%] shadow-sm">
-<h4 class="font-notoSerif text-xl tracking-tight italic mb-2">Artisan Leather</h4>
-<p class="font-inter text-[10px] tracking-[0.2em] text-neutral-400">02 / VEGETABLE TANNED PRECISION</p>
-</div>
-</div>
-</div>
-</section>
-<!-- Editorial Story Section -->
-<section class="mt-32 px-8 py-24 bg-surface-container-low text-center">
-<p class="font-inter text-[10px] tracking-[0.5em] text-secondary mb-6">EST. 2024</p>
-<h2 class="font-notoSerif text-3xl leading-snug tracking-tighter mb-8">
-                Crafting a dialogue <br/> between tradition <br/> and the avant-garde.
-            </h2>
-<p class="font-inter text-sm text-neutral-500 leading-relaxed max-w-xs mx-auto mb-10">
-                Solitaire represents the digital atelier—a curated space where high-fashion craftsmanship meets modern utility.
+  <body class="bg-background text-on-background font-body antialiased">
+    <!-- TopAppBar -->
+    <header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl">
+      <div class="flex justify-between items-center px-6 h-16 w-full">
+        <button
+          class="text-black hover:opacity-60 transition-opacity duration-300"
+        >
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <h1
+          class="font-notoSerif font-bold tracking-[0.3em] text-xl text-black"
+        >
+          SOLITAIREC
+        </h1>
+        <div class="flex gap-4">
+          <button
+            class="text-black hover:opacity-60 transition-opacity duration-300"
+          >
+            <span class="material-symbols-outlined">search</span>
+          </button>
+        </div>
+      </div>
+      <div class="bg-neutral-100 h-[1px] w-full self-end"></div>
+    </header>
+    <main class="pt-16 pb-24">
+      <!-- Hero Section: Editorial Excellence -->
+      <section class="relative w-full h-[751px] overflow-hidden">
+        <img
+          alt="High-impact editorial fashion"
+          class="w-full h-full object-cover"
+          data-alt="Editorial close up of architectural Japanese avant-garde fashion"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"
+        />
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"
+        ></div>
+        <div class="absolute bottom-20 left-0 w-full px-8">
+          <div class="max-w-md">
+            <p
+              class="font-inter text-[10px] tracking-[0.4em] text-black mb-4 uppercase"
+            >
+              Autumn / Winter 24
             </p>
-<button class="border border-black px-12 py-4 text-[10px] tracking-[0.3em] hover:bg-black hover:text-white transition-all">
-                OUR PHILOSOPHY
+            <h2
+              class="font-notoSerif text-5xl leading-tight tracking-tighter text-black mb-8 italic"
+            >
+              The Quiet <br />
+              Modernist
+            </h2>
+            <button
+              class="bg-black text-white px-10 py-4 text-[10px] tracking-[0.3em] font-medium hover:bg-neutral-800 transition-colors"
+            >
+              EXPLORE COLLECTION
             </button>
-</section>
-<!-- Newsletter Minimal -->
-<section class="my-24 px-8">
-<div class="border-t border-neutral-200 pt-16">
-<h4 class="font-notoSerif text-lg tracking-tight mb-4">JOIN THE ATELIER</h4>
-<p class="font-inter text-xs text-neutral-500 mb-8 tracking-wide">Be the first to know about private launches and editorial releases.</p>
-<form class="flex border-b border-black pb-2">
-<input class="bg-transparent border-none focus:ring-0 w-full text-xs font-inter tracking-widest placeholder:text-neutral-300" placeholder="Email Address" type="email"/>
-<button class="text-[10px] tracking-[0.2em] font-medium" type="submit">SUBMIT</button>
-</form>
-</div>
-</section>
-<!-- Footer Footer -->
-<footer class="px-8 pb-32 pt-8 text-center border-t border-neutral-50">
-<h5 class="font-notoSerif font-bold tracking-[0.4em] text-sm mb-12">SOLITAIRE</h5>
-<div class="grid grid-cols-2 gap-8 text-left mb-16">
-<div class="space-y-3">
-<p class="font-inter text-[9px] tracking-[0.2em] text-neutral-400">CLIENT SERVICE</p>
-<ul class="font-inter text-[11px] space-y-2">
-<li>Shipping</li>
-<li>Returns</li>
-<li>Care Guide</li>
-</ul>
-</div>
-<div class="space-y-3">
-<p class="font-inter text-[9px] tracking-[0.2em] text-neutral-400">SOCIAL</p>
-<ul class="font-inter text-[11px] space-y-2">
-<li>Instagram</li>
-<li>Journal</li>
-<li>Editorial</li>
-</ul>
-</div>
-</div>
-<p class="font-inter text-[9px] tracking-[0.2em] text-neutral-300 uppercase">© 2024 Solitaire Digital Atelier</p>
-</footer>
-</main>
-<!-- BottomNavBar -->
-<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center py-3 pb-safe px-8 bg-white/90 backdrop-blur-xl z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] border-t border-neutral-100">
-<!-- Active SHOP -->
-<a class="flex flex-col items-center justify-center text-black font-medium" href="#">
-<span class="material-symbols-outlined mb-1">storefront</span>
-<span class="font-inter text-[10px] tracking-[0.15em] font-light">SHOP</span>
-</a>
-<a class="flex flex-col items-center justify-center text-neutral-400 hover:text-black active:scale-95 transition-all" href="#">
-<span class="material-symbols-outlined mb-1">shopping_bag</span>
-<span class="font-inter text-[10px] tracking-[0.15em] font-light">BAG</span>
-</a>
-<a class="flex flex-col items-center justify-center text-neutral-400 hover:text-black active:scale-95 transition-all" href="#">
-<span class="material-symbols-outlined mb-1">person</span>
-<span class="font-inter text-[10px] tracking-[0.15em] font-light">ACCOUNT</span>
-</a>
-</nav>
-</body></html>
+          </div>
+        </div>
+      </section>
+      <!-- New Arrivals: Horizontal Scroll -->
+      <section class="mt-20">
+        <div class="px-8 flex justify-between items-end mb-8">
+          <div>
+            <h3 class="font-notoSerif text-2xl tracking-tight">NEW ARRIVALS</h3>
+            <div class="h-[1px] w-12 bg-secondary mt-2"></div>
+          </div>
+          <a
+            class="font-inter text-[10px] tracking-[0.2em] border-b border-black pb-1"
+            href="#"
+            >VIEW ALL</a
+          >
+        </div>
+        <div
+          class="flex overflow-x-auto no-scrollbar gap-6 px-8 snap-x snap-mandatory"
+        >
+          <!-- Product Card 1 -->
+          <div class="min-w-[75%] snap-start group">
+            <div
+              class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-4"
+            >
+              <img
+                alt="Product Shot"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                data-alt="Minimalist beige structured blazer on model"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"
+              />
+            </div>
+            <p
+              class="font-inter text-[10px] tracking-widest text-neutral-500 mb-1"
+            >
+              TOKYO STUDIO
+            </p>
+            <h4 class="font-notoSerif text-lg tracking-tight">
+              Structured Wool Blazer
+            </h4>
+            <p class="font-inter text-sm mt-1 text-secondary">¥84,000</p>
+          </div>
+          <!-- Product Card 2 -->
+          <div class="min-w-[75%] snap-start group">
+            <div
+              class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-4"
+            >
+              <img
+                alt="Product Shot"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                data-alt="Draped charcoal grey knit skirt against white wall"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"
+              />
+            </div>
+            <p
+              class="font-inter text-[10px] tracking-widest text-neutral-500 mb-1"
+            >
+              SEOUL DESIGN HOUSE
+            </p>
+            <h4 class="font-notoSerif text-lg tracking-tight">
+              Draped Knit Skirt
+            </h4>
+            <p class="font-inter text-sm mt-1 text-secondary">¥42,000</p>
+          </div>
+          <!-- Product Card 3 -->
+          <div class="min-w-[75%] snap-start group">
+            <div
+              class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-4"
+            >
+              <img
+                alt="Product Shot"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                data-alt="Oversized crisp white cotton poplin shirt"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"
+              />
+            </div>
+            <p
+              class="font-inter text-[10px] tracking-widest text-neutral-500 mb-1"
+            >
+              ESSENTIALS
+            </p>
+            <h4 class="font-notoSerif text-lg tracking-tight">
+              Poplin Shell Shirt
+            </h4>
+            <p class="font-inter text-sm mt-1 text-secondary">¥28,500</p>
+          </div>
+        </div>
+      </section>
+      <!-- Curated Collections: Vertical List -->
+      <section class="mt-24 px-8">
+        <h3 class="font-notoSerif text-2xl tracking-tight mb-12 text-center">
+          CURATIONS
+        </h3>
+        <div class="space-y-20">
+          <!-- Collection 1 -->
+          <div class="relative">
+            <div class="aspect-[4/5] overflow-hidden mb-6">
+              <img
+                alt="Monochrome Collection"
+                class="w-full h-full object-cover"
+                data-alt="Atmospheric shot of monochromatic luxury fabrics"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"
+              />
+            </div>
+            <div
+              class="absolute -bottom-6 right-0 bg-white p-6 max-w-[80%] shadow-sm"
+            >
+              <h4 class="font-notoSerif text-xl tracking-tight italic mb-2">
+                The Monochromatic Lab
+              </h4>
+              <p
+                class="font-inter text-[10px] tracking-[0.2em] text-neutral-400"
+              >
+                01 / ARCHITECTURAL SILHOUETTES
+              </p>
+            </div>
+          </div>
+          <!-- Collection 2 -->
+          <div class="relative pt-12">
+            <div class="aspect-[4/5] overflow-hidden mb-6 ml-auto w-[90%]">
+              <img
+                alt="Artisan Leather"
+                class="w-full h-full object-cover"
+                data-alt="Handcrafted leather goods with artisanal textures"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzqPoI1p99IinFXsmVY-vy2H6ziVHRfEadoRMUTPVJAwmbrZ4QPA9mFxD9RTczeoBPjYHx8Xug6RDOAxNjRFBeHeGm2zebA_n3CCu70LMXMVbTBjyjNyXV1njgmDHcrkkwvDv5SEKhrz-WlwjyuvD0FWSx5JnT_9m0IbyVnJ4b2Ls5JlYuh6FIfSfhQJWcBf-UJNAS9Jvkjk_ekEyQsWFr4Wkh9E54Kbxv9svYy_8W-BhMSg4IzDzt1DMRXVjXo4-Wr1MIJq9yNDtp"
+              />
+            </div>
+            <div
+              class="absolute top-0 left-0 bg-white p-6 max-w-[80%] shadow-sm"
+            >
+              <h4 class="font-notoSerif text-xl tracking-tight italic mb-2">
+                Artisan Leather
+              </h4>
+              <p
+                class="font-inter text-[10px] tracking-[0.2em] text-neutral-400"
+              >
+                02 / VEGETABLE TANNED PRECISION
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Editorial Story Section -->
+      <section class="mt-32 px-8 py-24 bg-surface-container-low text-center">
+        <p class="font-inter text-[10px] tracking-[0.5em] text-secondary mb-6">
+          EST. 2024
+        </p>
+        <h2 class="font-notoSerif text-3xl leading-snug tracking-tighter mb-8">
+          Crafting a dialogue <br />
+          between tradition <br />
+          and the avant-garde.
+        </h2>
+        <p
+          class="font-inter text-sm text-neutral-500 leading-relaxed max-w-xs mx-auto mb-10"
+        >
+          SolitaireC represents the digital atelier—a curated space where
+          high-fashion craftsmanship meets modern utility.
+        </p>
+        <button
+          class="border border-black px-12 py-4 text-[10px] tracking-[0.3em] hover:bg-black hover:text-white transition-all"
+        >
+          OUR PHILOSOPHY
+        </button>
+      </section>
+      <!-- Newsletter Minimal -->
+      <section class="my-24 px-8">
+        <div class="border-t border-neutral-200 pt-16">
+          <h4 class="font-notoSerif text-lg tracking-tight mb-4">
+            JOIN THE ATELIER
+          </h4>
+          <p class="font-inter text-xs text-neutral-500 mb-8 tracking-wide">
+            Be the first to know about private launches and editorial releases.
+          </p>
+          <form class="flex border-b border-black pb-2">
+            <input
+              class="bg-transparent border-none focus:ring-0 w-full text-xs font-inter tracking-widest placeholder:text-neutral-300"
+              placeholder="Email Address"
+              type="email"
+            />
+            <button
+              class="text-[10px] tracking-[0.2em] font-medium"
+              type="submit"
+            >
+              SUBMIT
+            </button>
+          </form>
+        </div>
+      </section>
+      <!-- Footer Footer -->
+      <footer class="px-8 pb-32 pt-8 text-center border-t border-neutral-50">
+        <h5 class="font-notoSerif font-bold tracking-[0.4em] text-sm mb-12">
+          SOLITAIREC
+        </h5>
+        <div class="grid grid-cols-2 gap-8 text-left mb-16">
+          <div class="space-y-3">
+            <p class="font-inter text-[9px] tracking-[0.2em] text-neutral-400">
+              CLIENT SERVICE
+            </p>
+            <ul class="font-inter text-[11px] space-y-2">
+              <li>Shipping</li>
+              <li>Returns</li>
+              <li>Care Guide</li>
+            </ul>
+          </div>
+          <div class="space-y-3">
+            <p class="font-inter text-[9px] tracking-[0.2em] text-neutral-400">
+              SOCIAL
+            </p>
+            <ul class="font-inter text-[11px] space-y-2">
+              <li>Instagram</li>
+              <li>Journal</li>
+              <li>Editorial</li>
+            </ul>
+          </div>
+        </div>
+        <p
+          class="font-inter text-[9px] tracking-[0.2em] text-neutral-300 uppercase"
+        >
+          © 2024 SolitaireC Digital Atelier
+        </p>
+      </footer>
+    </main>
+    <!-- BottomNavBar -->
+    <nav
+      class="fixed bottom-0 left-0 w-full flex justify-around items-center py-3 pb-safe px-8 bg-white/90 backdrop-blur-xl z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] border-t border-neutral-100"
+    >
+      <!-- Active SHOP -->
+      <a
+        class="flex flex-col items-center justify-center text-black font-medium"
+        href="#"
+      >
+        <span class="material-symbols-outlined mb-1">storefront</span>
+        <span class="font-inter text-[10px] tracking-[0.15em] font-light"
+          >SHOP</span
+        >
+      </a>
+      <a
+        class="flex flex-col items-center justify-center text-neutral-400 hover:text-black active:scale-95 transition-all"
+        href="#"
+      >
+        <span class="material-symbols-outlined mb-1">shopping_bag</span>
+        <span class="font-inter text-[10px] tracking-[0.15em] font-light"
+          >BAG</span
+        >
+      </a>
+      <a
+        class="flex flex-col items-center justify-center text-neutral-400 hover:text-black active:scale-95 transition-all"
+        href="#"
+      >
+        <span class="material-symbols-outlined mb-1">person</span>
+        <span class="font-inter text-[10px] tracking-[0.15em] font-light"
+          >ACCOUNT</span
+        >
+      </a>
+    </nav>
+  </body>
+</html>

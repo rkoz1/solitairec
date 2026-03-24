@@ -1,5 +1,6 @@
 import { createClient, OAuthStrategy } from "@wix/sdk";
-import { currentCart, checkout } from "@wix/ecom";
+import { currentCart, checkout, orders } from "@wix/ecom";
+import { wishlist } from "@wix/stores";
 
 let clientInstance: ReturnType<typeof createClient> | null = null;
 let visitorTokenPromise: Promise<void> | null = null;
@@ -19,7 +20,7 @@ export function getBrowserWixClient() {
   }
 
   clientInstance = createClient({
-    modules: { currentCart, checkout },
+    modules: { currentCart, checkout, orders, wishlist },
     auth: OAuthStrategy({
       clientId,
       tokens: loadTokens() ?? undefined,
@@ -61,6 +62,14 @@ function loadTokens() {
   } catch {
     return null;
   }
+}
+
+/**
+ * Reset the singleton so the next call to getBrowserWixClient()
+ * creates a fresh client (e.g. after logout to drop member tokens).
+ */
+export function resetClient() {
+  clientInstance = null;
 }
 
 function saveTokens(tokens: unknown) {
