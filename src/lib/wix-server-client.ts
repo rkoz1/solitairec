@@ -1,7 +1,7 @@
 import { createClient } from "@wix/sdk";
 import { ApiKeyStrategy } from "@wix/sdk/auth/api-key";
 import { currentCart, checkout } from "@wix/ecom";
-import { products } from "@wix/stores";
+import { products, collections } from "@wix/stores";
 
 /**
  * Server-side Wix client — uses API Key auth.
@@ -14,7 +14,7 @@ export function getServerWixClient() {
   }
 
   return createClient({
-    modules: { products, currentCart, checkout },
+    modules: { products, collections, currentCart, checkout },
     auth: ApiKeyStrategy({
       apiKey: process.env.WIX_API_KEY,
       siteId: process.env.WIX_SITE_ID,
