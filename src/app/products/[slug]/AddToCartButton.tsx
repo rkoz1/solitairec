@@ -6,7 +6,10 @@ import {
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
 
+// Catalog V1 (products without variants)
 const WIX_STORES_APP_ID = "1380b703-ce81-ff05-f115-39571d94dfcd";
+// Catalog V3 (products with variant options like size/color)
+const WIX_STORES_V3_APP_ID = "215238eb-22a5-4c36-9e7b-e7c08025e04e";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -26,21 +29,35 @@ export default function AddToCartButton({
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      await wix.currentCart.addToCurrentCart({
+      const hasOptions =
+        selectedOptions && Object.keys(selectedOptions).length > 0;
+
+      const result = await wix.currentCart.addToCurrentCart({
         lineItems: [
           {
             catalogReference: {
               catalogItemId: productId,
-              appId: WIX_STORES_APP_ID,
-              options:
-                selectedOptions && Object.keys(selectedOptions).length > 0
-                  ? { options: selectedOptions }
-                  : undefined,
+              appId: hasOptions ? WIX_STORES_V3_APP_ID : WIX_STORES_APP_ID,
+              options: hasOptions
+                ? {
+                    options: selectedOptions,
+                    variantId: "00000000-0000-0000-0000-000000000000",
+                  }
+                : undefined,
             },
             quantity: 1,
           },
         ],
       });
+
+      // Verify the item was actually added (Wix may silently drop invalid items)
+      const addedItem = result.cart?.lineItems?.some(
+        (li: { catalogReference?: { catalogItemId?: string } }) =>
+          li.catalogReference?.catalogItemId === productId
+      );
+      if (!addedItem) {
+        throw new Error("Item was not added to cart. Please check size/variant selection.");
+      }
 
       window.dispatchEvent(new Event("cart-updated"));
       setAdded(true);

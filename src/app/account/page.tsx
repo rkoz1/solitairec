@@ -179,72 +179,17 @@ function OrdersTab() {
 }
 
 function WishlistTab() {
-  const [items, setItems] = useState<{ _id?: string; dateAdded?: Date | null }[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchWishlist() {
-      try {
-        const wix = getBrowserWixClient();
-        await ensureVisitorTokens(wix);
-        const result = await wix.wishlist.getWishlist();
-        setItems(result.items ?? []);
-        setTotalCount(result.totalCount ?? 0);
-      } catch (err) {
-        console.error("Failed to load wishlist:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchWishlist();
-  }, []);
-
-  if (loading) return <LoadingIndicator />;
-
-  if (items.length === 0) {
-    return (
-      <div className="mt-16 text-center">
-        <p className="text-sm leading-relaxed text-on-surface-variant">
-          Your wishlist is empty.
-        </p>
-        <Link
-          href="/"
-          className="mt-6 inline-block text-xs tracking-[0.15em] uppercase font-medium text-on-surface underline underline-offset-4"
-        >
-          Browse Collection
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <div className="mt-8">
-      <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary mb-6">
-        {totalCount} {totalCount === 1 ? "item" : "items"} saved
+    <div className="mt-16 text-center">
+      <p className="text-sm leading-relaxed text-on-surface-variant mb-6">
+        View and manage your saved items in your bag.
       </p>
-      {items.map((item) => (
-        <div
-          key={item._id}
-          className="flex items-center justify-between bg-surface-container-low px-5 py-5 mb-2"
-        >
-          <div>
-            <p className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface">
-              Saved Item
-            </p>
-            {item.dateAdded && (
-              <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
-                Added{" "}
-                {new Date(item.dateAdded).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </p>
-            )}
-          </div>
-        </div>
-      ))}
+      <Link
+        href="/cart?tab=wishlist"
+        className="text-xs tracking-[0.15em] uppercase font-medium text-on-surface underline underline-offset-4"
+      >
+        View Wishlist
+      </Link>
     </div>
   );
 }

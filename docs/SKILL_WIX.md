@@ -70,14 +70,24 @@ media.getScaledToFillImageUrl(wixMediaIdentifier, width, height, {});
 
 ## Known Gotchas
 
-1. **WIX_STORES_APP_ID is hardcoded:** `"1380b703-ce81-ff05-f115-39571d94dfcd"` — required in `catalogReference.appId` when adding items to cart. This is a Wix platform constant, not project-specific.
+1. **Two catalog app IDs for cart:** Products without variants use Catalog V1 appId `"1380b703-ce81-ff05-f115-39571d94dfcd"`. Products WITH variants (size, color, etc.) must use Catalog V3 appId `"215238eb-22a5-4c36-9e7b-e7c08025e04e"` — otherwise Wix silently drops the line item.
 
-2. **Options nesting:** Product options must be wrapped in a double-nested structure:
+2. **Options nesting + variantId:** Product options must be wrapped in a double-nested structure. For variant products, `variantId` is required (use `"00000000-0000-0000-0000-000000000000"` to let Wix resolve from selected options):
    ```typescript
+   // Products WITHOUT variants (e.g. necklaces)
    catalogReference: {
      catalogItemId: productId,
-     appId: WIX_STORES_APP_ID,
-     options: { options: selectedOptions }  // note the double nesting
+     appId: "1380b703-ce81-ff05-f115-39571d94dfcd",
+   }
+
+   // Products WITH variants (e.g. shoes with size/color)
+   catalogReference: {
+     catalogItemId: productId,
+     appId: "215238eb-22a5-4c36-9e7b-e7c08025e04e",
+     options: {
+       options: selectedOptions,  // e.g. { "Size": "38", "Color": "Yellow" }
+       variantId: "00000000-0000-0000-0000-000000000000",
+     }
    }
    ```
 
