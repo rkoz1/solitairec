@@ -40,7 +40,10 @@
       "Bash(find C:/dev/solitairec/node_modules/@wix -type d -name *contact*)",
       "Bash(grep -r \"getCurrentProfile\\\\|getProfile\\\\|members\\\\|contacts\" C:/dev/solitairec/node_modules/@wix/sdk/dist --include=*.d.ts)",
       "mcp__linear-server__get_issue",
-      "Bash(find C:devsolitairecnode_modules@wixauto_sdk_stores_wishlist -type f -name *.d.ts)"
+      "Bash(find C:devsolitairecnode_modules@wixauto_sdk_stores_wishlist -type f -name *.d.ts)",
+      "WebFetch(domain:www.solitairec.com)",
+      "Bash(grep -r \"loyalty\\\\|rewards\\\\|points\\\\|tier\" /c/dev/solitairec/node_modules/@wix --include=*.d.ts --include=*.d.mts)",
+      "Bash(grep -n \"interface.*Signature\\\\|declare const members$\\\\|^export const members\" /c/dev/solitairec/node_modules/@wix/auto_sdk_members_members/build/es/index.d.mts)"
     ]
   }
 }
