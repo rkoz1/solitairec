@@ -1,19 +1,18 @@
-import { getServerWixClient } from "@/lib/wix-server-client";
-import ProductCard from "@/components/ProductCard";
-
 export const dynamic = "force-dynamic";
 
-const shoeKeywords = ["shoe", "sneaker", "boot", "loafer", "sandal", "heel"];
-const bagKeywords = ["bag", "tote", "clutch", "purse", "backpack", "satchel"];
+import Link from "next/link";
+import ProductCard from "@/components/ProductCard";
+import HeroCarousel from "@/components/HeroCarousel";
+import {
+  getFeaturedCollection,
+  getCollectionProducts,
+  getHomeSections,
+} from "@/lib/collections";
+import { getWixImageUrl } from "@/lib/wix-image";
 
-function matchesKeywords(name: string, keywords: string[]) {
-  const lower = name.toLowerCase();
-  return keywords.some((kw) => lower.includes(kw));
-}
-
-function SectionHeading({ title, id }: { title: string; id?: string }) {
+function SectionHeading({ title }: { title: string }) {
   return (
-    <div className="pt-28 pb-10" id={id}>
+    <div className="pt-28 pb-10">
       <h2 className="font-serif italic text-2xl tracking-tight text-on-surface">
         {title}
       </h2>
@@ -52,53 +51,73 @@ function ProductGrid({
 }
 
 export default async function HomePage() {
-  const wix = getServerWixClient();
+  // Fetch featured collection + home sections in parallel
+  const [featured, sections] = await Promise.all([
+    getFeaturedCollection(),
+    getHomeSections(),
+  ]);
 
-  const { items } = await wix.products.queryProducts().limit(12).find();
+  // Fetch featured products if collection exists
+  const featuredProducts = featured?._id
+    ? await getCollectionProducts(featured._id, 4)
+    : [];
 
-  if (items.length === 0) {
-    return (
-      <section className="px-5">
-        <SectionHeading title="New Arrivals" />
-        <p className="text-on-surface-variant text-sm">
-          No products found. Make sure your Wix credentials are configured in
-          .env.local and you have products in your Wix store.
-        </p>
-      </section>
-    );
-  }
-
-  const shoes = items.filter((p) =>
-    matchesKeywords(p.name ?? "", shoeKeywords)
-  );
-  const bags = items.filter((p) => matchesKeywords(p.name ?? "", bagKeywords));
-  const arrivals = items.filter(
-    (p) =>
-      !matchesKeywords(p.name ?? "", shoeKeywords) &&
-      !matchesKeywords(p.name ?? "", bagKeywords)
+  // Fetch products for each home section in parallel
+  const sectionData = await Promise.all(
+    sections.map(async (section) => ({
+      ...section,
+      products: await getCollectionProducts(section._id, 6),
+    }))
   );
 
   return (
     <section className="px-5">
-      {arrivals.length > 0 && (
-        <>
-          <SectionHeading title="New Arrivals" />
-          <ProductGrid products={arrivals} />
-        </>
+      {/* Hero — Featured products carousel */}
+      {featuredProducts.length > 0 && (
+        <div className="pt-4">
+          <HeroCarousel
+            items={featuredProducts.map((p) => ({
+              slug: p.slug ?? p._id ?? "",
+              name: p.name ?? "Product",
+              price: p.priceData?.formatted?.price ?? "",
+              imageUrl: getWixImageUrl(
+                p.media?.mainMedia?.image?.url,
+                1200,
+                1600
+              ),
+            }))}
+          />
+        </div>
       )}
 
-      {shoes.length > 0 && (
-        <>
-          <SectionHeading title="Shoes" id="shoes" />
-          <ProductGrid products={shoes} />
-        </>
+      {/* Category sections */}
+      {sectionData.map(
+        (section) =>
+          section.products.length > 0 && (
+            <div key={section._id}>
+              <SectionHeading title={section.name} />
+              <ProductGrid products={section.products} />
+              <div className="mt-8 text-center">
+                <Link
+                  href={`/collections/${section.slug}`}
+                  className="text-xs tracking-[0.15em] uppercase font-medium text-on-surface underline underline-offset-4 hover:text-secondary transition-colors"
+                >
+                  View All {section.name}
+                </Link>
+              </div>
+            </div>
+          )
       )}
 
-      {bags.length > 0 && (
-        <>
-          <SectionHeading title="Bags" id="bags" />
-          <ProductGrid products={bags} />
-        </>
+      {/* Fallback if nothing loaded */}
+      {featuredProducts.length === 0 && sectionData.every((s) => s.products.length === 0) && (
+        <div className="pt-12">
+          <SectionHeading title="Welcome" />
+          <p className="text-on-surface-variant text-sm">
+            No products found. Make sure your Wix credentials are configured
+            and you have products in your Wix store collections.
+          </p>
+        </div>
       )}
     </section>
   );
