@@ -52,7 +52,8 @@ export default function RootLayout({
               </span>
             </Link>
 
-            <CartBadge />
+            {/* Right side reserved for future search icon (SOL-9) */}
+            <div className="w-10 h-10" />
           </nav>
         </header>
 

@@ -38,15 +38,8 @@ export default function NavigationDrawer() {
           SOLITAIREC
         </span>
 
-        <Link
-          href="/cart"
-          className="flex items-center justify-center w-10 h-10"
-          onClick={() => setOpen(false)}
-        >
-          <span className="material-symbols-outlined text-on-surface">
-            shopping_bag
-          </span>
-        </Link>
+        {/* Right side reserved for future search icon (SOL-9) */}
+        <div className="w-10 h-10" />
       </div>
 
       {/* Navigation links */}

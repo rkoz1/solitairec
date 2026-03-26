@@ -38,7 +38,9 @@
       "Bash(xargs head:*)",
       "Bash(find C:/dev/solitairec/node_modules/@wix/authentication -name *.d.ts -type f)",
       "Bash(find C:/dev/solitairec/node_modules/@wix -type d -name *contact*)",
-      "Bash(grep -r \"getCurrentProfile\\\\|getProfile\\\\|members\\\\|contacts\" C:/dev/solitairec/node_modules/@wix/sdk/dist --include=*.d.ts)"
+      "Bash(grep -r \"getCurrentProfile\\\\|getProfile\\\\|members\\\\|contacts\" C:/dev/solitairec/node_modules/@wix/sdk/dist --include=*.d.ts)",
+      "mcp__linear-server__get_issue",
+      "Bash(find C:devsolitairecnode_modules@wixauto_sdk_stores_wishlist -type f -name *.d.ts)"
     ]
   }
 }
