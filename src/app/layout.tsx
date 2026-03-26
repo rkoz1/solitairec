@@ -3,6 +3,7 @@ import { Noto_Serif, Inter } from "next/font/google";
 import Link from "next/link";
 import NavigationDrawer from "@/components/NavigationDrawer";
 import CartBadge from "@/components/CartBadge";
+import SearchOverlay from "@/components/SearchOverlay";
 import NavigationLoader from "@/components/NavigationLoader";
 import "./globals.css";
 
@@ -52,8 +53,7 @@ export default function RootLayout({
               </span>
             </Link>
 
-            {/* Right side reserved for future search icon (SOL-9) */}
-            <div className="w-10 h-10" />
+            <SearchOverlay />
           </nav>
         </header>
 
