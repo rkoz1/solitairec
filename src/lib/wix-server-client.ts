@@ -2,6 +2,12 @@ import { createClient } from "@wix/sdk";
 import { ApiKeyStrategy } from "@wix/sdk/auth/api-key";
 import { currentCart, checkout } from "@wix/ecom";
 import { products, collections } from "@wix/stores";
+import {
+  programs as loyaltyPrograms,
+  earningRules,
+  rewards as loyaltyRewards,
+  tiers as loyaltyTiers,
+} from "@wix/loyalty";
 
 /**
  * Server-side Wix client — uses API Key auth.
@@ -14,7 +20,16 @@ export function getServerWixClient() {
   }
 
   return createClient({
-    modules: { products, collections, currentCart, checkout },
+    modules: {
+      products,
+      collections,
+      currentCart,
+      checkout,
+      loyaltyPrograms,
+      earningRules,
+      loyaltyRewards,
+      loyaltyTiers,
+    },
     auth: ApiKeyStrategy({
       apiKey: process.env.WIX_API_KEY,
       siteId: process.env.WIX_SITE_ID,

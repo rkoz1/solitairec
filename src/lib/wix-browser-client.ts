@@ -1,5 +1,7 @@
 import { createClient, OAuthStrategy } from "@wix/sdk";
 import { currentCart, checkout, orders } from "@wix/ecom";
+import { accounts as loyaltyAccounts, transactions as loyaltyTransactions } from "@wix/loyalty";
+import { members } from "@wix/members";
 
 let clientInstance: ReturnType<typeof createClient> | null = null;
 let visitorTokenPromise: Promise<void> | null = null;
@@ -19,7 +21,7 @@ export function getBrowserWixClient() {
   }
 
   clientInstance = createClient({
-    modules: { currentCart, checkout, orders },
+    modules: { currentCart, checkout, orders, loyaltyAccounts, loyaltyTransactions, members },
     auth: OAuthStrategy({
       clientId,
       tokens: loadTokens() ?? undefined,
