@@ -7,59 +7,66 @@ import { getWixImageUrl } from "./wix-image";
 /*  Names must match exactly what's in the Wix dashboard.             */
 /* ------------------------------------------------------------------ */
 
+// Display names for categories (when Wix name differs from what we want to show)
+export const DISPLAY_NAMES: Record<string, string> = {
+  Top: "Tops",
+  Tee: "Tees",
+  Blouse: "Blouses",
+  "Vest & Camisoles": "Vests & Camisoles",
+  Outer: "Outers",
+  "Overalls & Jumpsuits": "Jumpsuits & Overalls",
+  Belt: "Belts",
+  Bags: "Handbags",
+};
+
+export function displayName(wixName: string): string {
+  return DISPLAY_NAMES[wixName] ?? wixName;
+}
+
 export const CATEGORY_HIERARCHY: {
   name: string;
   children?: string[];
 }[] = [
   { name: "New Arrivals" },
+  { name: "Bags" },
   {
-    name: "Tops",
+    name: "Top",
     children: [
-      "Blouses",
+      "Blouse",
       "Cardigans",
       "Knitwear",
       "Shirts & Polos",
-      "Tees",
-      "Vests & Camisoles",
+      "Tee",
+      "Vest & Camisoles",
     ],
   },
   {
-    name: "Dresses",
-    children: [
-      "Sleeveless dress",
-      "Skirts",
-      "Midi dress",
-      "Slipdress",
-    ],
-  },
-  {
-    name: "Trousers",
+    name: "Bottoms",
     children: [
       "Casual pants",
       "Formal trousers",
       "Denim trousers",
       "Shorts",
-      "Jumpsuits & Overalls",
+      "Overalls & Jumpsuits",
     ],
   },
   {
-    name: "Outers",
+    name: "Dresses",
+    children: ["Sleeveless dress", "Skirts", "Midi dress", "Slipdress"],
+  },
+
+  {
+    name: "Outer",
     children: ["Cardigans", "Blazers & Jackets"],
   },
-  { name: "Handbags" },
+
   {
     name: "Shoes",
-    children: [
-      "Mary Janes",
-      "Sandals",
-      "Loafers",
-      "Heels",
-      "Boots",
-    ],
+    children: ["Mary Janes", "Sandals", "Loafers", "Heels", "Boots"],
   },
   {
     name: "Accessories",
-    children: ["Necklaces", "Earrings", "Belts"],
+    children: ["Necklaces", "Earrings", "Belt"],
   },
 ];
 
@@ -91,7 +98,7 @@ export interface NavCategory {
 
 export async function getAllCollections(): Promise<CollectionInfo[]> {
   const wix = getServerWixClient();
-  const { items } = await wix.collections.queryCollections().limit(50).find();
+  const { items } = await wix.collections.queryCollections().limit(100).find();
 
   return items
     .filter((c) => c.name && !EXCLUDED_NAMES.includes(c.name))
@@ -108,7 +115,7 @@ export async function getAllCollections(): Promise<CollectionInfo[]> {
 
 export async function getCollectionProducts(
   collectionId: string,
-  limit: number = 20
+  limit: number = 20,
 ) {
   const wix = getServerWixClient();
   const { items } = await wix.products
@@ -178,7 +185,9 @@ export async function getHomeSections() {
   const byName = new Map(all.map((c) => [c.name, c]));
 
   // Show these categories on the home page (in order)
-  const HOME_SECTIONS = ["New Arrivals", "Tops", "Dresses", "Shoes", "Accessories"];
+  const HOME_SECTIONS = ["New Arrivals", "Top", "Bags", "Shoes", "Dresses"];
 
-  return HOME_SECTIONS.map((name) => byName.get(name)).filter(Boolean) as CollectionInfo[];
+  return HOME_SECTIONS.map((name) => byName.get(name)).filter(
+    Boolean,
+  ) as CollectionInfo[];
 }
