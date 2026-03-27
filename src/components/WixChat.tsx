@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import {
   initChat,
   sendChatMessage,
+  getUploadUrl,
+  sendChatAttachment,
   listChatMessages,
   type ChatMessage,
+  type BusinessInfo,
 } from "@/app/chat/actions";
 import { isLoggedIn } from "@/lib/wix-auth";
 import {
@@ -14,11 +18,18 @@ import {
 } from "@/lib/wix-browser-client";
 
 const CONV_KEY_PREFIX = "solitairec_chat_conv_";
+
+// Business hours: 9am–6pm HKT (UTC+8), Monday–Saturday
+function isBusinessHours(): boolean {
+  const now = new Date();
+  const hkt = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Hong_Kong" }));
+  const day = hkt.getDay(); // 0=Sun
+  const hour = hkt.getHours();
+  return day >= 1 && day <= 6 && hour >= 9 && hour < 18;
+}
 const POLL_INTERVAL = 5000;
 
 function getConvKey(): string {
-  // Scope the cache to the current auth state so logged-in users
-  // don't see anonymous conversations and vice versa
   const tokens = localStorage.getItem("wix_tokens");
   if (tokens) {
     try {
@@ -34,6 +45,23 @@ function getConvKey(): string {
 
 export default function WixChat() {
   const [open, setOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const pathname = usePathname();
+
+  // Close chat on route change or when another overlay opens
+  useEffect(() => {
+    setOpen(false);
+    setFullscreen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handler = () => {
+      setOpen(false);
+      setFullscreen(false);
+    };
+    window.addEventListener("overlay-opened", handler);
+    return () => window.removeEventListener("overlay-opened", handler);
+  }, []);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -42,7 +70,10 @@ export default function WixChat() {
   const [needsContact, setNeedsContact] = useState(false);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [business, setBusiness] = useState<BusinessInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -54,7 +85,6 @@ export default function WixChat() {
     if (!open) return;
 
     async function init() {
-      // Check for cached conversation
       const cached = localStorage.getItem(getConvKey());
       if (cached) {
         setConversationId(cached);
@@ -69,7 +99,6 @@ export default function WixChat() {
         return;
       }
 
-      // Logged-in member — pre-fill name/email and auto-start
       if (isLoggedIn()) {
         setLoading(true);
         try {
@@ -78,7 +107,6 @@ export default function WixChat() {
           const memberResponse = await wix.members.getCurrentMember({
             fieldsets: ["FULL"],
           });
-          // Response may be { member: {...} } or the member directly
           const member = (memberResponse as unknown as { member?: Record<string, unknown> }).member ?? memberResponse;
           const m = member as Record<string, unknown>;
           const contact = m.contact as Record<string, unknown> | undefined;
@@ -89,12 +117,11 @@ export default function WixChat() {
           if (name && email) {
             const result = await initChat({ name, email });
             setConversationId(result.conversationId);
+            if (result.business) setBusiness(result.business);
             localStorage.setItem(getConvKey(), result.conversationId);
-            // Load existing messages
             const msgs = await listChatMessages(result.conversationId);
             setMessages(msgs);
           } else {
-            // Missing info — show form
             setContactName(name);
             setContactEmail(email);
             setNeedsContact(true);
@@ -107,7 +134,6 @@ export default function WixChat() {
         return;
       }
 
-      // Anonymous visitor — show contact form
       setNeedsContact(true);
     }
     init();
@@ -123,6 +149,7 @@ export default function WixChat() {
         email: contactEmail.trim(),
       });
       setConversationId(result.conversationId);
+      if (result.business) setBusiness(result.business);
       localStorage.setItem(getConvKey(), result.conversationId);
     } catch (err) {
       console.error("Failed to start chat:", err);
@@ -149,10 +176,18 @@ export default function WixChat() {
     };
   }, [open, conversationId]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
+    // Small delay to allow images to render before scrolling
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
   }, [messages, scrollToBottom]);
+
+  // Auto-focus input when conversation is ready
+  useEffect(() => {
+    if (open && conversationId && !loading && !needsContact) {
+      setTimeout(() => chatInputRef.current?.focus(), 50);
+    }
+  }, [open, conversationId, loading, needsContact]);
 
   async function handleSend() {
     if (!input.trim() || !conversationId || sending) return;
@@ -161,7 +196,6 @@ export default function WixChat() {
     setInput("");
     setSending(true);
 
-    // Optimistic update
     const tempMsg: ChatMessage = {
       _id: `temp-${Date.now()}`,
       text,
@@ -172,11 +206,71 @@ export default function WixChat() {
 
     try {
       await sendChatMessage(conversationId, text);
-      // Refresh to get the real message
       const msgs = await listChatMessages(conversationId);
       setMessages(msgs);
     } catch (err) {
       console.error("Failed to send message:", err);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !conversationId) return;
+    e.target.value = "";
+
+    const isImage = file.type.startsWith("image/");
+    setSending(true);
+
+    // Optimistic update — show local preview for images, filename for files
+    const tempId = `temp-${Date.now()}`;
+    const localPreview = isImage ? URL.createObjectURL(file) : undefined;
+    const tempMsg: ChatMessage = {
+      _id: tempId,
+      text: isImage ? "Uploading..." : `Uploading ${file.name}...`,
+      imageUrl: localPreview,
+      direction: "PARTICIPANT_TO_BUSINESS",
+      createdDate: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempMsg]);
+
+    try {
+      // 1. Get upload URL from Wix Media
+      const { uploadUrl } = await getUploadUrl(file.type, file.name);
+
+      // 2. PUT file to Wix upload URL
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) throw new Error("Upload failed");
+
+      const uploadResult = await uploadResponse.json();
+      // Wix returns the file descriptor with the URL
+      const mediaUrl =
+        uploadResult.file?.url ??
+        uploadResult.fileDescriptors?.[0]?.url ??
+        uploadResult.url ??
+        "";
+
+      if (!mediaUrl) throw new Error("No media URL returned");
+
+      // 3. Send message with the Wix media URL
+      await sendChatAttachment(conversationId, mediaUrl, file.name, isImage);
+
+      // Clean up local preview
+      if (localPreview) URL.revokeObjectURL(localPreview);
+
+      const msgs = await listChatMessages(conversationId);
+      setMessages(msgs);
+    } catch (err) {
+      console.error("Failed to send attachment:", err);
+      // Remove temp message on failure
+      setMessages((prev) => prev.filter((m) => m._id !== tempId));
+      if (localPreview) URL.revokeObjectURL(localPreview);
     } finally {
       setSending(false);
     }
@@ -188,35 +282,73 @@ export default function WixChat() {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
+  // Panel sizing
+  const panelClass = fullscreen
+    ? "fixed inset-0 z-[60] bg-white flex flex-col"
+    : "fixed right-4 bottom-[7.5rem] z-[51] w-80 h-[28rem] bg-white shadow-2xl flex flex-col";
+
   return (
     <>
       {/* Chat button */}
-      <button
-        onClick={() => setOpen(!open)}
-        aria-label={open ? "Close chat" : "Chat with us"}
-        className="fixed right-4 bottom-20 z-[51] w-12 h-12 bg-on-surface text-on-primary flex items-center justify-center shadow-lg transition-all active:scale-95 hover:bg-secondary"
-      >
-        <span className="material-symbols-outlined text-[22px]">
-          {open ? "close" : "chat"}
-        </span>
-      </button>
+      {!fullscreen && (
+        <button
+          onClick={() => setOpen(!open)}
+          aria-label={open ? "Close chat" : "Chat with us"}
+          className="fixed right-4 bottom-20 z-[51] w-12 h-12 bg-on-surface text-on-primary flex items-center justify-center shadow-lg transition-all active:scale-95 hover:bg-secondary"
+        >
+          <span className="material-symbols-outlined text-[22px]">
+            {open ? "close" : "chat"}
+          </span>
+        </button>
+      )}
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed right-4 bottom-[7.5rem] z-[51] w-80 h-[28rem] bg-white shadow-2xl flex flex-col">
+        <div className={panelClass}>
           {/* Header */}
           <div className="bg-on-surface px-4 py-3 flex items-center justify-between shrink-0">
-            <span className="font-serif font-bold text-xs tracking-[0.2em] text-on-primary">
-              SOLITAIREC
-            </span>
-            <button
-              onClick={() => setOpen(false)}
-              className="text-on-primary/70 hover:text-on-primary transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px]">
-                close
-              </span>
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                {business?.avatar ? (
+                  <img src={business.avatar} alt="" className="w-8 h-8 object-cover" />
+                ) : (
+                  <div className="w-8 h-8 bg-on-primary/20 flex items-center justify-center">
+                    <span className="font-serif font-bold text-[10px] text-on-primary">S</span>
+                  </div>
+                )}
+                <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-on-surface ${isBusinessHours() ? "bg-green-400" : "bg-on-primary/30"}`} style={{ borderRadius: "50%" }} />
+              </div>
+              <div>
+                <p className="font-serif font-bold text-xs tracking-[0.15em] text-on-primary">
+                  {business?.name ?? "SOLITAIREC"}
+                </p>
+                <p className="text-[9px] text-on-primary/60">
+                  Typically replies within a few hours
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setFullscreen(!fullscreen)}
+                className="text-on-primary/70 hover:text-on-primary transition-colors"
+                aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {fullscreen ? "close_fullscreen" : "open_in_full"}
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setFullscreen(false);
+                }}
+                className="text-on-primary/70 hover:text-on-primary transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  close
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -228,7 +360,7 @@ export default function WixChat() {
                 </span>
               </div>
             ) : needsContact ? (
-              <div className="pt-4 space-y-3">
+              <div className={`pt-4 space-y-3 ${fullscreen ? "max-w-md mx-auto w-full" : ""}`}>
                 <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary">
                   Before we chat
                 </p>
@@ -259,46 +391,97 @@ export default function WixChat() {
                 Send us a message and we will get back to you.
               </p>
             ) : (
-              messages.map((msg) => {
-                const isMe = msg.direction === "PARTICIPANT_TO_BUSINESS";
-                return (
-                  <div
-                    key={msg._id}
-                    className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                  >
+              <div className={fullscreen ? "max-w-2xl mx-auto w-full space-y-3" : "space-y-3"}>
+                {messages.map((msg) => {
+                  const isMe = msg.direction === "PARTICIPANT_TO_BUSINESS";
+                  const isTemp = msg._id.startsWith("temp-");
+                  return (
                     <div
-                      className={`max-w-[75%] px-3 py-2 ${
-                        isMe
-                          ? "bg-on-surface text-on-primary"
-                          : "bg-surface-container-low text-on-surface"
-                      }`}
+                      key={msg._id}
+                      className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                     >
-                      <p className="text-xs leading-relaxed">{msg.text}</p>
-                      <p
-                        className={`text-[9px] mt-1 ${
-                          isMe ? "text-on-primary/50" : "text-on-surface-variant"
+                      <div
+                        className={`max-w-[75%] px-3 py-2 ${
+                          isMe
+                            ? "bg-on-surface text-on-primary"
+                            : "bg-surface-container-low text-on-surface"
                         }`}
                       >
-                        {formatTime(msg.createdDate)}
-                      </p>
+                        {msg.imageUrl ? (
+                          <div className="relative">
+                            {isTemp ? (
+                              <img
+                                src={msg.imageUrl}
+                                alt={msg.text}
+                                className="max-w-full max-h-40 object-contain opacity-60"
+                              />
+                            ) : (
+                              <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={msg.imageUrl}
+                                  alt={msg.text}
+                                  className="max-w-full max-h-40 object-contain"
+                                />
+                              </a>
+                            )}
+                            {isTemp && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="font-serif text-sm text-white animate-brand-pulse">
+                                  S
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className={`text-xs leading-relaxed whitespace-pre-wrap ${isTemp ? "opacity-60" : ""}`}>
+                            {msg.text}
+                          </p>
+                        )}
+                        <p
+                          className={`text-[9px] mt-1 ${
+                            isMe ? "text-on-primary/50" : "text-on-surface-variant"
+                          }`}
+                        >
+                          {isTemp ? "Sending..." : formatTime(msg.createdDate)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
-          <div className="shrink-0 px-3 py-2 border-t border-outline-variant/20">
+          <div className={`shrink-0 px-3 py-2 border-t border-outline-variant/20 ${fullscreen ? "max-w-2xl mx-auto w-full" : ""}`}>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSend();
               }}
-              className="flex gap-2"
+              className="flex items-center gap-1"
             >
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!conversationId || loading || sending}
+                className="text-on-surface-variant hover:text-on-surface disabled:text-on-surface-variant/30 transition-colors shrink-0"
+                aria-label="Attach file"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  attach_file
+                </span>
+              </button>
               <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.txt"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <input
+                ref={chatInputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -309,7 +492,7 @@ export default function WixChat() {
               <button
                 type="submit"
                 disabled={!input.trim() || sending || !conversationId}
-                className="text-on-surface disabled:text-on-surface-variant/30 transition-colors"
+                className="text-on-surface disabled:text-on-surface-variant/30 transition-colors shrink-0"
               >
                 <span className="material-symbols-outlined text-[20px]">
                   send
@@ -322,3 +505,4 @@ export default function WixChat() {
     </>
   );
 }
+
