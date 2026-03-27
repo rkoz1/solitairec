@@ -9,6 +9,8 @@ import {
   tiers as loyaltyTiers,
 } from "@wix/loyalty";
 import { contacts } from "@wix/crm";
+import { conversations, messages } from "@wix/inbox";
+import { files } from "@wix/media";
 
 /**
  * Server-side Wix client — uses API Key auth.
@@ -32,6 +34,9 @@ export function getServerWixClient() {
       loyaltyTiers,
       contacts,
       recommendations,
+      conversations,
+      messages,
+      files,
     },
     auth: ApiKeyStrategy({
       apiKey: process.env.WIX_API_KEY,

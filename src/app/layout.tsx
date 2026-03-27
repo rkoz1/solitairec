@@ -5,6 +5,7 @@ import NavigationDrawer from "@/components/NavigationDrawer";
 import CartBadge from "@/components/CartBadge";
 import SearchOverlay from "@/components/SearchOverlay";
 import NavigationLoader from "@/components/NavigationLoader";
+import WixChat from "@/components/WixChat";
 import "./globals.css";
 
 const notoSerif = Noto_Serif({
@@ -59,6 +60,9 @@ export default function RootLayout({
 
         {/* Main content with padding for fixed header/footer */}
         <main className="flex-1 pt-16 pb-24">{children}</main>
+
+        {/* Chat widget */}
+        <WixChat />
 
         {/* Fixed bottom navigation */}
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-surface-container-high/40">

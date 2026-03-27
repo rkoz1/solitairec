@@ -169,7 +169,10 @@ export default function NavigationDrawer() {
         type="button"
         aria-label="Menu"
         className="flex items-center justify-center w-10 h-10"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          window.dispatchEvent(new Event("overlay-opened"));
+        }}
       >
         <span className="material-symbols-outlined text-on-surface">menu</span>
       </button>

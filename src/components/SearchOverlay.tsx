@@ -182,7 +182,10 @@ export default function SearchOverlay() {
         type="button"
         aria-label="Search"
         className="flex items-center justify-center w-10 h-10"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          window.dispatchEvent(new Event("overlay-opened"));
+        }}
       >
         <span className="material-symbols-outlined text-[22px] text-on-surface">
           search
