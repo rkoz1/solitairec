@@ -25,48 +25,64 @@ let cachedProducts: CatalogProduct[] = [];
 let cacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
+let refreshing = false;
+
+async function refreshCatalog() {
+  if (refreshing) return;
+  refreshing = true;
+  try {
+    const wix = getServerWixClient();
+    const allProducts: CatalogProduct[] = [];
+    let offset = 0;
+    const PAGE_SIZE = 100;
+
+    while (true) {
+      const { items } = await wix.products
+        .queryProducts()
+        .limit(PAGE_SIZE)
+        .skip(offset)
+        .find();
+
+      for (const p of items) {
+        allProducts.push({
+          _id: p._id ?? "",
+          name: p.name ?? "",
+          nameLower: (p.name ?? "").toLowerCase(),
+          slug: p.slug ?? "",
+          price: p.priceData?.formatted?.price ?? "",
+          imageUrl: getWixImageUrl(p.media?.mainMedia?.image?.url, 200, 267),
+          descriptionLower: (p.description ?? "").toLowerCase(),
+        });
+      }
+
+      if (items.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    cachedProducts = allProducts;
+    cacheTime = Date.now();
+  } finally {
+    refreshing = false;
+  }
+}
+
 async function getProductCatalog() {
-  if (cachedProducts.length > 0 && Date.now() - cacheTime < CACHE_TTL) {
+  const expired = Date.now() - cacheTime > CACHE_TTL;
+
+  // Stale cache: serve it but refresh in background
+  if (cachedProducts.length > 0 && expired) {
+    refreshCatalog();
     return cachedProducts;
   }
 
-  const wix = getServerWixClient();
-  const allProducts: CatalogProduct[] = [];
-  let offset = 0;
-  const PAGE_SIZE = 100;
-
-  while (true) {
-    const { items } = await wix.products
-      .queryProducts()
-      .limit(PAGE_SIZE)
-      .skip(offset)
-      .find();
-
-    for (const p of items) {
-      allProducts.push({
-        _id: p._id ?? "",
-        name: p.name ?? "",
-        nameLower: (p.name ?? "").toLowerCase(),
-        slug: p.slug ?? "",
-        price: p.priceData?.formatted?.price ?? "",
-        imageUrl: getWixImageUrl(p.media?.mainMedia?.image?.url, 200, 267),
-        descriptionLower: (p.description ?? "").toLowerCase(),
-      });
-    }
-
-    if (items.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
+  // Fresh cache: serve directly
+  if (cachedProducts.length > 0) {
+    return cachedProducts;
   }
 
-  cachedProducts = allProducts;
-  cacheTime = Date.now();
+  // Cold start: must wait
+  await refreshCatalog();
   return cachedProducts;
-}
-
-/** Call this to warm the cache (e.g., on app start or via cron). */
-export async function warmSearchCache(): Promise<{ count: number }> {
-  const catalog = await getProductCatalog();
-  return { count: catalog.length };
 }
 
 export async function searchProducts(
