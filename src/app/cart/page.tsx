@@ -116,22 +116,37 @@ function BagTab() {
     }
   }
 
+  const [checkingOut, setCheckingOut] = useState(false);
+
   async function handleCheckout() {
+    setCheckingOut(true);
     try {
       const wix = getBrowserWixClient();
-      const result =
-        await wix.currentCart.createCheckoutFromCurrentCart({
-          channelType: "WEB",
-        });
+      await ensureVisitorTokens(wix);
+
+      const result = await wix.currentCart.createCheckoutFromCurrentCart({
+        channelType: "WEB",
+      });
       const checkoutId = result.checkoutId;
       if (!checkoutId) throw new Error("No checkout ID returned");
-      const urlResult = await wix.checkout.getCheckoutUrl(checkoutId);
-      if (!urlResult.checkoutUrl) throw new Error("No checkout URL returned");
+
+      const { redirectSession } = await wix.redirects.createRedirectSession({
+        ecomCheckout: { checkoutId },
+        callbacks: {
+          thankYouPageUrl: `${window.location.origin}/order-confirmation`,
+          postFlowUrl: `${window.location.origin}/cart`,
+        },
+      });
+
+      const redirectUrl = redirectSession?.fullUrl;
+      if (!redirectUrl) throw new Error("No redirect URL returned");
+
       window.dispatchEvent(new Event("cart-updated"));
-      window.location.href = urlResult.checkoutUrl;
+      window.location.href = redirectUrl;
     } catch (error) {
-      console.error("Failed to create checkout:", error);
+      console.error("Failed to start checkout:", error);
       alert("Failed to proceed to checkout. Please try again.");
+      setCheckingOut(false);
     }
   }
 
@@ -223,9 +238,10 @@ function BagTab() {
       <div className="pt-10">
         <button
           onClick={handleCheckout}
-          className="w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98]"
+          disabled={checkingOut}
+          className="w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
         >
-          Proceed to Checkout
+          {checkingOut ? "Redirecting..." : "Proceed to Checkout"}
         </button>
         <div className="mt-6 text-center">
           <Link
