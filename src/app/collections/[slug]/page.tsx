@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { getCollectionBySlug, getCollectionProducts } from "@/lib/collections";
+import { getCollectionBySlug, getCollectionProducts, displayName } from "@/lib/collections";
 import ProductCard from "@/components/ProductCard";
 
 interface Props {
@@ -20,7 +20,7 @@ export default async function CollectionPage({ params }: Props) {
     <section className="px-5">
       <div className="pt-12 pb-10">
         <h1 className="font-serif italic text-2xl tracking-tight text-on-surface">
-          {collection.name}
+          {displayName(collection.name ?? "")}
         </h1>
         <div className="mt-3 w-12 h-[2px] bg-secondary" />
       </div>

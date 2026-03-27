@@ -50,7 +50,8 @@
       "mcp__linear-server__save_comment",
       "Bash(grep -r \"emailSubscriptions\\\\|subscription.*status\" node_modules/@wix/contacts/build --include=*.d.ts)",
       "Bash(find src:*)",
-      "Bash(grep -r \"contacts\\\\|email.*subscri\\\\|newsletter\" src --include=*.ts --include=*.tsx)"
+      "Bash(grep -r \"contacts\\\\|email.*subscri\\\\|newsletter\" src --include=*.ts --include=*.tsx)",
+      "Bash(grep -r collectionIds /c/dev/solitairec/node_modules/@wix/auto_sdk_stores_products*)"
     ]
   }
 }

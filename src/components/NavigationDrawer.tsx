@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { fetchNavCategories } from "@/app/collections/actions";
+import { displayName } from "@/lib/collections";
 import type { NavCategory } from "@/lib/collections";
 
 export default function NavigationDrawer() {
@@ -67,7 +68,7 @@ export default function NavigationDrawer() {
                   onClick={close}
                   className="flex-1 py-4 font-serif text-lg tracking-tight text-on-surface"
                 >
-                  {cat.name}
+                  {displayName(cat.name)}
                 </Link>
                 {hasChildren && (
                   <button
@@ -93,7 +94,7 @@ export default function NavigationDrawer() {
                     onClick={close}
                     className="block py-2 text-sm tracking-wide text-on-surface-variant hover:text-on-surface transition-colors"
                   >
-                    All {cat.name}
+                    All {displayName(cat.name)}
                   </Link>
                   {cat.children!.map((child) => (
                     <Link
@@ -102,7 +103,7 @@ export default function NavigationDrawer() {
                       onClick={close}
                       className="block py-2 text-sm tracking-wide text-on-surface-variant hover:text-on-surface transition-colors"
                     >
-                      {child.name}
+                      {displayName(child.name)}
                     </Link>
                   ))}
                 </div>

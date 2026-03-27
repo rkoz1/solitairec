@@ -9,6 +9,7 @@ import {
   getHomeSections,
 } from "@/lib/collections";
 import { getWixImageUrl } from "@/lib/wix-image";
+import { displayName } from "@/lib/collections";
 import NewsletterSignup from "@/components/NewsletterSignup";
 
 function SectionHeading({ title }: { title: string }) {
@@ -96,14 +97,14 @@ export default async function HomePage() {
         (section) =>
           section.products.length > 0 && (
             <div key={section._id}>
-              <SectionHeading title={section.name} />
+              <SectionHeading title={displayName(section.name)} />
               <ProductGrid products={section.products} />
               <div className="mt-8 text-center">
                 <Link
                   href={`/collections/${section.slug}`}
                   className="text-xs tracking-[0.15em] uppercase font-medium text-on-surface underline underline-offset-4 hover:text-secondary transition-colors"
                 >
-                  View All {section.name}
+                  View All {displayName(section.name)}
                 </Link>
               </div>
             </div>
