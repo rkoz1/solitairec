@@ -111,7 +111,28 @@ export default function NavigationDrawer() {
           );
         })}
 
-        {/* Account link */}
+        {/* Divider before site pages */}
+        <div className="pt-4 mb-2" />
+
+        {/* Site pages */}
+        <div className="border-b border-outline-variant/15">
+          <Link
+            href="/our-mission"
+            onClick={close}
+            className="block py-4 font-serif text-lg tracking-tight text-on-surface"
+          >
+            Our Mission
+          </Link>
+        </div>
+        <div className="border-b border-outline-variant/15">
+          <Link
+            href="/loyalty"
+            onClick={close}
+            className="block py-4 font-serif text-lg tracking-tight text-on-surface"
+          >
+            Rewards
+          </Link>
+        </div>
         <div className="border-b border-outline-variant/15">
           <Link
             href="/account"

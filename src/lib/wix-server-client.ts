@@ -8,6 +8,7 @@ import {
   rewards as loyaltyRewards,
   tiers as loyaltyTiers,
 } from "@wix/loyalty";
+import { contacts } from "@wix/crm";
 
 /**
  * Server-side Wix client — uses API Key auth.
@@ -29,6 +30,7 @@ export function getServerWixClient() {
       earningRules,
       loyaltyRewards,
       loyaltyTiers,
+      contacts,
     },
     auth: ApiKeyStrategy({
       apiKey: process.env.WIX_API_KEY,

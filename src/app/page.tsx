@@ -9,6 +9,7 @@ import {
   getHomeSections,
 } from "@/lib/collections";
 import { getWixImageUrl } from "@/lib/wix-image";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 function SectionHeading({ title }: { title: string }) {
   return (
@@ -108,6 +109,9 @@ export default async function HomePage() {
             </div>
           )
       )}
+
+      {/* Newsletter signup */}
+      <NewsletterSignup />
 
       {/* Fallback if nothing loaded */}
       {featuredProducts.length === 0 && sectionData.every((s) => s.products.length === 0) && (
