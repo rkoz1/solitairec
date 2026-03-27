@@ -51,7 +51,12 @@
       "Bash(grep -r \"emailSubscriptions\\\\|subscription.*status\" node_modules/@wix/contacts/build --include=*.d.ts)",
       "Bash(find src:*)",
       "Bash(grep -r \"contacts\\\\|email.*subscri\\\\|newsletter\" src --include=*.ts --include=*.tsx)",
-      "Bash(grep -r collectionIds /c/dev/solitairec/node_modules/@wix/auto_sdk_stores_products*)"
+      "Bash(grep -r collectionIds /c/dev/solitairec/node_modules/@wix/auto_sdk_stores_products*)",
+      "Bash(grep -r \"script\\\\|widget\\\\|chat\" /c/dev/solitairec/src --include=*.tsx --include=*.ts --include=*.html)",
+      "Bash(npm info:*)",
+      "Bash(find /c/dev/solitairec/node_modules/@wix/crm -name *.d.ts)",
+      "Bash(grep -r \"export.*from.*crm\\\\|export.*chat\\\\|export.*message\" /c/dev/solitairec/node_modules/@wix --include=*.d.ts)",
+      "WebFetch(domain:www.wix.com)"
     ]
   }
 }

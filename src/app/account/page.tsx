@@ -537,62 +537,8 @@ function AddressesTab() {
 /* ------------------------------------------------------------------ */
 
 function SettingsTab() {
-  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "subscribed" | "unsubscribed">("idle");
-
-  async function handleNewsletterToggle() {
-    setNewsletterStatus("loading");
-    try {
-      const wix = getBrowserWixClient();
-      await ensureVisitorTokens(wix);
-      const member = await wix.members.getCurrentMember({ fieldsets: ["FULL"] });
-      const email = member.contact?.emails?.[0];
-
-      if (!email) {
-        setNewsletterStatus("idle");
-        return;
-      }
-
-      // Import dynamically to avoid circular deps
-      const { subscribeToNewsletter } = await import("@/app/newsletter/actions");
-      const result = await subscribeToNewsletter(email);
-
-      if (result.success) {
-        setNewsletterStatus(result.error === "already_subscribed" ? "subscribed" : "subscribed");
-        setTimeout(() => setNewsletterStatus("idle"), 3000);
-      }
-    } catch {
-      setNewsletterStatus("idle");
-    }
-  }
-
   return (
     <div className="mt-8 max-w-md">
-      {/* Newsletter */}
-      <div className="mb-10">
-        <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-secondary mb-4">
-          Newsletter
-        </p>
-        {newsletterStatus === "subscribed" ? (
-          <p className="text-sm text-on-surface-variant">
-            You are subscribed to our newsletter.
-          </p>
-        ) : (
-          <>
-            <p className="text-sm leading-relaxed text-on-surface-variant mb-4">
-              Stay updated with new arrivals and exclusive offers.
-            </p>
-            <button
-              onClick={handleNewsletterToggle}
-              disabled={newsletterStatus === "loading"}
-              className="text-xs tracking-[0.15em] uppercase font-medium text-on-surface underline underline-offset-4 hover:text-secondary transition-colors disabled:opacity-50"
-            >
-              {newsletterStatus === "loading" ? "Subscribing..." : "Subscribe to Newsletter"}
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Sign out */}
       <p className="text-sm leading-relaxed text-on-surface-variant">
         You are currently signed in.
       </p>
@@ -614,6 +560,8 @@ export default function AccountPage() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("orders");
+  const [memberName, setMemberName] = useState("");
+  const [memberEmail, setMemberEmail] = useState("");
 
   const checkAuth = useCallback(() => {
     setLoggedIn(isLoggedIn());
@@ -625,6 +573,29 @@ export default function AccountPage() {
     window.addEventListener("auth-changed", checkAuth);
     return () => window.removeEventListener("auth-changed", checkAuth);
   }, [checkAuth]);
+
+  // Fetch member profile for greeting + newsletter
+  useEffect(() => {
+    if (!loggedIn) return;
+    async function fetchMember() {
+      try {
+        const wix = getBrowserWixClient();
+        await ensureVisitorTokens(wix);
+        const response = await wix.members.getCurrentMember({
+          fieldsets: ["FULL"],
+        });
+        const member = (response as unknown as { member?: Record<string, unknown> }).member ?? response;
+        const m = member as Record<string, unknown>;
+        const contact = m.contact as Record<string, unknown> | undefined;
+        const profile = m.profile as Record<string, unknown> | undefined;
+        setMemberName((contact?.firstName as string) ?? (profile?.nickname as string) ?? "");
+        setMemberEmail((m.loginEmail as string) ?? ((contact?.emails as string[])?.[0]) ?? "");
+      } catch {
+        // ignore
+      }
+    }
+    fetchMember();
+  }, [loggedIn]);
 
   if (loading) return null;
 
@@ -649,7 +620,7 @@ export default function AccountPage() {
 
   return (
     <section className="px-5">
-      <SectionHeading title="Account" />
+      <SectionHeading title={memberName ? `Hello, ${memberName}` : "Account"} />
       <TabBar active={activeTab} onChange={setActiveTab} />
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "rewards" && <RewardsTab />}
