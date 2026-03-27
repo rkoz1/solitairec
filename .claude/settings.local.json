@@ -56,7 +56,9 @@
       "Bash(npm info:*)",
       "Bash(find /c/dev/solitairec/node_modules/@wix/crm -name *.d.ts)",
       "Bash(grep -r \"export.*from.*crm\\\\|export.*chat\\\\|export.*message\" /c/dev/solitairec/node_modules/@wix --include=*.d.ts)",
-      "WebFetch(domain:www.wix.com)"
+      "WebFetch(domain:www.wix.com)",
+      "Bash(node -e \":*)",
+      "Bash(curl -s http://localhost:3000/api/debug-colors)"
     ]
   }
 }
