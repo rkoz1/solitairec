@@ -93,7 +93,13 @@ media.getScaledToFillImageUrl(wixMediaIdentifier, width, height, {});
 
 3. **Cart sync contract:** After any cart mutation, dispatch `window.dispatchEvent(new Event("cart-updated"))`. `CartBadge` listens for this event to update its count. Missing this = stale badge.
 
-4. **Checkout is a redirect:** `getCheckoutUrl()` returns `{ checkoutUrl }` — a Wix-hosted page. The flow is `createCheckoutFromCurrentCart` → `getCheckoutUrl` → `window.location.href` redirect.
+4. **Checkout uses `@wix/redirects` (not `getCheckoutUrl`):** The proper headless checkout flow is:
+   1. Browser: `createCheckoutFromCurrentCart({ channelType: "WEB" })` → get `checkoutId`
+   2. Server action: `wix.redirects.createRedirectSession({ ecomCheckout: { checkoutId }, callbacks: { thankYouPageUrl, postFlowUrl } })`
+   3. Redirect to `redirectSession.fullUrl` — Wix handles payment (Stripe, Apple Pay, saved cards)
+   4. After payment, Wix redirects to `thankYouPageUrl?orderId=xxx`
+
+   Do NOT use `getCheckoutUrl()` — it doesn't support callback URLs or proper session handling.
 
 5. **Product query by slug, not ID:** PDP uses `.eq("slug", slug)`, not `.eq("_id", id)`. Slugs come from the product URL.
 
