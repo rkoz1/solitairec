@@ -185,7 +185,7 @@ export default function WixChat() {
   // Auto-focus input when conversation is ready
   useEffect(() => {
     if (open && conversationId && !loading && !needsContact) {
-      setTimeout(() => chatInputRef.current?.focus(), 50);
+      requestAnimationFrame(() => chatInputRef.current?.focus());
     }
   }, [open, conversationId, loading, needsContact]);
 

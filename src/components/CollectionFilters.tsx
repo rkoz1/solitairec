@@ -153,12 +153,12 @@ export default function CollectionFilters({
   return (
     <div>
       {/* Top bar */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between mb-6 gap-2">
+        <div className="flex items-center gap-3 shrink-0">
           {hasFilters && (
             <button
               onClick={() => setOpen(!open)}
-              className="flex items-center gap-1.5 text-[10px] tracking-[0.25em] uppercase font-medium text-on-surface"
+              className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase font-medium text-on-surface"
             >
               <span className="material-symbols-outlined text-[18px]">
                 tune
@@ -171,19 +171,19 @@ export default function CollectionFilters({
               )}
             </button>
           )}
-          <p className="text-[10px] tracking-widest text-on-surface-variant">
-            {resultCount} {resultCount === 1 ? "product" : "products"}
+          <p className="text-[10px] tracking-widest text-on-surface-variant whitespace-nowrap">
+            {resultCount}
           </p>
         </div>
 
         <select
           value={sort}
           onChange={(e) => onSortChange(e.target.value)}
-          className="bg-transparent text-[10px] tracking-[0.15em] uppercase font-medium text-on-surface outline-none cursor-pointer"
+          className="bg-transparent text-[10px] tracking-[0.1em] uppercase font-medium text-on-surface outline-none cursor-pointer shrink-0"
         >
           <option value="newest">Newest</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
+          <option value="price_asc">Price: Low → High</option>
+          <option value="price_desc">Price: High → Low</option>
         </select>
       </div>
 
