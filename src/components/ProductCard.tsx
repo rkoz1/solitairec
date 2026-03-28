@@ -7,6 +7,7 @@ interface ProductCardProps {
   name: string;
   price: string;
   imageUrl: string | undefined | null;
+  priority?: boolean;
 }
 
 export default function ProductCard({
@@ -14,6 +15,7 @@ export default function ProductCard({
   name,
   price,
   imageUrl,
+  priority = false,
 }: ProductCardProps) {
   const src = getWixImageUrl(imageUrl, 600, 800);
 
@@ -26,6 +28,7 @@ export default function ProductCard({
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className="object-cover transition-transform duration-700 group-hover:scale-105"
+          priority={priority}
         />
       </div>
       <div className="mt-4">

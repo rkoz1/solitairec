@@ -25,6 +25,7 @@ function SectionHeading({ title }: { title: string }) {
 
 function ProductGrid({
   products,
+  priorityFirst = false,
 }: {
   products: {
     _id?: string | null;
@@ -35,6 +36,7 @@ function ProductGrid({
       mainMedia?: { image?: { url?: string | null } | null } | null;
     } | null;
   }[];
+  priorityFirst?: boolean;
 }) {
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-5 lg:grid-cols-3 xl:grid-cols-4">
@@ -45,6 +47,7 @@ function ProductGrid({
             name={product.name ?? "Untitled"}
             price={product.priceData?.formatted?.price ?? "Price unavailable"}
             imageUrl={product.media?.mainMedia?.image?.url}
+            priority={priorityFirst && index === 0}
           />
         </div>
       ))}
@@ -94,11 +97,11 @@ export default async function HomePage() {
 
       {/* Category sections */}
       {sectionData.map(
-        (section) =>
+        (section, sectionIndex) =>
           section.products.length > 0 && (
             <div key={section._id}>
               <SectionHeading title={displayName(section.name)} />
-              <ProductGrid products={section.products} />
+              <ProductGrid products={section.products} priorityFirst={sectionIndex === 0 && featuredProducts.length === 0} />
               <div className="mt-8 text-center">
                 <Link
                   href={`/collections/${section.slug}`}
