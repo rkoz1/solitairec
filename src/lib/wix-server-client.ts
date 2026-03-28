@@ -1,6 +1,6 @@
 import { createClient } from "@wix/sdk";
 import { ApiKeyStrategy } from "@wix/sdk/auth/api-key";
-import { currentCart, checkout, recommendations } from "@wix/ecom";
+import { currentCart, checkout, recommendations, orderFulfillments } from "@wix/ecom";
 import { products, collections } from "@wix/stores";
 import {
   programs as loyaltyPrograms,
@@ -34,6 +34,7 @@ export function getServerWixClient() {
       loyaltyTiers,
       contacts,
       recommendations,
+      orderFulfillments,
       conversations,
       messages,
       files,
