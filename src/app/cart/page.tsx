@@ -75,12 +75,77 @@ function BagTab() {
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
+  const [totals, setTotals] = useState<{
+    subtotal?: string;
+    discount?: string;
+    total?: string;
+    discounts?: { name: string; amount: string }[];
+  } | null>(null);
+
   const loadCart = useCallback(async () => {
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
       const current = await wix.currentCart.getCurrentCart();
       setCartData(current);
+
+      // Estimate totals for the summary
+      try {
+        const est = await wix.currentCart.estimateCurrentCartTotals({});
+        // Aggregate discounts by name (same rule applied to multiple items)
+        const discountTotals = new Map<string, number>();
+        let currencyPrefix = "";
+
+        for (const d of (est.appliedDiscounts ?? []) as Record<string, unknown>[]) {
+          const rule = d.discountRule as { name?: { original?: string }; amount?: { amount?: string; formattedAmount?: string } } | undefined;
+          const coupon = d.coupon as { name?: string; amount?: { amount?: string; formattedAmount?: string } } | undefined;
+          const name = rule?.name?.original ?? coupon?.name ?? "Discount";
+          const rawAmount = parseFloat(rule?.amount?.amount ?? coupon?.amount?.amount ?? "0");
+
+          if (!currencyPrefix && (rule?.amount?.formattedAmount || coupon?.amount?.formattedAmount)) {
+            const formatted = rule?.amount?.formattedAmount ?? coupon?.amount?.formattedAmount ?? "";
+            currencyPrefix = formatted.replace(/[\d.,]+/g, "").trim();
+          }
+
+          discountTotals.set(name, (discountTotals.get(name) ?? 0) + rawAmount);
+        }
+
+        const discountList = [...discountTotals.entries()]
+          .filter(([, amount]) => amount > 0)
+          .map(([name, amount]) => ({
+            name,
+            amount: `${currencyPrefix}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          }));
+
+        const ps = est.priceSummary as {
+          subtotal?: { amount?: string; formattedAmount?: string };
+          discount?: { amount?: string; formattedAmount?: string };
+          total?: { amount?: string; formattedAmount?: string };
+        } | undefined;
+
+        // Compute discounted total if API total doesn't reflect discounts
+        const subtotalNum = parseFloat(ps?.subtotal?.amount ?? "0");
+        const totalDiscountNum = [...discountTotals.values()].reduce((a, b) => a + b, 0);
+        const apiTotal = parseFloat(ps?.total?.amount ?? "0");
+
+        // If API total equals subtotal but we have discounts, compute it ourselves
+        const computedTotal = totalDiscountNum > 0 && Math.abs(apiTotal - subtotalNum) < 0.01
+          ? subtotalNum - totalDiscountNum
+          : apiTotal;
+
+        const totalFormatted = computedTotal !== apiTotal
+          ? `${currencyPrefix}${computedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          : ps?.total?.formattedAmount;
+
+        setTotals({
+          subtotal: ps?.subtotal?.formattedAmount,
+          discount: ps?.discount?.formattedAmount,
+          total: totalFormatted,
+          discounts: discountList,
+        });
+      } catch {
+        // Totals estimation may not be available — continue without
+      }
     } catch (error: unknown) {
       const isNoCart =
         error instanceof Object &&
@@ -215,12 +280,65 @@ function BagTab() {
                     {item.productName?.original ?? "Product"}
                   </h3>
                 </Link>
+
+                {/* Size / Color from descriptionLines */}
+                {(() => {
+                  const lines = (item.descriptionLines ?? []) as {
+                    name?: { original?: string };
+                    plainText?: { original?: string };
+                    colorInfo?: { original?: string; code?: string };
+                  }[];
+                  if (lines.length === 0) return null;
+                  return (
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      {lines.map((line, i) => {
+                        const label = line.name?.original ?? "";
+                        if (line.colorInfo) {
+                          const colorCode = line.colorInfo.code ?? "";
+                          const hasHex = /^(#|rgb)/.test(colorCode);
+                          return (
+                            <span key={i} className="flex items-center gap-1 text-[10px] tracking-widest text-on-surface-variant">
+                              {hasHex && (
+                                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: colorCode }} />
+                              )}
+                              {line.colorInfo.original}
+                              {i < lines.length - 1 && <span className="ml-1">·</span>}
+                            </span>
+                          );
+                        }
+                        return (
+                          <span key={i} className="text-[10px] tracking-widest text-on-surface-variant">
+                            {label}: {line.plainText?.original ?? ""}
+                            {i < lines.length - 1 && <span className="ml-1">·</span>}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
                 <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
                   Qty: {item.quantity}
                 </p>
-                <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
-                  {item.price?.formattedAmount ?? ""}
-                </p>
+
+                {/* Price — show original strikethrough if discounted */}
+                {(() => {
+                  const full = item.fullPrice?.formattedAmount;
+                  const current = item.price?.formattedAmount;
+                  const isDiscounted = full && current && full !== current;
+                  return (
+                    <div className="mt-1 flex items-center gap-2">
+                      {isDiscounted && (
+                        <span className="text-[10px] tracking-widest text-on-surface-variant line-through">
+                          {full}
+                        </span>
+                      )}
+                      <span className={`text-[10px] tracking-widest ${isDiscounted ? "text-secondary font-medium" : "text-on-surface-variant"}`}>
+                        {current ?? ""}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
               <div className="mt-2">
                 <button
@@ -235,7 +353,50 @@ function BagTab() {
         );
       })}
 
-      <div className="pt-10">
+      {/* Cart summary */}
+      {totals && (
+        <div className="pt-8 space-y-2">
+          <div className="flex justify-between">
+            <span className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
+              Subtotal
+            </span>
+            <span className="text-[10px] tracking-widest text-on-surface">
+              {totals.subtotal ?? ""}
+            </span>
+          </div>
+
+          {totals.discounts?.map((d, i) => (
+            <div key={i} className="flex justify-between">
+              <span className="text-[10px] tracking-widest text-secondary">
+                {d.name}
+              </span>
+              <span className="text-[10px] tracking-widest text-secondary">
+                -{d.amount}
+              </span>
+            </div>
+          ))}
+
+          <div className="flex justify-between">
+            <span className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
+              Shipping
+            </span>
+            <span className="text-[10px] tracking-widest text-on-surface-variant">
+              Calculated at checkout
+            </span>
+          </div>
+
+          <div className="flex justify-between pt-3 border-t border-outline-variant/20">
+            <span className="text-xs tracking-[0.15em] uppercase font-medium text-on-surface">
+              Total
+            </span>
+            <span className="text-xs tracking-widest font-medium text-on-surface">
+              {totals.total ?? ""}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="pt-6">
         <button
           onClick={handleCheckout}
           disabled={checkingOut}
