@@ -84,8 +84,8 @@ export default async function HomePage() {
               price: p.priceData?.formatted?.price ?? "",
               imageUrl: getWixImageUrl(
                 p.media?.mainMedia?.image?.url,
-                1200,
-                1600
+                1600,
+                2133
               ),
             }))}
           />
