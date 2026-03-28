@@ -13,11 +13,13 @@ const WIX_STORES_V3_APP_ID = "215238eb-22a5-4c36-9e7b-e7c08025e04e";
 
 interface AddToCartButtonProps {
   productId: string;
+  productName?: string;
   selectedOptions?: Record<string, string>;
 }
 
 export default function AddToCartButton({
   productId,
+  productName,
   selectedOptions,
 }: AddToCartButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -60,6 +62,19 @@ export default function AddToCartButton({
       }
 
       window.dispatchEvent(new Event("cart-updated"));
+
+      // Fly-to-cart animation
+      const btn = document.querySelector('[data-add-to-cart]');
+      const rect = btn?.getBoundingClientRect();
+      window.dispatchEvent(new CustomEvent("cart-item-added", {
+        detail: {
+          imageUrl: "",
+          sourceX: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+          sourceY: rect ? rect.top : window.innerHeight / 2,
+          productName: productName ?? "",
+        },
+      }));
+
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
@@ -74,6 +89,7 @@ export default function AddToCartButton({
     <button
       onClick={handleAddToCart}
       disabled={loading}
+      data-add-to-cart
       className="w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
     >
       {loading ? "Adding..." : added ? "Added to Bag!" : "Add to Bag"}

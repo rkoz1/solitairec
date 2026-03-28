@@ -6,6 +6,7 @@ import CartBadge from "@/components/CartBadge";
 import SearchOverlay from "@/components/SearchOverlay";
 import NavigationLoader from "@/components/NavigationLoader";
 import WixChat from "@/components/WixChat";
+import FlyToCart from "@/components/FlyToCart";
 import "./globals.css";
 
 const notoSerif = Noto_Serif({
@@ -60,6 +61,9 @@ export default function RootLayout({
 
         {/* Main content with padding for fixed header/footer */}
         <main className="flex-1 pt-16 pb-24">{children}</main>
+
+        {/* Cart feedback animation */}
+        <FlyToCart />
 
         {/* Chat widget */}
         <WixChat />
