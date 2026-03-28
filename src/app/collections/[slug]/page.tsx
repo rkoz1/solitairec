@@ -27,13 +27,14 @@ export default function CollectionPage({ params }: Props) {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
 
   useEffect(() => {
-    setLoading(true);
+    // Only show full loading indicator on initial load, not on sort change
+    if (!data) setLoading(true);
     fetchCollectionProducts(slug, sort as "newest" | "price_asc" | "price_desc")
       .then((result) => {
         setData(result);
         setLoading(false);
       });
-  }, [slug, sort]);
+  }, [slug, sort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Client-side filtering
   const filtered = useMemo(() => {
