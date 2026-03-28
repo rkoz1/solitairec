@@ -20,10 +20,19 @@ export default function SearchOverlay() {
     setMounted(true);
   }, []);
 
-  // Auto-focus input when overlay opens
+  // Focus input when it mounts (works on iOS because it's triggered by user gesture chain)
+  const searchInputRef = useCallback((node: HTMLInputElement | null) => {
+    if (node) {
+      inputRef.current = node;
+      // requestAnimationFrame ensures DOM is painted before focusing
+      requestAnimationFrame(() => node.focus());
+    }
+  }, []);
+
+  // Reset state when overlay closes
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+      // Focus handled by ref callback above
     } else {
       setQuery("");
       setResults([]);
@@ -97,7 +106,7 @@ export default function SearchOverlay() {
             search
           </span>
           <input
-            ref={inputRef}
+            ref={searchInputRef}
             type="text"
             value={query}
             onChange={(e) => handleInput(e.target.value)}

@@ -25,7 +25,8 @@ export default async function CompleteTheLook({
   currentProductId,
 }: CompleteTheLookProps) {
   try {
-    const { products, heading } = await getRecommendedProducts(currentProductId);
+    const { products, heading } =
+      await getRecommendedProducts(currentProductId);
     if (products.length < MIN_ITEMS) return null;
 
     return (
@@ -58,14 +59,17 @@ export default async function CompleteTheLook({
  */
 async function getCurrentProductCategory(
   wix: ReturnType<typeof getServerWixClient>,
-  product: Product
+  product: Product,
 ): Promise<Set<string>> {
   const sameCategoryNames = new Set<string>();
   if (!product.collectionIds?.length) return sameCategoryNames;
 
-  const allCollections = await wix.collections.queryCollections().limit(50).find();
+  const allCollections = await wix.collections
+    .queryCollections()
+    .limit(50)
+    .find();
   const idToName = new Map(
-    allCollections.items.map((c) => [c._id ?? "", c.name ?? ""])
+    allCollections.items.map((c) => [c._id ?? "", c.name ?? ""]),
   );
 
   for (const colId of product.collectionIds) {
@@ -85,13 +89,13 @@ async function getCurrentProductCategory(
 
 /** All category names from the hierarchy (both parents and children) */
 const ALL_CATEGORY_NAMES = new Set(
-  CATEGORY_HIERARCHY.flatMap((cat) => [cat.name, ...(cat.children ?? [])])
+  CATEGORY_HIERARCHY.flatMap((cat) => [cat.name, ...(cat.children ?? [])]),
 );
 
 function filterOutSameCategory(
   products: Product[],
   sameCategoryNames: Set<string>,
-  collectionIdToName: Map<string, string>
+  collectionIdToName: Map<string, string>,
 ): Product[] {
   if (sameCategoryNames.size === 0) return products;
   return products.filter((p) => {
@@ -110,7 +114,7 @@ function filterOutSameCategory(
 }
 
 async function getRecommendedProducts(
-  currentProductId: string
+  currentProductId: string,
 ): Promise<{ products: Product[]; heading: string }> {
   const wix = getServerWixClient();
 
@@ -124,48 +128,63 @@ async function getRecommendedProducts(
   if (!currentProduct) return { products: [], heading: "" };
 
   // Resolve category + collection name mapping
-  const sameCategoryNames = await getCurrentProductCategory(wix, currentProduct);
-  const allCollections = await wix.collections.queryCollections().limit(50).find();
-  const collectionIdToName = new Map(
-    allCollections.items.map((c) => [c._id ?? "", c.name ?? ""])
+  const sameCategoryNames = await getCurrentProductCategory(
+    wix,
+    currentProduct,
   );
-
-  console.log("[CompleteTheLook] Product:", currentProduct.name);
-  console.log("[CompleteTheLook] Same-category names:", [...sameCategoryNames]);
-  console.log("[CompleteTheLook] Product collections:", currentProduct.collectionIds?.map((id) => collectionIdToName.get(id)));
-
+  const allCollections = await wix.collections
+    .queryCollections()
+    .limit(50)
+    .find();
+  const collectionIdToName = new Map(
+    allCollections.items.map((c) => [c._id ?? "", c.name ?? ""]),
+  );
   // Tier 1: Wix Recommendations — filtered to exclude same category
   const recommended = await tryWixRecommendations(wix, currentProductId);
-  console.log("[CompleteTheLook] Tier 1 raw:", recommended.length, "items:", recommended.map((p) => p.name));
-  const complementary = filterOutSameCategory(recommended, sameCategoryNames, collectionIdToName);
-  console.log("[CompleteTheLook] Tier 1 filtered (cross-category):", complementary.length, "items:", complementary.map((p) => p.name));
+  const complementary = filterOutSameCategory(
+    recommended,
+    sameCategoryNames,
+    collectionIdToName,
+  );
 
   if (complementary.length >= MIN_ITEMS)
-    return { products: complementary.slice(0, MAX_ITEMS), heading: "Complete the Look" };
+    return {
+      products: complementary.slice(0, MAX_ITEMS),
+      heading: "Complete the Look",
+    };
 
   // Tier 1 had results but all same-category → show as "Frequently Bought Together"
   if (recommended.length >= MIN_ITEMS) {
-    console.log("[CompleteTheLook] → Tier 1 same-category, using 'Frequently Bought Together'");
-    return { products: recommended.slice(0, MAX_ITEMS), heading: "Frequently Bought Together" };
+    console.log(
+      "[CompleteTheLook] → Tier 1 same-category, using 'Frequently Bought Together'",
+    );
+    return {
+      products: recommended.slice(0, MAX_ITEMS),
+      heading: "Frequently Bought Together",
+    };
   }
 
   // Tier 2: Cross-category collection matching
   const crossCategory = await tryCrossCategoryMatch(
     wix,
     currentProductId,
-    complementary
+    complementary,
   );
   if (crossCategory.length >= MIN_ITEMS)
     return { products: crossCategory, heading: "Style It With" };
 
   // Tier 3: Same-collection products
-  const sameCollection = await trySameCollectionMatch(wix, currentProductId, crossCategory);
+  const sameCollection = await trySameCollectionMatch(
+    wix,
+    currentProductId,
+    crossCategory,
+  );
   return { products: sameCollection, heading: "You May Also Like" };
 }
 
 async function tryWixRecommendations(
   wix: ReturnType<typeof getServerWixClient>,
-  productId: string
+  productId: string,
 ): Promise<Product[]> {
   try {
     // Discover available algorithms
@@ -224,7 +243,7 @@ async function tryWixRecommendations(
 async function tryCrossCategoryMatch(
   wix: ReturnType<typeof getServerWixClient>,
   productId: string,
-  existing: Product[]
+  existing: Product[],
 ): Promise<Product[]> {
   try {
     const { items: currentItems } = await wix.products
@@ -237,9 +256,12 @@ async function tryCrossCategoryMatch(
     if (!current?.collectionIds?.length) return existing;
 
     const sameCategoryNames = await getCurrentProductCategory(wix, current);
-    const allCollections = await wix.collections.queryCollections().limit(50).find();
+    const allCollections = await wix.collections
+      .queryCollections()
+      .limit(50)
+      .find();
     const idToName = new Map(
-      allCollections.items.map((c) => [c._id ?? "", c.name ?? ""])
+      allCollections.items.map((c) => [c._id ?? "", c.name ?? ""]),
     );
 
     const { items } = await wix.products
@@ -267,7 +289,7 @@ async function tryCrossCategoryMatch(
 async function trySameCollectionMatch(
   wix: ReturnType<typeof getServerWixClient>,
   productId: string,
-  existing: Product[]
+  existing: Product[],
 ): Promise<Product[]> {
   try {
     const { items: currentItems } = await wix.products
@@ -287,7 +309,7 @@ async function trySameCollectionMatch(
 
     const existingIds = new Set(existing.map((p) => p._id));
     const sameCol = items.filter(
-      (p) => p._id !== productId && !existingIds.has(p._id)
+      (p) => p._id !== productId && !existingIds.has(p._id),
     );
 
     return [...existing, ...sameCol].slice(0, MAX_ITEMS);

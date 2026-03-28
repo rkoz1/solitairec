@@ -7,9 +7,10 @@ export default function NavigationLoader() {
   const [loading, setLoading] = useState(false);
   const pathname = usePathname();
 
-  // Hide overlay when pathname changes (navigation complete)
+  // Hide overlay and scroll to top when pathname changes (navigation complete)
   useEffect(() => {
     setLoading(false);
+    window.scrollTo(0, 0);
   }, [pathname]);
 
   // Listen for internal link clicks
