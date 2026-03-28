@@ -16,6 +16,17 @@ interface CartBadgeProps {
 
 export default function CartBadge({ className, label }: CartBadgeProps) {
   const [count, setCount] = useState(0);
+  const [bouncing, setBouncing] = useState(false);
+
+  // Badge bounce animation
+  useEffect(() => {
+    const handler = () => {
+      setBouncing(true);
+      setTimeout(() => setBouncing(false), 400);
+    };
+    window.addEventListener("cart-badge-bounce", handler);
+    return () => window.removeEventListener("cart-badge-bounce", handler);
+  }, []);
 
   const fetchCount = useCallback(async () => {
     // Don't create a session just to check the cart — only fetch if tokens exist
@@ -47,7 +58,7 @@ export default function CartBadge({ className, label }: CartBadgeProps) {
       className={`relative flex flex-col items-center gap-0.5 text-on-surface ${className ?? ""}`}
       aria-label="Shopping bag"
     >
-      <span className="relative">
+      <span className={`relative transition-transform ${bouncing ? "animate-[badgeBounce_400ms_ease-out]" : ""}`}>
         <span className="material-symbols-outlined text-[22px]">
           shopping_bag
         </span>

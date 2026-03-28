@@ -14,11 +14,13 @@ interface ProductOption {
 
 interface ProductInfoProps {
   productId: string;
+  productName?: string;
   productOptions: ProductOption[];
 }
 
 export default function ProductInfo({
   productId,
+  productName,
   productOptions,
 }: ProductInfoProps) {
   const [selectedOptions, setSelectedOptions] = useState<
@@ -109,7 +111,7 @@ export default function ProductInfo({
 
       {/* Add to Bag */}
       <div className="mt-8">
-        <AddToCartButton productId={productId} selectedOptions={selectedOptions} />
+        <AddToCartButton productId={productId} productName={productName} selectedOptions={selectedOptions} />
       </div>
 
       {/* Add to Wishlist */}

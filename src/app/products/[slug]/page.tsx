@@ -101,6 +101,7 @@ export default async function ProductPage({ params }: Props) {
           {/* Variant selectors + Add to Cart (client component) */}
           <ProductInfo
             productId={product._id ?? ""}
+            productName={product.name ?? ""}
             productOptions={product.productOptions ?? []}
           />
 

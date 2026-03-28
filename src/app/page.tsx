@@ -35,6 +35,7 @@ function ProductGrid({
     media?: {
       mainMedia?: { image?: { url?: string | null } | null } | null;
     } | null;
+    productOptions?: { name?: string | null; choices?: { value?: string | null; description?: string | null }[] | null }[] | null;
   }[];
   priorityFirst?: boolean;
 }) {
@@ -48,6 +49,14 @@ function ProductGrid({
             price={product.priceData?.formatted?.price ?? "Price unavailable"}
             imageUrl={product.media?.mainMedia?.image?.url}
             priority={priorityFirst && index === 0}
+            productId={product._id ?? undefined}
+            productOptions={(product.productOptions ?? []).map((opt) => ({
+              name: opt.name ?? "",
+              choices: (opt.choices ?? []).map((c) => ({
+                value: c.value ?? "",
+                description: c.description ?? "",
+              })),
+            }))}
           />
         </div>
       ))}

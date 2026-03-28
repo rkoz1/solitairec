@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useMemo, use } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   fetchCollectionProducts,
   type CollectionData,
-  type CollectionProduct,
 } from "../actions";
+import ProductCard from "@/components/ProductCard";
 import { displayName } from "@/lib/collections";
 import CollectionFilters, {
   EMPTY_FILTERS,
@@ -99,25 +98,24 @@ export default function CollectionPage({ params }: Props) {
         <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-5 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((product, index) => (
             <div key={product._id} className={index % 2 === 1 ? "mt-8" : ""}>
-              <Link href={`/products/${product.slug}`} className="group block">
-                <div className="relative aspect-[3/4] overflow-hidden bg-surface-container-low">
-                  <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface">
-                    {product.name}
-                  </h3>
-                  <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
-                    {product.formattedPrice}
-                  </p>
-                </div>
-              </Link>
+              <ProductCard
+                slug={product.slug}
+                name={product.name}
+                price={product.formattedPrice}
+                imageUrl={product.imageUrl}
+                productId={product._id}
+                productOptions={product.sizes.length > 0 || product.colors.length > 0
+                  ? [
+                      ...(product.colors.length > 0
+                        ? [{ name: "Color", choices: product.colors.map((c) => ({ value: c.value, description: c.name })) }]
+                        : []),
+                      ...(product.sizes.length > 0
+                        ? [{ name: "Size", choices: product.sizes.map((s) => ({ value: s, description: s })) }]
+                        : []),
+                    ]
+                  : undefined
+                }
+              />
             </div>
           ))}
         </div>
