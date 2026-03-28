@@ -58,7 +58,9 @@
       "Bash(grep -r \"export.*from.*crm\\\\|export.*chat\\\\|export.*message\" /c/dev/solitairec/node_modules/@wix --include=*.d.ts)",
       "WebFetch(domain:www.wix.com)",
       "Bash(node -e \":*)",
-      "Bash(curl -s http://localhost:3000/api/debug-colors)"
+      "Bash(curl -s http://localhost:3000/api/debug-colors)",
+      "Bash(grep -i fulfillment /c/dev/solitairec/node_modules/@wix/auto_sdk_ecom_orders/build/es/*.mts)",
+      "Bash(grep -i \"trackingInfo\\\\|trackingNumber\\\\|trackingLink\\\\|trackingUrl\\\\|listFulfillments\\\\|interface Fulfillment \" /c/dev/solitairec/node_modules/@wix/auto_sdk_ecom_order-fulfillments/build/es/*.d.mts)"
     ]
   }
 }

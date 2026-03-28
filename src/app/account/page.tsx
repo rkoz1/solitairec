@@ -63,6 +63,18 @@ function TabBar({
 
 function OrderRow({ order }: { order: Order }) {
   const [expanded, setExpanded] = useState(false);
+  const [tracking, setTracking] = useState<{ trackingNumber: string; shippingProvider: string; trackingLink?: string }[]>([]);
+  const [trackingLoaded, setTrackingLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded || trackingLoaded) return;
+    import("./actions").then(({ getOrderTracking }) => {
+      getOrderTracking(order._id ?? "").then((t) => {
+        setTracking(t);
+        setTrackingLoaded(true);
+      });
+    });
+  }, [expanded, trackingLoaded, order._id]);
 
   const date = order._createdDate
     ? new Date(order._createdDate).toLocaleDateString("en-US", {
@@ -72,7 +84,38 @@ function OrderRow({ order }: { order: Order }) {
       })
     : "";
 
-  const status = order.status ?? "UNKNOWN";
+  const fulfillment = (order as unknown as { fulfillmentStatus?: string }).fulfillmentStatus;
+  const payment = (order as unknown as { paymentStatus?: string }).paymentStatus;
+
+  // Show the most relevant status to the customer
+  let statusLabel: string;
+  let statusColor: string;
+  if (fulfillment === "FULFILLED") {
+    statusLabel = "Delivered";
+    statusColor = "text-green-700";
+  } else if (fulfillment === "PARTIALLY_FULFILLED") {
+    statusLabel = "Partially Shipped";
+    statusColor = "text-secondary";
+  } else if (payment === "PAID" || order.status === "APPROVED") {
+    statusLabel = "Processing";
+    statusColor = "text-secondary";
+  } else if (payment === "PENDING" || payment === "NOT_PAID") {
+    statusLabel = "Awaiting Payment";
+    statusColor = "text-on-surface-variant";
+  } else if (payment === "FULLY_REFUNDED") {
+    statusLabel = "Refunded";
+    statusColor = "text-on-surface-variant";
+  } else if (payment === "PARTIALLY_REFUNDED") {
+    statusLabel = "Partially Refunded";
+    statusColor = "text-on-surface-variant";
+  } else if (order.status === "CANCELED") {
+    statusLabel = "Cancelled";
+    statusColor = "text-on-surface-variant";
+  } else {
+    statusLabel = (order.status ?? "Unknown").replace(/_/g, " ");
+    statusColor = "text-on-surface-variant";
+  }
+
   const total = order.priceSummary?.total?.formattedAmount ?? "";
   const orderNumber = order.number ?? order._id ?? "";
 
@@ -87,8 +130,8 @@ function OrderRow({ order }: { order: Order }) {
             <span className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface">
               Order #{orderNumber}
             </span>
-            <span className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary">
-              {status.replace(/_/g, " ")}
+            <span className={`text-[10px] tracking-[0.2em] uppercase font-medium ${statusColor}`}>
+              {statusLabel}
             </span>
           </div>
           <div className="mt-1 flex items-center gap-4">
@@ -110,25 +153,59 @@ function OrderRow({ order }: { order: Order }) {
         </span>
       </button>
 
-      {expanded && order.lineItems && order.lineItems.length > 0 && (
+      {expanded && (
         <div className="bg-surface-container-low/50 px-5 pb-5">
-          <div className="border-t border-outline-variant/20 pt-4 space-y-3">
-            {order.lineItems.map((item, i) => (
-              <div key={i} className="flex justify-between">
-                <div>
-                  <p className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface">
-                    {item.productName?.translated ?? item.productName?.original ?? "Item"}
-                  </p>
+          {/* Tracking info */}
+          {tracking.length > 0 && (
+            <div className="border-t border-outline-variant/20 pt-4 pb-3">
+              {tracking.map((t, i) => (
+                <div key={i} className="flex items-center gap-3 mb-2">
+                  <span className="material-symbols-outlined text-[16px] text-secondary">
+                    local_shipping
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-[10px] tracking-[0.15em] uppercase font-medium text-on-surface">
+                      {t.shippingProvider}
+                    </p>
+                    <p className="text-[10px] tracking-widest text-on-surface-variant">
+                      {t.trackingNumber}
+                    </p>
+                  </div>
+                  {t.trackingLink && (
+                    <a
+                      href={t.trackingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] tracking-[0.15em] uppercase font-medium text-secondary hover:text-on-surface transition-colors"
+                    >
+                      Track
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Line items */}
+          {order.lineItems && order.lineItems.length > 0 && (
+            <div className="border-t border-outline-variant/20 pt-4 space-y-3">
+              {order.lineItems.map((item, i) => (
+                <div key={i} className="flex justify-between">
+                  <div>
+                    <p className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface">
+                      {item.productName?.translated ?? item.productName?.original ?? "Item"}
+                    </p>
+                    <p className="text-[10px] tracking-widest text-on-surface-variant">
+                      Qty: {item.quantity}
+                    </p>
+                  </div>
                   <p className="text-[10px] tracking-widest text-on-surface-variant">
-                    Qty: {item.quantity}
+                    {item.price?.formattedAmount ?? ""}
                   </p>
                 </div>
-                <p className="text-[10px] tracking-widest text-on-surface-variant">
-                  {item.price?.formattedAmount ?? ""}
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
