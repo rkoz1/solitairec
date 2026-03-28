@@ -56,6 +56,121 @@ function sortSizes(sizes: string[]): string[] {
   });
 }
 
+export async function fetchSearchResults(
+  query: string,
+  sort: "relevance" | "price_asc" | "price_desc" = "relevance"
+): Promise<CollectionData | null> {
+  const trimmed = query.trim().toLowerCase();
+  if (trimmed.length < 2) return null;
+
+  const { getProductCatalog: getCatalog } = await import("@/app/search/actions");
+  const catalog = await getCatalog();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+
+  type CatProduct = typeof catalog[0];
+  let matched: { product: CatProduct; score: number }[] = catalog
+    .map((p) => {
+      const allMatch = words.every(
+        (w) => p.nameLower.includes(w) || p.descriptionLower.includes(w)
+      );
+      if (!allMatch) return null;
+      let score = 0;
+      for (const w of words) {
+        if (p.nameLower.includes(w)) score += 10;
+        if (p.nameLower.startsWith(w)) score += 5;
+        if (p.descriptionLower.includes(w)) score += 1;
+      }
+      return { product: p, score };
+    })
+    .filter(Boolean) as { product: CatProduct; score: number }[];
+
+  // Sort
+  if (sort === "price_asc") {
+    matched.sort((a, b) => parseFloat(a.product.price) - parseFloat(b.product.price));
+  } else if (sort === "price_desc") {
+    matched.sort((a, b) => parseFloat(b.product.price) - parseFloat(a.product.price));
+  } else {
+    matched.sort((a, b) => b.score - a.score);
+  }
+
+  // Now fetch full product data for these IDs to get options (size/color)
+  // We'll batch fetch from the Wix API
+  const ids = matched.map((m) => m.product._id);
+  const wix = getServerWixClient();
+
+  const allSizes = new Set<string>();
+  const colorMap = new Map<string, ColorOption>();
+  let minPrice = Infinity;
+  let maxPrice = 0;
+
+  // Fetch in batches of 50
+  const fullProducts: CollectionProduct[] = [];
+  for (let i = 0; i < ids.length; i += 50) {
+    const batch = ids.slice(i, i + 50);
+    const { items } = await wix.products
+      .queryProducts()
+      .hasSome("_id", batch)
+      .limit(50)
+      .find();
+
+    for (const p of items) {
+      const price = p.priceData?.price ?? 0;
+      if (price < minPrice) minPrice = price;
+      if (price > maxPrice) maxPrice = price;
+
+      const sizes: string[] = [];
+      const colors: ColorOption[] = [];
+
+      for (const opt of p.productOptions ?? []) {
+        const optName = (opt.name ?? "").toLowerCase();
+        for (const choice of opt.choices ?? []) {
+          if (optName === "size") {
+            const val = choice.description || choice.value || "";
+            if (val) { sizes.push(val); allSizes.add(val); }
+          } else if (optName === "color" || optName === "colour") {
+            const name = choice.description || choice.value || "";
+            const value = choice.value || "";
+            if (name) {
+              const colorOpt = { name, value };
+              colors.push(colorOpt);
+              if (!colorMap.has(name)) colorMap.set(name, colorOpt);
+            }
+          }
+        }
+      }
+
+      fullProducts.push({
+        _id: p._id ?? "",
+        name: p.name ?? "",
+        slug: p.slug ?? "",
+        price,
+        formattedPrice: p.priceData?.formatted?.price ?? "",
+        imageUrl: getWixImageUrl(p.media?.mainMedia?.image?.url, 600, 800),
+        sizes,
+        colors,
+      });
+    }
+  }
+
+  // Preserve the sort order from the search scoring
+  const idOrder = new Map(ids.map((id, idx) => [id, idx]));
+  if (sort === "relevance") {
+    fullProducts.sort((a, b) => (idOrder.get(a._id) ?? 0) - (idOrder.get(b._id) ?? 0));
+  }
+
+  return {
+    name: `Search: "${query}"`,
+    slug: "",
+    products: fullProducts,
+    availableSizes: sortSizes([...allSizes]),
+    availableColors: [...colorMap.values()],
+    priceRange: {
+      min: minPrice === Infinity ? 0 : Math.floor(minPrice),
+      max: Math.ceil(maxPrice),
+    },
+  };
+}
+
 export async function fetchCollectionProducts(
   slug: string,
   sort: "newest" | "price_asc" | "price_desc" = "newest"

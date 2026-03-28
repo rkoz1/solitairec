@@ -66,7 +66,7 @@ async function refreshCatalog() {
   }
 }
 
-async function getProductCatalog() {
+export async function getProductCatalog() {
   const expired = Date.now() - cacheTime > CACHE_TTL;
 
   // Stale cache: serve it but refresh in background
@@ -121,4 +121,14 @@ export async function searchProducts(
     price: product.price,
     imageUrl: product.imageUrl,
   }));
+}
+
+export async function searchProductsCount(query: string): Promise<number> {
+  const trimmed = query.trim().toLowerCase();
+  if (trimmed.length < 2) return 0;
+  const catalog = await getProductCatalog();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  return catalog.filter((p) =>
+    words.every((w) => p.nameLower.includes(w) || p.descriptionLower.includes(w))
+  ).length;
 }

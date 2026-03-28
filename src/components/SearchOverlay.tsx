@@ -151,7 +151,7 @@ export default function SearchOverlay() {
         {!loading && results.length > 0 && (
           <div className="space-y-0">
             <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary mb-4">
-              {results.length} {results.length === 1 ? "result" : "results"}
+              Top results
             </p>
             {results.map((product) => (
               <Link
@@ -179,9 +179,26 @@ export default function SearchOverlay() {
                 </div>
               </Link>
             ))}
+
           </div>
         )}
       </div>
+
+      {/* Fixed footer: View all results */}
+      {!loading && searched && results.length > 0 && (
+        <div className="shrink-0 border-t border-outline-variant/20 px-6">
+          <Link
+            href={`/search?q=${encodeURIComponent(query)}`}
+            onClick={handleResultClick}
+            className="flex items-center justify-center gap-2 py-4 text-xs tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors"
+          >
+            View all results
+            <span className="material-symbols-outlined text-[16px]">
+              arrow_forward
+            </span>
+          </Link>
+        </div>
+      )}
     </div>
   ) : null;
 

@@ -181,6 +181,7 @@ export default function CollectionFilters({
           onChange={(e) => onSortChange(e.target.value)}
           className="bg-transparent text-[10px] tracking-[0.1em] uppercase font-medium text-on-surface outline-none cursor-pointer shrink-0"
         >
+          {sort === "relevance" && <option value="relevance">Relevance</option>}
           <option value="newest">Newest</option>
           <option value="price_asc">Price: Low → High</option>
           <option value="price_desc">Price: High → Low</option>
