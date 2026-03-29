@@ -6,6 +6,7 @@ import {
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
 import { showToast } from "@/lib/toast";
+import { log } from "@/lib/logger";
 
 // Catalog V1 (products without variants)
 const WIX_STORES_APP_ID = "1380b703-ce81-ff05-f115-39571d94dfcd";
@@ -16,12 +17,14 @@ interface AddToCartButtonProps {
   productId: string;
   productName?: string;
   selectedOptions?: Record<string, string>;
+  variantId?: string;
 }
 
 export default function AddToCartButton({
   productId,
   productName,
   selectedOptions,
+  variantId,
 }: AddToCartButtonProps) {
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
@@ -44,7 +47,7 @@ export default function AddToCartButton({
               options: hasOptions
                 ? {
                     options: selectedOptions,
-                    variantId: "00000000-0000-0000-0000-000000000000",
+                    variantId: variantId || "00000000-0000-0000-0000-000000000000",
                   }
                 : undefined,
             },
@@ -59,7 +62,21 @@ export default function AddToCartButton({
           li.catalogReference?.catalogItemId === productId
       );
       if (!addedItem) {
-        throw new Error("Item was not added to cart. Please check size/variant selection.");
+        log({
+          level: "error",
+          action: "add-to-cart-rejected",
+          details: {
+            productId,
+            productName,
+            selectedOptions,
+            appId: hasOptions ? WIX_STORES_V3_APP_ID : WIX_STORES_APP_ID,
+            cartItemIds: result.cart?.lineItems?.map(
+              (li: { catalogReference?: { catalogItemId?: string } }) =>
+                li.catalogReference?.catalogItemId
+            ),
+          },
+        });
+        throw new Error("Item was not added to cart.");
       }
 
       window.dispatchEvent(new Event("cart-updated"));
@@ -79,8 +96,8 @@ export default function AddToCartButton({
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
-      console.error("Failed to add to cart:", error);
-      showToast("This item couldn't be added. Please check your selection.", "error");
+      log({ level: "error", action: "add-to-cart-failed", details: { productId, productName }, error });
+      showToast("This item couldn't be added to your bag. It may be out of stock or unavailable in the selected option.", "error");
     } finally {
       setLoading(false);
     }

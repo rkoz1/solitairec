@@ -48,11 +48,17 @@ export async function getFreeShippingThreshold(): Promise<number> {
 export interface VariantStockInfo {
   inStock: boolean;
   quantity: number;
+  variantId?: string;
+}
+
+export interface ProductVariantData {
+  manageVariants: boolean;
+  stock: Record<string, VariantStockInfo>;
 }
 
 export async function getProductVariantStock(
   productId: string
-): Promise<Record<string, VariantStockInfo>> {
+): Promise<ProductVariantData> {
   try {
     const wix = getServerWixClient();
     const { items } = await wix.products
@@ -62,9 +68,10 @@ export async function getProductVariantStock(
       .find();
 
     const product = items[0];
-    if (!product) return {};
+    if (!product) return { manageVariants: false, stock: {} };
 
     const variants = (product.variants ?? []) as {
+      _id?: string;
       choices?: Record<string, string>;
       stock?: { inStock?: boolean; quantity?: number; trackQuantity?: boolean };
     }[];
@@ -78,13 +85,16 @@ export async function getProductVariantStock(
         .map(([k, val]) => `${k}:${val}`)
         .join("|");
       const qty = v.stock?.quantity ?? 0;
+      const trackQty = v.stock?.trackQuantity ?? false;
+      const inStock = v.stock?.inStock ?? true;
       stockMap[key] = {
-        inStock: (v.stock?.inStock ?? true) && qty !== 0,
+        inStock: trackQty ? inStock && qty !== 0 : inStock,
         quantity: qty,
+        variantId: v._id,
       };
     }
-    return stockMap;
+    return { manageVariants: product.manageVariants ?? false, stock: stockMap };
   } catch {
-    return {};
+    return { manageVariants: false, stock: {} };
   }
 }

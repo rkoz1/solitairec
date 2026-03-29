@@ -38,7 +38,8 @@ export default memo(function ProductCardActions({
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [variantStock, setVariantStock] = useState<Record<string, { inStock: boolean; quantity: number }>>({});
+  const [variantStock, setVariantStock] = useState<Record<string, { inStock: boolean; quantity: number; variantId?: string }>>({});
+  const [manageVariants, setManageVariants] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -78,9 +79,42 @@ export default memo(function ProductCardActions({
     setSelectedOptions(defaults);
     setSheetOpen(true);
 
-    // Lazy-fetch variant stock
+    // Lazy-fetch variant stock + manageVariants flag
     import("@/app/actions").then(({ getProductVariantStock }) =>
-      getProductVariantStock(productId).then(setVariantStock)
+      getProductVariantStock(productId).then((data) => {
+        setVariantStock(data.stock);
+        setManageVariants(data.manageVariants);
+
+        // Re-select defaults if current selection is out of stock
+        if (data.manageVariants && Object.keys(data.stock).length > 0) {
+          setSelectedOptions((prev) => {
+            const updated = { ...prev };
+            for (const opt of productOptions) {
+              const currentLabel = updated[opt.name];
+              const currentKey = Object.entries(updated)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([k, v]) => `${k}:${v}`)
+                .join("|");
+              if (data.stock[currentKey]?.inStock === false) {
+                // Find first in-stock choice for this option
+                for (const c of opt.choices) {
+                  const label = c.description || c.value;
+                  const testOpts = { ...updated, [opt.name]: label };
+                  const testKey = Object.entries(testOpts)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([k, v]) => `${k}:${v}`)
+                    .join("|");
+                  if (data.stock[testKey]?.inStock !== false) {
+                    updated[opt.name] = label;
+                    break;
+                  }
+                }
+              }
+            }
+            return updated;
+          });
+        }
+      })
     );
   }
 
@@ -100,9 +134,7 @@ export default memo(function ProductCardActions({
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      // Only use V3 + options if product has real variant choices (not standalone products with informational options)
-      const hasRealVariants = Object.keys(variantStock).length > 0;
-      const hasOptions = hasRealVariants && Object.keys(opts).length > 0;
+      const hasOptions = manageVariants && Object.keys(opts).length > 0;
 
       await wix.currentCart.addToCurrentCart({
         lineItems: [
@@ -111,7 +143,17 @@ export default memo(function ProductCardActions({
               catalogItemId: productId,
               appId: hasOptions ? WIX_STORES_V3_APP_ID : WIX_STORES_APP_ID,
               options: hasOptions
-                ? { options: opts, variantId: "00000000-0000-0000-0000-000000000000" }
+                ? {
+                    options: opts,
+                    variantId: (() => {
+                      // Look up real variant ID from stock data
+                      const key = Object.entries(opts)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([k, v]) => `${k}:${v}`)
+                        .join("|");
+                      return variantStock[key]?.variantId || "00000000-0000-0000-0000-000000000000";
+                    })(),
+                  }
                 : undefined,
             },
             quantity: 1,
@@ -137,7 +179,10 @@ export default memo(function ProductCardActions({
       setSheetOpen(false);
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
-      console.error("Failed to add to bag:", error);
+      const { log } = await import("@/lib/logger");
+      log({ level: "error", action: "quick-add-to-bag-failed", details: { productId, productName }, error });
+      const { showToast } = await import("@/lib/toast");
+      showToast("This item couldn't be added to your bag. It may be out of stock.", "error");
     } finally {
       setAdding(false);
     }
