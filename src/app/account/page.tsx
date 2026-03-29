@@ -65,6 +65,7 @@ function OrderRow({ order }: { order: Order }) {
   const [expanded, setExpanded] = useState(false);
   const [tracking, setTracking] = useState<{ trackingNumber: string; shippingProvider: string; trackingLink?: string }[]>([]);
   const [trackingLoaded, setTrackingLoaded] = useState(false);
+  const [copiedTracking, setCopiedTracking] = useState<string | null>(null);
 
   useEffect(() => {
     if (!expanded || trackingLoaded) return;
@@ -159,7 +160,16 @@ function OrderRow({ order }: { order: Order }) {
           {tracking.length > 0 && (
             <div className="border-t border-outline-variant/20 pt-4 pb-3">
               {tracking.map((t, i) => (
-                <div key={i} className="flex items-center gap-3 mb-2">
+                <div
+                  key={i}
+                  onClick={() => {
+                    navigator.clipboard.writeText(t.trackingNumber).then(() => {
+                      setCopiedTracking(t.trackingNumber);
+                      setTimeout(() => setCopiedTracking(null), 2000);
+                    });
+                  }}
+                  className="flex items-center gap-3 mb-2 cursor-pointer active:scale-[0.99] transition-transform"
+                >
                   <span className="material-symbols-outlined text-[16px] text-secondary">
                     local_shipping
                   </span>
@@ -168,7 +178,7 @@ function OrderRow({ order }: { order: Order }) {
                       {t.shippingProvider}
                     </p>
                     <p className="text-[10px] tracking-widest text-on-surface-variant">
-                      {t.trackingNumber}
+                      {copiedTracking === t.trackingNumber ? "Copied!" : t.trackingNumber}
                     </p>
                   </div>
                   {t.trackingLink && (
@@ -176,6 +186,7 @@ function OrderRow({ order }: { order: Order }) {
                       href={t.trackingLink}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="text-[10px] tracking-[0.15em] uppercase font-medium text-secondary hover:text-on-surface transition-colors"
                     >
                       Track
@@ -274,38 +285,129 @@ interface LoyaltyAccountData {
   tierPoints?: number;
 }
 
+interface LoyaltyCouponData {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  discountAmount?: number;
+  discountType?: string;
+}
+
+interface AvailableRewardData {
+  id: string;
+  name: string;
+  discountAmount: string;
+  costInPoints: number;
+}
+
 function RewardsTab() {
   const [account, setAccount] = useState<LoyaltyAccountData | null>(null);
+  const [rewards, setRewards] = useState<AvailableRewardData[]>([]);
+  const [coupons, setCoupons] = useState<LoyaltyCouponData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [redeemingId, setRedeemingId] = useState<string | null>(null);
+  const [redeemedCoupon, setRedeemedCoupon] = useState<{ code: string; name: string } | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  function copyCode(code: string) {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    });
+  }
+
+  const fetchData = useCallback(async () => {
+    try {
+      const wix = getBrowserWixClient();
+      await ensureVisitorTokens(wix);
+
+      // Fetch account, rewards, and coupons in parallel
+      const [accountResult, rewardsData, couponsResult] = await Promise.all([
+        wix.loyaltyAccounts.getCurrentMemberAccount(),
+        import("./actions").then(({ getAvailableRewards }) => getAvailableRewards()),
+        wix.loyaltyCoupons.getCurrentMemberCoupons().catch(() => ({ loyaltyCoupons: [] })),
+      ]);
+
+      const acc = accountResult.account ?? accountResult;
+      const points = acc.points ?? {};
+
+      setAccount({
+        balance: points.balance ?? 0,
+        earned: points.earned ?? 0,
+        redeemed: points.redeemed ?? 0,
+        rewardAvailable: acc.rewardAvailable ?? false,
+        tierName: acc.tier?.tierDefinition?.name ?? undefined,
+        tierPoints: acc.tier?.points ?? undefined,
+      });
+
+      setRewards(rewardsData);
+
+      const couponsList = (couponsResult?.loyaltyCoupons ?? []) as {
+        _id?: string;
+        id?: string;
+        couponReference?: {
+          code?: string;
+          name?: string;
+          specification?: {
+            type?: string;
+            moneyOffAmount?: number;
+            percentOffRate?: number;
+            freeShipping?: boolean;
+          };
+        };
+        status?: string;
+        rewardName?: string;
+      }[];
+
+      setCoupons(
+        couponsList
+          .filter((c) => c.status === "ACTIVE" || c.status === "PENDING")
+          .map((c) => ({
+            id: c._id ?? c.id ?? "",
+            code: c.couponReference?.code ?? "",
+            name: c.rewardName ?? c.couponReference?.name ?? "Coupon",
+            status: c.status ?? "UNKNOWN",
+            discountAmount: c.couponReference?.specification?.moneyOffAmount,
+            discountType: c.couponReference?.specification?.type,
+          }))
+      );
+    } catch (err) {
+      console.error("Failed to load loyalty account:", err);
+      setError("Rewards programme not available.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchLoyalty() {
-      try {
-        const wix = getBrowserWixClient();
-        await ensureVisitorTokens(wix);
-        const result = await wix.loyaltyAccounts.getCurrentMemberAccount();
+    fetchData();
+  }, [fetchData]);
 
-        const acc = result.account ?? result;
-        const points = acc.points ?? {};
+  async function handleRedeem(rewardId: string) {
+    setRedeemingId(rewardId);
+    setRedeemedCoupon(null);
+    try {
+      const wix = getBrowserWixClient();
+      await ensureVisitorTokens(wix);
 
-        setAccount({
-          balance: points.balance ?? 0,
-          earned: points.earned ?? 0,
-          redeemed: points.redeemed ?? 0,
-          rewardAvailable: acc.rewardAvailable ?? false,
-          tierName: acc.tier?.tierDefinition?.name ?? undefined,
-          tierPoints: acc.tier?.points ?? undefined,
-        });
-      } catch (err) {
-        console.error("Failed to load loyalty account:", err);
-        setError("Rewards programme not available.");
-      } finally {
-        setLoading(false);
-      }
+      const result = await wix.loyaltyCoupons.redeemCurrentMemberPointsForCoupon(rewardId);
+      const coupon = result.coupon;
+      const code = coupon?.couponReference?.code ?? "";
+      const name = coupon?.rewardName ?? "Reward";
+
+      setRedeemedCoupon({ code, name });
+
+      // Refresh data to update balance and coupons list
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to redeem reward:", err);
+      alert("Failed to redeem reward. Please try again.");
+    } finally {
+      setRedeemingId(null);
     }
-    fetchLoyalty();
-  }, []);
+  }
 
   if (loading) return <LoadingIndicator />;
 
@@ -369,10 +471,109 @@ function RewardsTab() {
         </div>
       </div>
 
-      {account.rewardAvailable && (
-        <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary mb-4">
-          You have a reward available to redeem!
-        </p>
+      {/* Redeemed coupon success message */}
+      {redeemedCoupon && (
+        <div
+          onClick={() => copyCode(redeemedCoupon.code)}
+          className="bg-surface-container-low px-6 py-5 mb-6 border-l-2 border-secondary cursor-pointer active:scale-[0.99] transition-transform"
+        >
+          <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary mb-2">
+            Coupon Redeemed
+          </p>
+          <p className="text-sm text-on-surface-variant mb-2">
+            {redeemedCoupon.name}
+          </p>
+          <p className="font-mono text-lg tracking-widest text-on-surface font-medium">
+            {redeemedCoupon.code}
+          </p>
+          <p className="mt-2 text-[10px] tracking-wide text-on-surface-variant">
+            {copiedCode === redeemedCoupon.code ? "Copied!" : "Tap to copy code"}
+          </p>
+        </div>
+      )}
+
+      {/* Available Rewards */}
+      {rewards.length > 0 && (
+        <div className="mb-8">
+          <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-on-surface-variant mb-3">
+            Available Rewards
+          </p>
+          <div className="space-y-2">
+            {rewards.map((reward) => {
+              const canAfford = account.balance >= reward.costInPoints;
+              const isRedeeming = redeemingId === reward.id;
+
+              return (
+                <div
+                  key={reward.id}
+                  className="bg-surface-container-low px-5 py-4 flex items-center justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <p className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface truncate">
+                      {reward.name}
+                    </p>
+                    <p className="mt-0.5 text-[10px] tracking-widest text-on-surface-variant">
+                      {reward.discountAmount} off
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-3">
+                    <span className="text-[10px] tracking-widest text-secondary font-medium">
+                      {reward.costInPoints.toLocaleString()} pts
+                    </span>
+                    <button
+                      onClick={() => handleRedeem(reward.id)}
+                      disabled={!canAfford || isRedeeming}
+                      className={`px-4 py-2 text-[10px] tracking-[0.2em] uppercase font-medium transition-colors ${
+                        canAfford
+                          ? "bg-on-surface text-on-primary hover:bg-on-surface/90"
+                          : "bg-surface-container text-on-surface-variant cursor-not-allowed"
+                      } disabled:opacity-50`}
+                    >
+                      {isRedeeming ? "..." : "Redeem"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Existing Coupons */}
+      {coupons.length > 0 && (
+        <div className="mb-8">
+          <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-on-surface-variant mb-3">
+            Your Coupons
+          </p>
+          <div className="space-y-2">
+            {coupons.map((coupon) => (
+              <div
+                key={coupon.id}
+                onClick={() => copyCode(coupon.code)}
+                className="bg-surface-container-low px-5 py-4 flex items-center justify-between gap-4 cursor-pointer active:scale-[0.99] transition-transform"
+              >
+                <div className="min-w-0">
+                  <p className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface truncate">
+                    {coupon.name}
+                  </p>
+                  {coupon.discountAmount && (
+                    <p className="mt-0.5 text-[10px] tracking-widest text-on-surface-variant">
+                      ${coupon.discountAmount} off
+                    </p>
+                  )}
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-mono text-xs tracking-widest text-on-surface font-medium">
+                    {coupon.code}
+                  </p>
+                  <p className="mt-0.5 text-[10px] tracking-wide text-on-surface-variant">
+                    {copiedCode === coupon.code ? "Copied!" : "Tap to copy"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <Link

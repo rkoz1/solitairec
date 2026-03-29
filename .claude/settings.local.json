@@ -62,7 +62,8 @@
       "Bash(grep -i fulfillment /c/dev/solitairec/node_modules/@wix/auto_sdk_ecom_orders/build/es/*.mts)",
       "Bash(grep -i \"trackingInfo\\\\|trackingNumber\\\\|trackingLink\\\\|trackingUrl\\\\|listFulfillments\\\\|interface Fulfillment \" /c/dev/solitairec/node_modules/@wix/auto_sdk_ecom_order-fulfillments/build/es/*.d.mts)",
       "Bash(node:*)",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(find /c/dev/solitairec/node_modules -path *@wix*loyalty* -type f -name *.d.ts)"
     ]
   }
 }
