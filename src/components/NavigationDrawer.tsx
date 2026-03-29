@@ -132,35 +132,37 @@ export default function NavigationDrawer() {
           })}
 
           {/* Divider before site pages */}
-          <div className="pt-4 mb-2" />
+          {/* Promotional banner */}
+          <Link
+            href="/refer-friends"
+            onClick={close}
+            className="block mt-8 py-4 text-center border-t border-b border-outline-variant/15"
+          >
+            <p className="font-serif italic text-[15px] tracking-tight text-secondary">
+              Give 10%, Get 10% &mdash; Refer a Friend
+            </p>
+          </Link>
 
-          {/* Site pages */}
-          <div className="border-b border-outline-variant/15">
-            <Link
-              href="/our-mission"
-              onClick={close}
-              className="block py-4 font-serif text-lg tracking-tight text-on-surface"
-            >
-              Our Mission
-            </Link>
-          </div>
-          <div className="border-b border-outline-variant/15">
-            <Link
-              href="/loyalty"
-              onClick={close}
-              className="block py-4 font-serif text-lg tracking-tight text-on-surface"
-            >
-              Rewards
-            </Link>
-          </div>
-          <div className="border-b border-outline-variant/15">
-            <Link
-              href="/account"
-              onClick={close}
-              className="block py-4 font-serif text-lg tracking-tight text-on-surface"
-            >
-              Account
-            </Link>
+          {/* Secondary links */}
+          <div className="mt-5 space-y-0.5 pb-4">
+            {[
+              { href: "/gift-cards", label: "Gift Cards", icon: "redeem" },
+              { href: "/loyalty", label: "Rewards" },
+              { href: "/our-mission", label: "Our Mission" },
+              { href: "/terms", label: "Terms & Conditions" },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={close}
+                className="flex items-center gap-1.5 py-1.5 text-[13px] tracking-wide text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                {"icon" in link && link.icon && (
+                  <span className="material-symbols-outlined text-[16px]">{link.icon}</span>
+                )}
+                {link.label}
+              </Link>
+            ))}
           </div>
         </nav>
       </div>

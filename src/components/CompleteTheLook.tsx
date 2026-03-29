@@ -155,9 +155,6 @@ async function getRecommendedProducts(
 
   // Tier 1 had results but all same-category → show as "Frequently Bought Together"
   if (recommended.length >= MIN_ITEMS) {
-    console.log(
-      "[CompleteTheLook] → Tier 1 same-category, using 'Frequently Bought Together'",
-    );
     return {
       products: recommended.slice(0, MAX_ITEMS),
       heading: "Frequently Bought Together",

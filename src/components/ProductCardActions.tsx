@@ -38,6 +38,7 @@ export default memo(function ProductCardActions({
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [variantStock, setVariantStock] = useState<Record<string, { inStock: boolean; quantity: number }>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -76,6 +77,21 @@ export default memo(function ProductCardActions({
     }
     setSelectedOptions(defaults);
     setSheetOpen(true);
+
+    // Lazy-fetch variant stock
+    import("@/app/actions").then(({ getProductVariantStock }) =>
+      getProductVariantStock(productId).then(setVariantStock)
+    );
+  }
+
+  function getChoiceStock(optionName: string, choiceLabel: string): { inStock: boolean; quantity: number } | null {
+    if (Object.keys(variantStock).length === 0) return null;
+    const testOptions = { ...selectedOptions, [optionName]: choiceLabel };
+    const key = Object.entries(testOptions)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}:${v}`)
+      .join("|");
+    return variantStock[key] ?? null;
   }
 
   async function addToBag(opts: Record<string, string>) {
@@ -84,7 +100,9 @@ export default memo(function ProductCardActions({
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      const hasOptions = Object.keys(opts).length > 0;
+      // Only use V3 + options if product has real variant choices (not standalone products with informational options)
+      const hasRealVariants = Object.keys(variantStock).length > 0;
+      const hasOptions = hasRealVariants && Object.keys(opts).length > 0;
 
       await wix.currentCart.addToCurrentCart({
         lineItems: [
@@ -182,47 +200,67 @@ export default memo(function ProductCardActions({
                     {isColor ? (
                       <div className="flex flex-wrap gap-2">
                         {option.choices.map((choice) => {
-                          const isSelected = selectedOptions[option.name] === (choice.description || choice.value);
+                          const label = choice.description || choice.value;
+                          const isSelected = selectedOptions[option.name] === label;
+                          const stock = getChoiceStock(option.name, label);
+                          const oos = stock !== null && !stock.inStock;
                           return (
                             <button
                               key={choice.value}
-                              onClick={() =>
+                              onClick={() => {
+                                if (oos) return;
                                 setSelectedOptions((prev) => ({
                                   ...prev,
-                                  [option.name]: choice.description || choice.value,
-                                }))
-                              }
-                              className={`w-8 h-8 transition-colors ${
-                                isSelected
-                                  ? "ring-2 ring-on-surface ring-offset-2 ring-offset-white"
-                                  : "border border-outline-variant/20 hover:border-outline"
+                                  [option.name]: label,
+                                }));
+                              }}
+                              disabled={oos}
+                              className={`relative w-8 h-8 transition-colors ${
+                                oos
+                                  ? "opacity-25 cursor-not-allowed"
+                                  : isSelected
+                                    ? "ring-2 ring-on-surface ring-offset-2 ring-offset-white"
+                                    : "border border-outline-variant/20 hover:border-outline"
                               }`}
                               style={{ backgroundColor: choice.value }}
-                              aria-label={choice.description || choice.value}
-                            />
+                              aria-label={`${label}${oos ? " (Sold Out)" : ""}`}
+                            >
+                              {oos && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <span className="block w-[140%] h-[1px] bg-on-surface/50 rotate-45 origin-center" />
+                                </span>
+                              )}
+                            </button>
                           );
                         })}
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {option.choices.map((choice) => {
-                          const isSelected = selectedOptions[option.name] === (choice.description || choice.value);
+                          const label = choice.description || choice.value;
+                          const isSelected = selectedOptions[option.name] === label;
+                          const stock = getChoiceStock(option.name, label);
+                          const oos = stock !== null && !stock.inStock;
                           return (
                             <button
                               key={choice.value}
-                              onClick={() =>
+                              onClick={() => {
+                                if (oos) return;
                                 setSelectedOptions((prev) => ({
                                   ...prev,
-                                  [option.name]: choice.description || choice.value,
-                                }))
-                              }
+                                  [option.name]: label,
+                                }));
+                              }}
+                              disabled={oos}
                               className={`px-3 py-2 text-[10px] tracking-[0.15em] uppercase font-medium transition-colors border border-outline-variant/20 ${
-                                isSelected
-                                  ? "bg-on-surface text-on-primary"
-                                  : "bg-transparent text-on-surface hover:bg-surface-container-low"
+                                oos
+                                  ? "opacity-30 line-through cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-on-surface text-on-primary"
+                                    : "bg-transparent text-on-surface hover:bg-surface-container-low"
                               }`}
                             >
-                              {choice.description || choice.value}
+                              {label}
                             </button>
                           );
                         })}

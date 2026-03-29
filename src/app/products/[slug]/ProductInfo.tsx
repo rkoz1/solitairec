@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AddToCartButton from "./AddToCartButton";
 import WishlistButton from "@/components/WishlistButton";
+import {
+  getBrowserWixClient,
+  ensureVisitorTokens,
+} from "@/lib/wix-browser-client";
+import { showToast } from "@/lib/toast";
 
 interface ProductOption {
   name?: string | null;
@@ -12,16 +17,39 @@ interface ProductOption {
   }> | null;
 }
 
+interface VariantInfo {
+  choices: Record<string, string>;
+  inStock: boolean;
+  quantity: number;
+}
+
 interface ProductInfoProps {
   productId: string;
   productName?: string;
+  productPrice?: string;
   productOptions: ProductOption[];
+  variants?: VariantInfo[];
+  productInStock?: boolean;
+  productQuantity?: number;
+  trackInventory?: boolean;
+}
+
+function buildStockKey(opts: Record<string, string>): string {
+  return Object.entries(opts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}:${v}`)
+    .join("|");
 }
 
 export default function ProductInfo({
   productId,
   productName,
+  productPrice,
   productOptions,
+  variants = [],
+  productInStock = true,
+  productQuantity,
+  trackInventory = false,
 }: ProductInfoProps) {
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string>
@@ -36,6 +64,47 @@ export default function ProductInfo({
     return defaults;
   });
 
+  // Build variant stock lookup keyed by sorted option string
+  const stockMap = useMemo(() => {
+    const map = new Map<string, { inStock: boolean; quantity: number }>();
+    for (const v of variants) {
+      const key = buildStockKey(v.choices);
+      if (key) map.set(key, { inStock: v.inStock, quantity: v.quantity });
+    }
+    return map;
+  }, [variants]);
+
+  // Check stock for a specific choice within current selection
+  // Treat quantity === 0 as out of stock regardless of inStock flag
+  function isChoiceInStock(optionName: string, choiceLabel: string): { inStock: boolean; quantity: number } | null {
+    if (stockMap.size === 0) return null; // no variant data
+    const testOptions = { ...selectedOptions, [optionName]: choiceLabel };
+    const key = buildStockKey(testOptions);
+    const stock = stockMap.get(key);
+    if (!stock) return null;
+    return { ...stock, inStock: stock.inStock && stock.quantity !== 0 };
+  }
+
+  // Current selected variant stock
+  const selectedStock = useMemo(() => {
+    if (stockMap.size === 0) return null;
+    const key = buildStockKey(selectedOptions);
+    const stock = stockMap.get(key);
+    if (!stock) return null;
+    return { ...stock, inStock: stock.inStock && stock.quantity !== 0 };
+  }, [stockMap, selectedOptions]);
+
+  // Products with empty variant choices are V1 (standalone) — each color is a separate product
+  const hasRealVariants = variants.some((v) => Object.keys(v.choices).length > 0);
+
+  const isOutOfStock = !productInStock || (hasRealVariants && selectedStock !== null && !selectedStock.inStock);
+
+  // Low stock: use variant stock for real variants, product-level stock for standalone
+  // Only show when inventory is tracked (untracked products have unreliable quantity)
+  const lowStockQty = hasRealVariants
+    ? (selectedStock && selectedStock.inStock && selectedStock.quantity >= 1 && selectedStock.quantity <= 5 ? selectedStock.quantity : null)
+    : (trackInventory && productInStock && productQuantity !== undefined && productQuantity >= 1 && productQuantity <= 5 ? productQuantity : null);
+
   return (
     <>
       {/* Variant/size selector */}
@@ -47,29 +116,42 @@ export default function ProductInfo({
                 {option.name}
               </label>
               {option.choices?.[0]?.value && /^(#|rgb)/.test(option.choices[0].value) ? (
-                /* Color option — swatch squares with selected name below */
+                /* Color option — swatch squares */
                 <div>
                   <div className="flex gap-2">
                     {option.choices?.map((choice) => {
-                      const isSelected =
-                        selectedOptions[option.name ?? ""] === (choice.description || choice.value);
+                      const label = choice.description || choice.value || "";
+                      const isSelected = selectedOptions[option.name ?? ""] === label;
+                      const stock = hasRealVariants ? isChoiceInStock(option.name ?? "", label) : null;
+                      const oos = stock !== null && !stock.inStock;
+
                       return (
                         <button
                           key={choice.value}
                           onClick={() =>
                             setSelectedOptions((prev) => ({
                               ...prev,
-                              [option.name ?? ""]: choice.description || choice.value || "",
+                              [option.name ?? ""]: label,
                             }))
                           }
-                          className={`w-10 h-10 transition-colors ${
-                            isSelected
-                              ? "ring-2 ring-on-surface ring-offset-2 ring-offset-surface"
-                              : "border border-outline-variant/20 hover:border-outline"
+                          className={`relative w-10 h-10 transition-colors ${
+                            oos
+                              ? isSelected
+                                ? "opacity-50 ring-2 ring-on-surface ring-offset-2 ring-offset-surface"
+                                : "opacity-25"
+                              : isSelected
+                                ? "ring-2 ring-on-surface ring-offset-2 ring-offset-surface"
+                                : "border border-outline-variant/20 hover:border-outline"
                           }`}
                           style={{ backgroundColor: choice.value ?? undefined }}
-                          aria-label={choice.description || choice.value || ""}
-                        />
+                          aria-label={`${label}${oos ? " (Sold Out)" : ""}`}
+                        >
+                          {oos && (
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              <span className="block w-[140%] h-[1px] bg-on-surface/50 rotate-45 origin-center" />
+                            </span>
+                          )}
+                        </button>
                       );
                     })}
                   </div>
@@ -81,24 +163,31 @@ export default function ProductInfo({
                 /* Non-color option (Size, etc.) — text chips */
                 <div className="grid grid-cols-4 gap-2">
                   {option.choices?.map((choice) => {
-                    const isSelected =
-                      selectedOptions[option.name ?? ""] === (choice.description || choice.value);
+                    const label = choice.description || choice.value || "";
+                    const isSelected = selectedOptions[option.name ?? ""] === label;
+                    const stock = hasRealVariants ? isChoiceInStock(option.name ?? "", label) : null;
+                    const oos = stock !== null && !stock.inStock;
+
                     return (
                       <button
                         key={choice.value}
                         onClick={() =>
                           setSelectedOptions((prev) => ({
                             ...prev,
-                            [option.name ?? ""]: choice.description || choice.value || "",
+                            [option.name ?? ""]: label,
                           }))
                         }
                         className={`h-14 text-xs tracking-[0.15em] uppercase font-medium transition-colors border border-outline-variant/20 ${
-                          isSelected
-                            ? "bg-on-surface text-on-primary"
-                            : "bg-transparent text-on-surface hover:bg-surface-container-low"
+                          oos
+                            ? isSelected
+                              ? "opacity-50 line-through bg-on-surface text-on-primary"
+                              : "opacity-30 line-through"
+                            : isSelected
+                              ? "bg-on-surface text-on-primary"
+                              : "bg-transparent text-on-surface hover:bg-surface-container-low"
                         }`}
                       >
-                        {choice.description || choice.value}
+                        {label}
                       </button>
                     );
                   })}
@@ -106,16 +195,127 @@ export default function ProductInfo({
               )}
             </div>
           ))}
+
         </div>
       )}
 
-      {/* Add to Bag */}
-      <div className="mt-8">
-        <AddToCartButton productId={productId} productName={productName} selectedOptions={selectedOptions} />
+      {/* Low stock warning — always visible above Add to Bag */}
+      {lowStockQty !== null && (
+        <p className="mt-6 text-[11px] tracking-[0.15em] text-secondary font-medium">
+          Only {lowStockQty} left in stock
+        </p>
+      )}
+
+      {/* Add to Bag / Notify Me */}
+      <div className="mt-4">
+        {isOutOfStock ? (
+          <NotifyMeForm productId={productId} productName={productName ?? ""} productPrice={productPrice ?? "0"} />
+        ) : (
+          <AddToCartButton productId={productId} productName={productName} selectedOptions={hasRealVariants ? selectedOptions : undefined} />
+        )}
       </div>
 
       {/* Add to Wishlist */}
       <WishlistButton productId={productId} />
     </>
+  );
+}
+
+const WIX_STORES_V1_APP_ID = "1380b703-ce81-ff05-f115-39571d94dfcd";
+
+function NotifyMeForm({ productId, productName, productPrice }: { productId: string; productName: string; productPrice: string }) {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // Prepopulate email from logged-in member
+  const [emailLoaded, setEmailLoaded] = useState(false);
+  if (!emailLoaded) {
+    setEmailLoaded(true);
+    getBrowserWixClient().members.getCurrentMember({ fieldsets: ["FULL"] })
+      .then((response: unknown) => {
+        const res = response as { member?: Record<string, unknown> } & Record<string, unknown>;
+        const member = (res.member ?? res) as { loginEmail?: string; contact?: { emails?: string[] } };
+        const memberEmail = member.loginEmail ?? member.contact?.emails?.[0];
+        if (memberEmail) setEmail(memberEmail);
+      })
+      .catch(() => {});
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const wix = getBrowserWixClient();
+      await ensureVisitorTokens(wix);
+
+      await wix.backInStockNotifications.createBackInStockNotificationRequest(
+        {
+          catalogReference: {
+            appId: WIX_STORES_V1_APP_ID,
+            catalogItemId: productId,
+          },
+          email: email.trim(),
+        },
+        {
+          name: productName,
+          price: productPrice,
+        }
+      );
+
+      setSubmitted(true);
+    } catch (err: unknown) {
+      const errorCode = (err as { details?: { applicationError?: { code?: string } } })
+        ?.details?.applicationError?.code;
+      if (errorCode === "BACK_IN_STOCK_NOTIFICATION_REQUEST_ALREADY_EXISTS") {
+        // Already subscribed — treat as success
+        setSubmitted(true);
+      } else {
+        console.error("Failed to create notification request:", err);
+        showToast("Unable to submit notification request. Please try again.", "error");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="text-center py-5">
+        <p className="text-[11px] tracking-[0.15em] uppercase font-medium text-secondary">
+          Sold Out
+        </p>
+        <p className="mt-2 text-[11px] tracking-[0.15em] text-on-surface-variant">
+          We&apos;ll notify you when this item is back in stock
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-[11px] tracking-[0.15em] uppercase font-medium text-secondary mb-3">
+        Sold Out
+      </p>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          required
+          className="flex-1 px-4 py-3.5 bg-surface-container-low text-sm text-on-surface outline-none focus:ring-1 focus:ring-secondary"
+        />
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-6 py-3.5 bg-on-surface text-on-primary text-[10px] tracking-[0.2em] uppercase font-bold transition-transform active:scale-[0.98] disabled:opacity-50"
+        >
+          {submitting ? "..." : "Notify Me"}
+        </button>
+      </form>
+    </div>
   );
 }

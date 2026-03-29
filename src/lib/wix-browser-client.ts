@@ -1,8 +1,9 @@
 import { createClient, OAuthStrategy } from "@wix/sdk";
-import { currentCart, checkout, orders } from "@wix/ecom";
-import { accounts as loyaltyAccounts, transactions as loyaltyTransactions } from "@wix/loyalty";
+import { currentCart, checkout, orders, backInStockNotifications } from "@wix/ecom";
+import { accounts as loyaltyAccounts, transactions as loyaltyTransactions, coupons as loyaltyCoupons } from "@wix/loyalty";
 import { members } from "@wix/members";
 import { redirects } from "@wix/redirects";
+import { customers as referralCustomers } from "@wix/referral";
 
 let clientInstance: ReturnType<typeof createClient> | null = null;
 let visitorTokenPromise: Promise<void> | null = null;
@@ -22,7 +23,7 @@ export function getBrowserWixClient() {
   }
 
   clientInstance = createClient({
-    modules: { currentCart, checkout, orders, loyaltyAccounts, loyaltyTransactions, members, redirects },
+    modules: { currentCart, checkout, orders, backInStockNotifications, loyaltyAccounts, loyaltyTransactions, loyaltyCoupons, members, redirects, referralCustomers },
     auth: OAuthStrategy({
       clientId,
       tokens: loadTokens() ?? undefined,

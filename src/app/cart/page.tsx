@@ -16,6 +16,8 @@ import {
 import { getProductsByIds, type WishlistProduct } from "./actions";
 import type { cart } from "@wix/ecom";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import FreeShippingBar from "@/components/FreeShippingBar";
+import { showToast } from "@/lib/toast";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -74,9 +76,13 @@ function BagTab() {
   const [cartData, setCartData] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [updatingQtyId, setUpdatingQtyId] = useState<string | null>(null);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
+  const [subtotalNum, setSubtotalNum] = useState(0);
 
   const [totals, setTotals] = useState<{
     subtotal?: string;
+    shipping?: string;
     discount?: string;
     total?: string;
     discounts?: { name: string; amount: string }[];
@@ -119,12 +125,15 @@ function BagTab() {
 
         const ps = est.priceSummary as {
           subtotal?: { amount?: string; formattedAmount?: string };
+          shipping?: { amount?: string; formattedAmount?: string };
           discount?: { amount?: string; formattedAmount?: string };
           total?: { amount?: string; formattedAmount?: string };
         } | undefined;
 
         // Compute discounted total if API total doesn't reflect discounts
-        const subtotalNum = parseFloat(ps?.subtotal?.amount ?? "0");
+        const parsedSubtotal = parseFloat(ps?.subtotal?.amount ?? "0");
+        setSubtotalNum(parsedSubtotal);
+        const subtotalNum = parsedSubtotal;
         const totalDiscountNum = [...discountTotals.values()].reduce((a, b) => a + b, 0);
         const apiTotal = parseFloat(ps?.total?.amount ?? "0");
 
@@ -137,8 +146,11 @@ function BagTab() {
           ? `${currencyPrefix}${computedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
           : ps?.total?.formattedAmount;
 
+        const shippingAmount = parseFloat(ps?.shipping?.amount ?? "0");
+
         setTotals({
           subtotal: ps?.subtotal?.formattedAmount,
+          shipping: shippingAmount > 0 ? ps?.shipping?.formattedAmount : undefined,
           discount: ps?.discount?.formattedAmount,
           total: totalFormatted,
           discounts: discountList,
@@ -162,6 +174,9 @@ function BagTab() {
 
   useEffect(() => {
     loadCart();
+    import("@/app/actions").then(({ getFreeShippingThreshold }) =>
+      getFreeShippingThreshold().then(setFreeShippingThreshold)
+    );
 
     // Refresh when items are added from wishlist (or elsewhere)
     const handler = () => loadCart();
@@ -178,6 +193,43 @@ function BagTab() {
     } catch (error) {
       console.error("Failed to remove item:", error);
       setRemovingId(null);
+    }
+  }
+
+  const [stockMessage, setStockMessage] = useState<string | null>(null);
+
+  async function updateQuantity(lineItemId: string, newQuantity: number) {
+    if (newQuantity < 1) {
+      removeItem(lineItemId);
+      return;
+    }
+    setUpdatingQtyId(lineItemId);
+    setStockMessage(null);
+    try {
+      const wix = getBrowserWixClient();
+      const result = await wix.currentCart.updateCurrentCartLineItemQuantity([
+        { _id: lineItemId, quantity: newQuantity },
+      ]);
+
+      // Check if Wix capped the quantity due to stock limits
+      const updatedItem = result.cart?.lineItems?.find(
+        (li: { _id?: string }) => li._id === lineItemId
+      );
+      const actualQty = updatedItem?.quantity ?? newQuantity;
+      if (actualQty < newQuantity) {
+        setStockMessage(
+          actualQty === 1
+            ? "Only 1 item left in stock"
+            : `Only ${actualQty} items left in stock`
+        );
+        setTimeout(() => setStockMessage(null), 3000);
+      }
+
+      window.dispatchEvent(new Event("cart-updated"));
+    } catch (error) {
+      console.error("Failed to update quantity:", error);
+    } finally {
+      setUpdatingQtyId(null);
     }
   }
 
@@ -210,7 +262,7 @@ function BagTab() {
       window.location.href = redirectUrl;
     } catch (error) {
       console.error("Failed to start checkout:", error);
-      alert("Failed to proceed to checkout. Please try again.");
+      showToast("Unable to proceed to checkout. Please try again.", "error");
       setCheckingOut(false);
     }
   }
@@ -317,15 +369,40 @@ function BagTab() {
                   );
                 })()}
 
-                <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
-                  Qty: {item.quantity}
-                </p>
+                <div className="mt-1 flex items-center gap-0">
+                  <button
+                    onClick={() => updateQuantity(item._id ?? "", (item.quantity ?? 1) - 1)}
+                    disabled={updatingQtyId === item._id}
+                    className="w-6 h-6 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">remove</span>
+                  </button>
+                  <span className="w-6 text-center text-[10px] tracking-widest text-on-surface-variant font-medium">
+                    {item.quantity}
+                  </span>
+                  <button
+                    onClick={() => updateQuantity(item._id ?? "", (item.quantity ?? 1) + 1)}
+                    disabled={updatingQtyId === item._id}
+                    className="w-6 h-6 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">add</span>
+                  </button>
+                </div>
 
-                {/* Price — show original strikethrough if discounted */}
+                {/* Price — show line total when qty > 1 */}
                 {(() => {
                   const full = item.fullPrice?.formattedAmount;
-                  const current = item.price?.formattedAmount;
-                  const isDiscounted = full && current && full !== current;
+                  const unitPrice = item.price?.formattedAmount;
+                  const unitAmount = parseFloat(item.price?.amount ?? "0");
+                  const isDiscounted = full && unitPrice && full !== unitPrice;
+                  const qty = item.quantity ?? 1;
+
+                  // Extract currency prefix from formatted price
+                  const prefix = unitPrice?.replace(/[\d.,]+/g, "").trim() ?? "";
+                  const lineTotal = qty > 1
+                    ? `${prefix}${(unitAmount * qty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : null;
+
                   return (
                     <div className="mt-1 flex items-center gap-2">
                       {isDiscounted && (
@@ -334,8 +411,13 @@ function BagTab() {
                         </span>
                       )}
                       <span className={`text-[10px] tracking-widest ${isDiscounted ? "text-secondary font-medium" : "text-on-surface-variant"}`}>
-                        {current ?? ""}
+                        {lineTotal ?? unitPrice ?? ""}
                       </span>
+                      {qty > 1 && (
+                        <span className="text-[10px] tracking-widest text-on-surface-variant/60">
+                          ({unitPrice} each)
+                        </span>
+                      )}
                     </div>
                   );
                 })()}
@@ -352,6 +434,18 @@ function BagTab() {
           </div>
         );
       })}
+
+      {/* Stock limit message */}
+      {stockMessage && (
+        <p className="text-[10px] tracking-[0.15em] uppercase text-secondary font-medium text-center py-2">
+          {stockMessage}
+        </p>
+      )}
+
+      {/* Free shipping progress */}
+      {freeShippingThreshold > 0 && (
+        <FreeShippingBar subtotal={subtotalNum} threshold={freeShippingThreshold} />
+      )}
 
       {/* Cart summary */}
       {totals && (
@@ -378,10 +472,10 @@ function BagTab() {
 
           <div className="flex justify-between">
             <span className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
-              Shipping
+              {totals.shipping ? "Est. Shipping" : "Shipping"}
             </span>
             <span className="text-[10px] tracking-widest text-on-surface-variant">
-              Calculated at checkout
+              {totals.shipping ?? "Calculated at checkout"}
             </span>
           </div>
 
@@ -482,7 +576,7 @@ function WishlistTab() {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      const hasOptions = Object.keys(opts).length > 0;
+      const hasOptions = product.hasRealVariants && Object.keys(opts).length > 0;
 
       const result = await wix.currentCart.addToCurrentCart({
         lineItems: [
@@ -525,7 +619,7 @@ function WishlistTab() {
     } catch (error) {
       console.error("Failed to add to bag:", error);
       setAddingId(null);
-      alert("Failed to add to bag. Please try again.");
+      showToast("Unable to add item to bag. Please try again.", "error");
     }
   }
 
@@ -558,6 +652,8 @@ function WishlistTab() {
         const isAdding = addingId === product._id;
         const isAdded = addedId === product._id;
 
+        const isSoldOut = !product.inStock;
+
         return (
           <div
             key={product._id}
@@ -565,7 +661,7 @@ function WishlistTab() {
               isAdded ? "opacity-50" : ""
             }`}
           >
-            <div className="flex gap-4">
+            <div className={`flex gap-4 ${isSoldOut ? "opacity-40" : ""}`}>
               {/* Product thumbnail */}
               <Link
                 href={`/products/${product.slug}`}
@@ -594,18 +690,24 @@ function WishlistTab() {
                 </div>
 
                 <div className="flex gap-4 mt-2">
-                  {!isExpanded && (
-                    <button
-                      onClick={() => handleAddToBagClick(product)}
-                      disabled={isAdding || isAdded}
-                      className="text-[10px] tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors disabled:opacity-50"
-                    >
-                      {isAdding
-                        ? "Adding..."
-                        : isAdded
-                          ? "Added \u2713"
-                          : "Add to Bag"}
-                    </button>
+                  {isSoldOut ? (
+                    <span className="text-[10px] tracking-[0.15em] uppercase font-medium text-secondary">
+                      Sold Out
+                    </span>
+                  ) : (
+                    !isExpanded && (
+                      <button
+                        onClick={() => handleAddToBagClick(product)}
+                        disabled={isAdding || isAdded}
+                        className="text-[10px] tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors disabled:opacity-50"
+                      >
+                        {isAdding
+                          ? "Adding..."
+                          : isAdded
+                            ? "Added \u2713"
+                            : "Add to Bag"}
+                      </button>
+                    )
                   )}
                   <button
                     onClick={() => removeFromWishlist(product._id)}
