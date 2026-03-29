@@ -114,6 +114,10 @@ export async function fetchSearchResults(
       .find();
 
     for (const p of items) {
+      // Skip out-of-stock products
+      const stock = p.stock as { inventoryStatus?: string } | undefined;
+      if (stock?.inventoryStatus === "OUT_OF_STOCK") continue;
+
       const price = p.priceData?.price ?? 0;
       if (price < minPrice) minPrice = price;
       if (price > maxPrice) maxPrice = price;
@@ -216,6 +220,7 @@ export async function fetchCollectionProducts(
     priceData?: { price?: number; formatted?: { price?: string | null } | null } | null;
     media?: { mainMedia?: { image?: { url?: string | null } | null } | null } | null;
     productOptions?: { name?: string | null; choices?: { value?: string | null; description?: string | null }[] | null }[] | null;
+    stock?: { inventoryStatus?: string } | null;
   };
 
   const allSizes = new Set<string>();
@@ -223,7 +228,9 @@ export async function fetchCollectionProducts(
   let minPrice = Infinity;
   let maxPrice = 0;
 
-  const products: CollectionProduct[] = (allItems as WixProduct[]).map((p) => {
+  const products: CollectionProduct[] = (allItems as WixProduct[])
+  .filter((p) => p.stock?.inventoryStatus !== "OUT_OF_STOCK")
+  .map((p) => {
     const price = p.priceData?.price ?? 0;
     if (price < minPrice) minPrice = price;
     if (price > maxPrice) maxPrice = price;

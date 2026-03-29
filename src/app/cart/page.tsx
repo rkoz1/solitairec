@@ -16,6 +16,7 @@ import {
 import { getProductsByIds, type WishlistProduct } from "./actions";
 import type { cart } from "@wix/ecom";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import FreeShippingBar from "@/components/FreeShippingBar";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -74,6 +75,9 @@ function BagTab() {
   const [cartData, setCartData] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [updatingQtyId, setUpdatingQtyId] = useState<string | null>(null);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
+  const [subtotalNum, setSubtotalNum] = useState(0);
 
   const [totals, setTotals] = useState<{
     subtotal?: string;
@@ -126,7 +130,9 @@ function BagTab() {
         } | undefined;
 
         // Compute discounted total if API total doesn't reflect discounts
-        const subtotalNum = parseFloat(ps?.subtotal?.amount ?? "0");
+        const parsedSubtotal = parseFloat(ps?.subtotal?.amount ?? "0");
+        setSubtotalNum(parsedSubtotal);
+        const subtotalNum = parsedSubtotal;
         const totalDiscountNum = [...discountTotals.values()].reduce((a, b) => a + b, 0);
         const apiTotal = parseFloat(ps?.total?.amount ?? "0");
 
@@ -167,6 +173,9 @@ function BagTab() {
 
   useEffect(() => {
     loadCart();
+    import("@/app/actions").then(({ getFreeShippingThreshold }) =>
+      getFreeShippingThreshold().then(setFreeShippingThreshold)
+    );
 
     // Refresh when items are added from wishlist (or elsewhere)
     const handler = () => loadCart();
@@ -183,6 +192,43 @@ function BagTab() {
     } catch (error) {
       console.error("Failed to remove item:", error);
       setRemovingId(null);
+    }
+  }
+
+  const [stockMessage, setStockMessage] = useState<string | null>(null);
+
+  async function updateQuantity(lineItemId: string, newQuantity: number) {
+    if (newQuantity < 1) {
+      removeItem(lineItemId);
+      return;
+    }
+    setUpdatingQtyId(lineItemId);
+    setStockMessage(null);
+    try {
+      const wix = getBrowserWixClient();
+      const result = await wix.currentCart.updateCurrentCartLineItemQuantity([
+        { _id: lineItemId, quantity: newQuantity },
+      ]);
+
+      // Check if Wix capped the quantity due to stock limits
+      const updatedItem = result.cart?.lineItems?.find(
+        (li: { _id?: string }) => li._id === lineItemId
+      );
+      const actualQty = updatedItem?.quantity ?? newQuantity;
+      if (actualQty < newQuantity) {
+        setStockMessage(
+          actualQty === 1
+            ? "Only 1 item left in stock"
+            : `Only ${actualQty} items left in stock`
+        );
+        setTimeout(() => setStockMessage(null), 3000);
+      }
+
+      window.dispatchEvent(new Event("cart-updated"));
+    } catch (error) {
+      console.error("Failed to update quantity:", error);
+    } finally {
+      setUpdatingQtyId(null);
     }
   }
 
@@ -322,9 +368,25 @@ function BagTab() {
                   );
                 })()}
 
-                <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
-                  Qty: {item.quantity}
-                </p>
+                <div className="mt-1 flex items-center gap-0">
+                  <button
+                    onClick={() => updateQuantity(item._id ?? "", (item.quantity ?? 1) - 1)}
+                    disabled={updatingQtyId === item._id}
+                    className="w-6 h-6 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">remove</span>
+                  </button>
+                  <span className="w-6 text-center text-[10px] tracking-widest text-on-surface-variant font-medium">
+                    {item.quantity}
+                  </span>
+                  <button
+                    onClick={() => updateQuantity(item._id ?? "", (item.quantity ?? 1) + 1)}
+                    disabled={updatingQtyId === item._id}
+                    className="w-6 h-6 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">add</span>
+                  </button>
+                </div>
 
                 {/* Price — show original strikethrough if discounted */}
                 {(() => {
@@ -357,6 +419,18 @@ function BagTab() {
           </div>
         );
       })}
+
+      {/* Stock limit message */}
+      {stockMessage && (
+        <p className="text-[10px] tracking-[0.15em] uppercase text-secondary font-medium text-center py-2">
+          {stockMessage}
+        </p>
+      )}
+
+      {/* Free shipping progress */}
+      {freeShippingThreshold > 0 && (
+        <FreeShippingBar subtotal={subtotalNum} threshold={freeShippingThreshold} />
+      )}
 
       {/* Cart summary */}
       {totals && (

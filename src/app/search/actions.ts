@@ -44,6 +44,10 @@ async function refreshCatalog() {
         .find();
 
       for (const p of items) {
+        // Skip out-of-stock products
+        const stock = p.stock as { inventoryStatus?: string } | undefined;
+        if (stock?.inventoryStatus === "OUT_OF_STOCK") continue;
+
         allProducts.push({
           _id: p._id ?? "",
           name: p.name ?? "",
