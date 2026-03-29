@@ -31,29 +31,44 @@ export default async function LoyaltyPage() {
   let rules: EarningRule[] = [];
   let tiers: Tier[] = [];
   let rewards: Reward[] = [];
+  let tierSettings: unknown = null;
 
   try {
     const wix = getServerWixClient();
 
-    const [programResult, rulesResult, tiersResult, rewardsResult] =
+    const [programResult, rulesResult, tiersResult, rewardsResult, tierSettingsResult] =
       await Promise.all([
         wix.loyaltyPrograms.getLoyaltyProgram().catch(() => null),
         wix.earningRules.listEarningRules().catch(() => ({ earningRules: [] })),
         wix.loyaltyTiers.listTiers().catch(() => ({ tiers: [] })),
         wix.loyaltyRewards.listRewards().catch(() => ({ rewards: [] })),
+        wix.loyaltyTiers.getTiersProgramSettings().catch(() => null),
       ]);
 
     program = programResult ?? null;
     rules = (rulesResult?.earningRules ?? []) as EarningRule[];
     tiers = (tiersResult?.tiers ?? []) as Tier[];
     rewards = (rewardsResult?.rewards ?? []) as Reward[];
+    tierSettings = tierSettingsResult;
   } catch (err) {
     console.error("Failed to load loyalty program:", err);
   }
 
   const activeRules = rules.filter((r) => r.status === "ACTIVE");
   const activeRewards = rewards.filter((r) => r.active);
-  const sortedTiers = [...tiers].sort(
+
+  // Prepend base tier (e.g. "Green") at 0 points
+  const settings = tierSettings as {
+    programSettings?: { baseTierDefinition?: { name?: string; description?: string } };
+  } | null;
+  const baseTierName = settings?.programSettings?.baseTierDefinition?.name;
+  const baseTierDesc = settings?.programSettings?.baseTierDefinition?.description;
+  const baseTier: Tier = baseTierName
+    ? { _id: "base", tierDefinition: { name: baseTierName, description: baseTierDesc ?? undefined }, requiredPoints: 0 }
+    : null as unknown as Tier;
+
+  const allTiers = baseTier ? [baseTier, ...tiers] : [...tiers];
+  const sortedTiers = allTiers.sort(
     (a, b) => (a.requiredPoints ?? 0) - (b.requiredPoints ?? 0)
   );
 

@@ -283,6 +283,15 @@ interface LoyaltyAccountData {
   rewardAvailable: boolean;
   tierName?: string;
   tierPoints?: number;
+  tierId?: string | null;
+  rollingWindowPoints?: number;
+  expirationDate?: string;
+  expiringPoints?: number;
+}
+
+interface TierInfoData {
+  tiers: { id: string | null; name: string; requiredPoints: number }[];
+  baseTierName: string;
 }
 
 interface LoyaltyCouponData {
@@ -299,11 +308,13 @@ interface AvailableRewardData {
   name: string;
   discountAmount: string;
   costInPoints: number;
+  restrictedToTierId?: string;
 }
 
 function RewardsTab() {
   const [account, setAccount] = useState<LoyaltyAccountData | null>(null);
   const [rewards, setRewards] = useState<AvailableRewardData[]>([]);
+  const [tierInfo, setTierInfo] = useState<TierInfoData | null>(null);
   const [coupons, setCoupons] = useState<LoyaltyCouponData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -323,15 +334,17 @@ function RewardsTab() {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      // Fetch account, rewards, and coupons in parallel
-      const [accountResult, rewardsData, couponsResult] = await Promise.all([
+      // Fetch account, rewards, coupons, and tier info in parallel
+      const [accountResult, rewardsData, couponsResult, tierData] = await Promise.all([
         wix.loyaltyAccounts.getCurrentMemberAccount(),
         import("./actions").then(({ getAvailableRewards }) => getAvailableRewards()),
         wix.loyaltyCoupons.getCurrentMemberCoupons().catch(() => ({ loyaltyCoupons: [] })),
+        import("./actions").then(({ getTierInfo }) => getTierInfo()),
       ]);
 
       const acc = accountResult.account ?? accountResult;
       const points = acc.points ?? {};
+      const expiration = acc.pointsExpiration as { expirationDate?: string | Date; expiringPointsAmount?: number } | undefined;
 
       setAccount({
         balance: points.balance ?? 0,
@@ -340,7 +353,15 @@ function RewardsTab() {
         rewardAvailable: acc.rewardAvailable ?? false,
         tierName: acc.tier?.tierDefinition?.name ?? undefined,
         tierPoints: acc.tier?.points ?? undefined,
+        tierId: acc.tier?._id ?? null,
+        rollingWindowPoints: acc.tier?.points ?? 0,
+        expirationDate: expiration?.expirationDate
+          ? new Date(expiration.expirationDate).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+          : undefined,
+        expiringPoints: expiration?.expiringPointsAmount,
       });
+
+      setTierInfo(tierData);
 
       setRewards(rewardsData);
 
@@ -439,37 +460,79 @@ function RewardsTab() {
         </p>
       </div>
 
-      {/* Tier */}
-      {account.tierName && (
-        <div className="bg-surface-container-low px-6 py-5 mb-4">
-          <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-secondary mb-1">
-            Current Tier
-          </p>
-          <p className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface">
-            {account.tierName}
+      {/* Tier Progress */}
+      {(() => {
+        const tiers = tierInfo?.tiers ?? [];
+        const currentTierId = account.tierId;
+        const currentTierName = currentTierId
+          ? tiers.find((t) => t.id === currentTierId)?.name ?? account.tierName ?? "Member"
+          : tierInfo?.baseTierName ?? "Green";
+
+        // Find next tier
+        const sortedTiers = [...tiers].sort((a, b) => a.requiredPoints - b.requiredPoints);
+        const currentTierIndex = currentTierId
+          ? sortedTiers.findIndex((t) => t.id === currentTierId)
+          : -1; // base tier = before all tiers
+        const nextTier = sortedTiers[currentTierIndex + 1];
+
+        const windowPoints = account.rollingWindowPoints ?? account.earned;
+        const nextRequired = nextTier?.requiredPoints ?? 0;
+        const progress = nextRequired > 0 ? Math.min((windowPoints / nextRequired) * 100, 100) : 100;
+
+        return (
+          <div className="bg-surface-container-low px-6 py-6 mb-4">
+            <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-on-surface-variant text-center mb-1">
+              Your current tier
+            </p>
+            <p className="font-serif text-2xl tracking-tight text-on-surface text-center">
+              {currentTierName}
+            </p>
+
+            {nextTier && (
+              <>
+                <p className="mt-4 text-[10px] tracking-[0.2em] uppercase text-on-surface-variant text-center">
+                  Total points earned:
+                </p>
+                <p className="text-sm font-medium text-on-surface text-center">
+                  {windowPoints.toLocaleString()} / {nextRequired.toLocaleString()}
+                </p>
+
+                {/* Progress bar */}
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-surface-container overflow-hidden">
+                    <div
+                      className="h-full bg-secondary transition-all duration-500"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] tracking-wide text-on-surface-variant font-medium">
+                    {Math.round(progress)}%
+                  </span>
+                </div>
+
+                <p className="mt-2 text-[10px] tracking-[0.15em] text-on-surface-variant text-center">
+                  Next tier: {nextTier.name}
+                </p>
+              </>
+            )}
+
+            {!nextTier && (
+              <p className="mt-2 text-[10px] tracking-[0.15em] text-secondary text-center uppercase font-medium">
+                Highest tier reached
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Points Expiration */}
+      {account.expiringPoints && account.expiringPoints > 0 && account.expirationDate && (
+        <div className="bg-surface-container-low px-5 py-4 mb-4">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
+            <span className="font-medium">{account.expiringPoints.toLocaleString()} points</span> expiring on {account.expirationDate}
           </p>
         </div>
       )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="bg-surface-container-low px-5 py-4">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
-            Total Earned
-          </p>
-          <p className="mt-1 text-sm font-medium text-on-surface">
-            {account.earned.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-surface-container-low px-5 py-4">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
-            Redeemed
-          </p>
-          <p className="mt-1 text-sm font-medium text-on-surface">
-            {account.redeemed.toLocaleString()}
-          </p>
-        </div>
-      </div>
 
       {/* Redeemed coupon success message */}
       {redeemedCoupon && (
@@ -493,13 +556,19 @@ function RewardsTab() {
       )}
 
       {/* Available Rewards */}
-      {rewards.length > 0 && (
+      {(() => {
+        // Filter out rewards restricted to tiers the user doesn't have
+        const visibleRewards = rewards.filter((r) =>
+          !r.restrictedToTierId || r.restrictedToTierId === account.tierId
+        );
+        if (visibleRewards.length === 0) return null;
+        return (
         <div className="mb-8">
           <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-on-surface-variant mb-3">
             Available Rewards
           </p>
           <div className="space-y-2">
-            {rewards.map((reward) => {
+            {visibleRewards.map((reward) => {
               const canAfford = account.balance >= reward.costInPoints;
               const isRedeeming = redeemingId === reward.id;
 
@@ -537,7 +606,8 @@ function RewardsTab() {
             })}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Existing Coupons */}
       {coupons.length > 0 && (
@@ -575,6 +645,26 @@ function RewardsTab() {
           </div>
         </div>
       )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-2 mb-6">
+        <div className="bg-surface-container-low px-5 py-4">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
+            Total Earned
+          </p>
+          <p className="mt-1 text-sm font-medium text-on-surface">
+            {account.earned.toLocaleString()}
+          </p>
+        </div>
+        <div className="bg-surface-container-low px-5 py-4">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
+            Redeemed
+          </p>
+          <p className="mt-1 text-sm font-medium text-on-surface">
+            {account.redeemed.toLocaleString()}
+          </p>
+        </div>
+      </div>
 
       <Link
         href="/loyalty"
