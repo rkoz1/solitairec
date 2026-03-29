@@ -104,14 +104,17 @@ export default async function ProductPage({ params }: Props) {
             productName={product.name ?? ""}
             productPrice={String(product.priceData?.price ?? "0")}
             productOptions={product.productOptions ?? []}
-            variants={(product.variants ?? []).map((v: { choices?: Record<string, string>; stock?: { inStock?: boolean; quantity?: number | null } }) => ({
+            variants={(product.variants ?? []).map((v: { _id?: string; choices?: Record<string, string>; stock?: { inStock?: boolean; quantity?: number | null; trackQuantity?: boolean } }) => ({
+              variantId: v._id ?? "",
               choices: v.choices ?? {},
               inStock: v.stock?.inStock ?? true,
               quantity: v.stock?.quantity ?? 0,
+              trackQuantity: v.stock?.trackQuantity ?? false,
             }))}
             productInStock={(product.stock as { inventoryStatus?: string } | undefined)?.inventoryStatus !== "OUT_OF_STOCK"}
             productQuantity={(product.stock as { quantity?: number } | undefined)?.quantity ?? undefined}
             trackInventory={(product.stock as { trackInventory?: boolean } | undefined)?.trackInventory ?? false}
+            manageVariants={product.manageVariants ?? false}
           />
 
           {/* Description — editorial layout */}

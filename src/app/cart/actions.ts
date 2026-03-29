@@ -8,6 +8,12 @@ export interface ProductOption {
   choices: Array<{ value: string; description: string }>;
 }
 
+export interface VariantMapping {
+  key: string; // sorted option string e.g. "Color:Brown|Size:M"
+  variantId: string;
+  inStock: boolean;
+}
+
 export interface WishlistProduct {
   _id: string;
   name: string;
@@ -16,7 +22,8 @@ export interface WishlistProduct {
   imageUrl: string;
   productOptions: ProductOption[];
   inStock: boolean;
-  hasRealVariants: boolean;
+  manageVariants: boolean;
+  variants: VariantMapping[];
 }
 
 export async function getProductsByIds(
@@ -45,8 +52,22 @@ export async function getProductsByIds(
       })),
     })),
     inStock: (p.stock as { inventoryStatus?: string } | undefined)?.inventoryStatus !== "OUT_OF_STOCK",
-    hasRealVariants: ((p.variants ?? []) as { choices?: Record<string, string> }[]).some(
-      (v) => Object.keys(v.choices ?? {}).length > 0
-    ),
+    manageVariants: p.manageVariants ?? false,
+    variants: ((p.variants ?? []) as { _id?: string; choices?: Record<string, string>; stock?: { inStock?: boolean; quantity?: number; trackQuantity?: boolean } }[])
+      .filter((v) => v.choices && Object.keys(v.choices).length > 0)
+      .map((v) => {
+        const key = Object.entries(v.choices!)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([k, val]) => `${k}:${val}`)
+          .join("|");
+        const trackQty = v.stock?.trackQuantity ?? false;
+        const qty = v.stock?.quantity ?? 0;
+        const inStock = v.stock?.inStock ?? true;
+        return {
+          key,
+          variantId: v._id ?? "",
+          inStock: trackQty ? inStock && qty !== 0 : inStock,
+        };
+      }),
   }));
 }

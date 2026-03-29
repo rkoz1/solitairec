@@ -261,7 +261,8 @@ function BagTab() {
       window.dispatchEvent(new Event("cart-updated"));
       window.location.href = redirectUrl;
     } catch (error) {
-      console.error("Failed to start checkout:", error);
+      const { log } = await import("@/lib/logger");
+      log({ level: "error", action: "checkout-failed", error });
       showToast("Unable to proceed to checkout. Please try again.", "error");
       setCheckingOut(false);
     }
@@ -555,13 +556,26 @@ function WishlistTab() {
       confirmAddToBag(product, {});
       return;
     }
-    // Expand to show size selector, pre-select first option for each
+    // Expand to show size selector, pre-select first in-stock option
+    const inStockKeys = new Set(
+      product.variants.filter((v) => v.inStock).map((v) => v.key)
+    );
+
     const defaults: Record<string, string> = {};
     for (const opt of product.productOptions) {
-      const c = opt.choices[0];
-      if (c) {
-        defaults[opt.name] = c.description || c.value;
-      }
+      const firstInStock = product.manageVariants
+        ? opt.choices.find((c) => {
+            const label = c.description || c.value;
+            const testOpts = { ...defaults, [opt.name]: label };
+            const key = Object.entries(testOpts)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([k, v]) => `${k}:${v}`)
+              .join("|");
+            return inStockKeys.has(key);
+          })
+        : null;
+      const c = firstInStock ?? opt.choices[0];
+      if (c) defaults[opt.name] = c.description || c.value;
     }
     setSelectedOptions(defaults);
     setExpandedId(product._id);
@@ -576,7 +590,18 @@ function WishlistTab() {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      const hasOptions = product.hasRealVariants && Object.keys(opts).length > 0;
+      const hasOptions = product.manageVariants && Object.keys(opts).length > 0;
+
+      // Look up real variant ID from product variant data
+      let variantId = "00000000-0000-0000-0000-000000000000";
+      if (hasOptions && product.variants.length > 0) {
+        const key = Object.entries(opts)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([k, v]) => `${k}:${v}`)
+          .join("|");
+        const match = product.variants.find((v) => v.key === key);
+        if (match?.variantId) variantId = match.variantId;
+      }
 
       const result = await wix.currentCart.addToCurrentCart({
         lineItems: [
@@ -587,7 +612,7 @@ function WishlistTab() {
               options: hasOptions
                 ? {
                     options: opts,
-                    variantId: "00000000-0000-0000-0000-000000000000",
+                    variantId,
                   }
                 : undefined,
             },
@@ -602,7 +627,13 @@ function WishlistTab() {
           li.catalogReference?.catalogItemId === product._id
       );
       if (!addedItem) {
-        throw new Error("Item was not added. Please check size/variant selection.");
+        const { log } = await import("@/lib/logger");
+        log({
+          level: "error",
+          action: "wishlist-add-to-bag-rejected",
+          details: { productId: product._id, productName: product.name, opts },
+        });
+        throw new Error("Item was not added.");
       }
 
       window.dispatchEvent(new Event("cart-updated"));
@@ -617,9 +648,10 @@ function WishlistTab() {
         setAddedId(null);
       }, 1000);
     } catch (error) {
-      console.error("Failed to add to bag:", error);
+      const { log } = await import("@/lib/logger");
+      log({ level: "error", action: "wishlist-add-to-bag-failed", details: { productId: product._id }, error });
       setAddingId(null);
-      showToast("Unable to add item to bag. Please try again.", "error");
+      showToast("This item couldn't be added to your bag. It may be out of stock.", "error");
     }
   }
 
@@ -720,7 +752,20 @@ function WishlistTab() {
             </div>
 
             {/* Inline variant selector — expanded state */}
-            {isExpanded && (
+            {isExpanded && (() => {
+              // Stock check helper using product.variants
+              function isChoiceOos(optName: string, choiceLabel: string): boolean {
+                if (!product.manageVariants || product.variants.length === 0) return false;
+                const testOpts = { ...selectedOptions, [optName]: choiceLabel };
+                const key = Object.entries(testOpts)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([k, v]) => `${k}:${v}`)
+                  .join("|");
+                const match = product.variants.find((v) => v.key === key);
+                return match ? !match.inStock : false;
+              }
+
+              return (
               <div className="mt-4 pt-4 border-t border-outline-variant/20">
                 {product.productOptions.map((option) => (
                   <div key={option.name} className="mb-4">
@@ -731,25 +776,36 @@ function WishlistTab() {
                       <div>
                         <div className="flex gap-2">
                           {option.choices.map((choice) => {
-                            const isSelected =
-                              selectedOptions[option.name] === (choice.description || choice.value);
+                            const label = choice.description || choice.value;
+                            const isSelected = selectedOptions[option.name] === label;
+                            const oos = isChoiceOos(option.name, label);
                             return (
                               <button
                                 key={choice.value}
                                 onClick={() =>
                                   setSelectedOptions((prev) => ({
                                     ...prev,
-                                    [option.name]: choice.description || choice.value,
+                                    [option.name]: label,
                                   }))
                                 }
-                                className={`w-8 h-8 transition-colors ${
-                                  isSelected
-                                    ? "ring-2 ring-on-surface ring-offset-2 ring-offset-surface-container-low"
-                                    : "border border-outline-variant/20 hover:border-outline"
+                                className={`relative w-8 h-8 transition-colors ${
+                                  oos
+                                    ? isSelected
+                                      ? "opacity-50 ring-2 ring-on-surface ring-offset-2 ring-offset-surface-container-low"
+                                      : "opacity-25"
+                                    : isSelected
+                                      ? "ring-2 ring-on-surface ring-offset-2 ring-offset-surface-container-low"
+                                      : "border border-outline-variant/20 hover:border-outline"
                                 }`}
                                 style={{ backgroundColor: choice.value }}
-                                aria-label={choice.description || choice.value}
-                              />
+                                aria-label={`${label}${oos ? " (Sold Out)" : ""}`}
+                              >
+                                {oos && (
+                                  <span className="absolute inset-0 flex items-center justify-center">
+                                    <span className="block w-[140%] h-[1px] bg-on-surface/50 rotate-45 origin-center" />
+                                  </span>
+                                )}
+                              </button>
                             );
                           })}
                         </div>
@@ -760,24 +816,29 @@ function WishlistTab() {
                     ) : (
                       <div className="grid grid-cols-4 gap-2">
                         {option.choices.map((choice) => {
-                          const isSelected =
-                            selectedOptions[option.name] === (choice.description || choice.value);
+                          const label = choice.description || choice.value;
+                          const isSelected = selectedOptions[option.name] === label;
+                          const oos = isChoiceOos(option.name, label);
                           return (
                             <button
                               key={choice.value}
                               onClick={() =>
                                 setSelectedOptions((prev) => ({
                                   ...prev,
-                                  [option.name]: choice.description || choice.value,
+                                  [option.name]: label,
                                 }))
                               }
                               className={`h-10 text-[10px] tracking-[0.15em] uppercase font-medium transition-colors border border-outline-variant/20 ${
-                                isSelected
-                                  ? "bg-on-surface text-on-primary"
-                                  : "bg-transparent text-on-surface hover:bg-surface-container"
+                                oos
+                                  ? isSelected
+                                    ? "opacity-50 line-through bg-on-surface text-on-primary"
+                                    : "opacity-30 line-through"
+                                  : isSelected
+                                    ? "bg-on-surface text-on-primary"
+                                    : "bg-transparent text-on-surface hover:bg-surface-container"
                               }`}
                             >
-                              {choice.description || choice.value}
+                              {label}
                             </button>
                           );
                         })}
@@ -794,7 +855,8 @@ function WishlistTab() {
                   {isAdding ? "Adding..." : "Add to Bag"}
                 </button>
               </div>
-            )}
+              );
+            })()}
           </div>
         );
       })}

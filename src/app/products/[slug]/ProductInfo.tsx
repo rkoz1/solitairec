@@ -18,9 +18,11 @@ interface ProductOption {
 }
 
 interface VariantInfo {
+  variantId: string;
   choices: Record<string, string>;
   inStock: boolean;
   quantity: number;
+  trackQuantity: boolean;
 }
 
 interface ProductInfoProps {
@@ -32,6 +34,7 @@ interface ProductInfoProps {
   productInStock?: boolean;
   productQuantity?: number;
   trackInventory?: boolean;
+  manageVariants?: boolean;
 }
 
 function buildStockKey(opts: Record<string, string>): string {
@@ -50,39 +53,68 @@ export default function ProductInfo({
   productInStock = true,
   productQuantity,
   trackInventory = false,
+  manageVariants = false,
 }: ProductInfoProps) {
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string>
   >(() => {
+    // Build a quick in-stock set from variants for default selection
+    const inStockChoices = new Set<string>();
+    if (manageVariants) {
+      for (const v of variants) {
+        const isOos = v.trackQuantity ? !v.inStock || v.quantity === 0 : !v.inStock;
+        if (!isOos) {
+          for (const [k, val] of Object.entries(v.choices)) {
+            inStockChoices.add(`${k}:${val}`);
+          }
+        }
+      }
+    }
+
     const defaults: Record<string, string> = {};
     for (const option of productOptions) {
-      if (option.name && option.choices?.[0]) {
-        const c = option.choices[0];
-        defaults[option.name] = c.description || c.value || "";
-      }
+      if (!option.name || !option.choices?.length) continue;
+      // Pick first in-stock choice, fall back to first choice
+      const firstInStock = manageVariants
+        ? option.choices.find((c) => {
+            const label = c.description || c.value || "";
+            return inStockChoices.has(`${option.name}:${label}`);
+          })
+        : null;
+      const c = firstInStock ?? option.choices[0];
+      if (c) defaults[option.name] = c.description || c.value || "";
     }
     return defaults;
   });
 
-  // Build variant stock lookup keyed by sorted option string
-  const stockMap = useMemo(() => {
-    const map = new Map<string, { inStock: boolean; quantity: number }>();
+  // Build variant stock + ID lookup keyed by sorted option string
+  const { stockMap, variantIdMap } = useMemo(() => {
+    const sMap = new Map<string, { inStock: boolean; quantity: number; trackQuantity: boolean }>();
+    const idMap = new Map<string, string>();
     for (const v of variants) {
       const key = buildStockKey(v.choices);
-      if (key) map.set(key, { inStock: v.inStock, quantity: v.quantity });
+      if (key) {
+        sMap.set(key, { inStock: v.inStock, quantity: v.quantity, trackQuantity: v.trackQuantity });
+        if (v.variantId) idMap.set(key, v.variantId);
+      }
     }
-    return map;
+    return { stockMap: sMap, variantIdMap: idMap };
   }, [variants]);
 
+  function resolveInStock(stock: { inStock: boolean; quantity: number; trackQuantity: boolean }): boolean {
+    // When quantity is tracked and is 0, treat as out of stock even if inStock flag says true
+    if (stock.trackQuantity && stock.quantity === 0) return false;
+    return stock.inStock;
+  }
+
   // Check stock for a specific choice within current selection
-  // Treat quantity === 0 as out of stock regardless of inStock flag
   function isChoiceInStock(optionName: string, choiceLabel: string): { inStock: boolean; quantity: number } | null {
     if (stockMap.size === 0) return null; // no variant data
     const testOptions = { ...selectedOptions, [optionName]: choiceLabel };
     const key = buildStockKey(testOptions);
     const stock = stockMap.get(key);
     if (!stock) return null;
-    return { ...stock, inStock: stock.inStock && stock.quantity !== 0 };
+    return { inStock: resolveInStock(stock), quantity: stock.quantity };
   }
 
   // Current selected variant stock
@@ -91,17 +123,20 @@ export default function ProductInfo({
     const key = buildStockKey(selectedOptions);
     const stock = stockMap.get(key);
     if (!stock) return null;
-    return { ...stock, inStock: stock.inStock && stock.quantity !== 0 };
+    return { inStock: resolveInStock(stock), quantity: stock.quantity };
   }, [stockMap, selectedOptions]);
 
-  // Products with empty variant choices are V1 (standalone) — each color is a separate product
-  const hasRealVariants = variants.some((v) => Object.keys(v.choices).length > 0);
+  // Look up actual variant ID for the selected options
+  const selectedVariantId = useMemo(() => {
+    const key = buildStockKey(selectedOptions);
+    return variantIdMap.get(key) ?? undefined;
+  }, [variantIdMap, selectedOptions]);
 
-  const isOutOfStock = !productInStock || (hasRealVariants && selectedStock !== null && !selectedStock.inStock);
+  const isOutOfStock = !productInStock || (manageVariants && selectedStock !== null && !selectedStock.inStock);
 
   // Low stock: use variant stock for real variants, product-level stock for standalone
   // Only show when inventory is tracked (untracked products have unreliable quantity)
-  const lowStockQty = hasRealVariants
+  const lowStockQty = manageVariants
     ? (selectedStock && selectedStock.inStock && selectedStock.quantity >= 1 && selectedStock.quantity <= 5 ? selectedStock.quantity : null)
     : (trackInventory && productInStock && productQuantity !== undefined && productQuantity >= 1 && productQuantity <= 5 ? productQuantity : null);
 
@@ -122,7 +157,7 @@ export default function ProductInfo({
                     {option.choices?.map((choice) => {
                       const label = choice.description || choice.value || "";
                       const isSelected = selectedOptions[option.name ?? ""] === label;
-                      const stock = hasRealVariants ? isChoiceInStock(option.name ?? "", label) : null;
+                      const stock = manageVariants ? isChoiceInStock(option.name ?? "", label) : null;
                       const oos = stock !== null && !stock.inStock;
 
                       return (
@@ -165,7 +200,7 @@ export default function ProductInfo({
                   {option.choices?.map((choice) => {
                     const label = choice.description || choice.value || "";
                     const isSelected = selectedOptions[option.name ?? ""] === label;
-                    const stock = hasRealVariants ? isChoiceInStock(option.name ?? "", label) : null;
+                    const stock = manageVariants ? isChoiceInStock(option.name ?? "", label) : null;
                     const oos = stock !== null && !stock.inStock;
 
                     return (
@@ -211,7 +246,12 @@ export default function ProductInfo({
         {isOutOfStock ? (
           <NotifyMeForm productId={productId} productName={productName ?? ""} productPrice={productPrice ?? "0"} />
         ) : (
-          <AddToCartButton productId={productId} productName={productName} selectedOptions={hasRealVariants ? selectedOptions : undefined} />
+          <AddToCartButton
+            productId={productId}
+            productName={productName}
+            selectedOptions={manageVariants ? selectedOptions : undefined}
+            variantId={manageVariants ? selectedVariantId : undefined}
+          />
         )}
       </div>
 
