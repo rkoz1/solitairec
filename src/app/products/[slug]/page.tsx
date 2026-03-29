@@ -102,7 +102,16 @@ export default async function ProductPage({ params }: Props) {
           <ProductInfo
             productId={product._id ?? ""}
             productName={product.name ?? ""}
+            productPrice={String(product.priceData?.price ?? "0")}
             productOptions={product.productOptions ?? []}
+            variants={(product.variants ?? []).map((v: { choices?: Record<string, string>; stock?: { inStock?: boolean; quantity?: number | null } }) => ({
+              choices: v.choices ?? {},
+              inStock: v.stock?.inStock ?? true,
+              quantity: v.stock?.quantity ?? 0,
+            }))}
+            productInStock={(product.stock as { inventoryStatus?: string } | undefined)?.inventoryStatus !== "OUT_OF_STOCK"}
+            productQuantity={(product.stock as { quantity?: number } | undefined)?.quantity ?? undefined}
+            trackInventory={(product.stock as { trackInventory?: boolean } | undefined)?.trackInventory ?? false}
           />
 
           {/* Description — editorial layout */}

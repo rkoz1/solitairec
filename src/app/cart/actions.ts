@@ -15,6 +15,8 @@ export interface WishlistProduct {
   price: string;
   imageUrl: string;
   productOptions: ProductOption[];
+  inStock: boolean;
+  hasRealVariants: boolean;
 }
 
 export async function getProductsByIds(
@@ -42,5 +44,9 @@ export async function getProductsByIds(
         description: c.description ?? "",
       })),
     })),
+    inStock: (p.stock as { inventoryStatus?: string } | undefined)?.inventoryStatus !== "OUT_OF_STOCK",
+    hasRealVariants: ((p.variants ?? []) as { choices?: Record<string, string> }[]).some(
+      (v) => Object.keys(v.choices ?? {}).length > 0
+    ),
   }));
 }

@@ -1,5 +1,5 @@
 import { createClient, OAuthStrategy } from "@wix/sdk";
-import { currentCart, checkout, orders } from "@wix/ecom";
+import { currentCart, checkout, orders, backInStockNotifications } from "@wix/ecom";
 import { accounts as loyaltyAccounts, transactions as loyaltyTransactions, coupons as loyaltyCoupons } from "@wix/loyalty";
 import { members } from "@wix/members";
 import { redirects } from "@wix/redirects";
@@ -23,7 +23,7 @@ export function getBrowserWixClient() {
   }
 
   clientInstance = createClient({
-    modules: { currentCart, checkout, orders, loyaltyAccounts, loyaltyTransactions, loyaltyCoupons, members, redirects, referralCustomers },
+    modules: { currentCart, checkout, orders, backInStockNotifications, loyaltyAccounts, loyaltyTransactions, loyaltyCoupons, members, redirects, referralCustomers },
     auth: OAuthStrategy({
       clientId,
       tokens: loadTokens() ?? undefined,

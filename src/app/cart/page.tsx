@@ -388,11 +388,20 @@ function BagTab() {
                   </button>
                 </div>
 
-                {/* Price — show original strikethrough if discounted */}
+                {/* Price — show line total when qty > 1 */}
                 {(() => {
                   const full = item.fullPrice?.formattedAmount;
-                  const current = item.price?.formattedAmount;
-                  const isDiscounted = full && current && full !== current;
+                  const unitPrice = item.price?.formattedAmount;
+                  const unitAmount = parseFloat(item.price?.amount ?? "0");
+                  const isDiscounted = full && unitPrice && full !== unitPrice;
+                  const qty = item.quantity ?? 1;
+
+                  // Extract currency prefix from formatted price
+                  const prefix = unitPrice?.replace(/[\d.,]+/g, "").trim() ?? "";
+                  const lineTotal = qty > 1
+                    ? `${prefix}${(unitAmount * qty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : null;
+
                   return (
                     <div className="mt-1 flex items-center gap-2">
                       {isDiscounted && (
@@ -401,8 +410,13 @@ function BagTab() {
                         </span>
                       )}
                       <span className={`text-[10px] tracking-widest ${isDiscounted ? "text-secondary font-medium" : "text-on-surface-variant"}`}>
-                        {current ?? ""}
+                        {lineTotal ?? unitPrice ?? ""}
                       </span>
+                      {qty > 1 && (
+                        <span className="text-[10px] tracking-widest text-on-surface-variant/60">
+                          ({unitPrice} each)
+                        </span>
+                      )}
                     </div>
                   );
                 })()}
@@ -561,7 +575,7 @@ function WishlistTab() {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      const hasOptions = Object.keys(opts).length > 0;
+      const hasOptions = product.hasRealVariants && Object.keys(opts).length > 0;
 
       const result = await wix.currentCart.addToCurrentCart({
         lineItems: [
@@ -637,6 +651,8 @@ function WishlistTab() {
         const isAdding = addingId === product._id;
         const isAdded = addedId === product._id;
 
+        const isSoldOut = !product.inStock;
+
         return (
           <div
             key={product._id}
@@ -644,7 +660,7 @@ function WishlistTab() {
               isAdded ? "opacity-50" : ""
             }`}
           >
-            <div className="flex gap-4">
+            <div className={`flex gap-4 ${isSoldOut ? "opacity-40" : ""}`}>
               {/* Product thumbnail */}
               <Link
                 href={`/products/${product.slug}`}
@@ -673,18 +689,24 @@ function WishlistTab() {
                 </div>
 
                 <div className="flex gap-4 mt-2">
-                  {!isExpanded && (
-                    <button
-                      onClick={() => handleAddToBagClick(product)}
-                      disabled={isAdding || isAdded}
-                      className="text-[10px] tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors disabled:opacity-50"
-                    >
-                      {isAdding
-                        ? "Adding..."
-                        : isAdded
-                          ? "Added \u2713"
-                          : "Add to Bag"}
-                    </button>
+                  {isSoldOut ? (
+                    <span className="text-[10px] tracking-[0.15em] uppercase font-medium text-secondary">
+                      Sold Out
+                    </span>
+                  ) : (
+                    !isExpanded && (
+                      <button
+                        onClick={() => handleAddToBagClick(product)}
+                        disabled={isAdding || isAdded}
+                        className="text-[10px] tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors disabled:opacity-50"
+                      >
+                        {isAdding
+                          ? "Adding..."
+                          : isAdded
+                            ? "Added \u2713"
+                            : "Add to Bag"}
+                      </button>
+                    )
                   )}
                   <button
                     onClick={() => removeFromWishlist(product._id)}
