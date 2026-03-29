@@ -162,6 +162,15 @@ export default function NavigationDrawer() {
               Account
             </Link>
           </div>
+          <div className="border-b border-outline-variant/15">
+            <Link
+              href="/terms"
+              onClick={close}
+              className="block py-4 font-serif text-lg tracking-tight text-on-surface"
+            >
+              Terms &amp; Conditions
+            </Link>
+          </div>
         </nav>
       </div>
     </div>
