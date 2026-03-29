@@ -8,6 +8,7 @@ import {
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import { showToast } from "@/lib/toast";
 import type { orders as ordersType } from "@wix/ecom";
 
 type Order = ordersType.Order;
@@ -424,7 +425,7 @@ function RewardsTab() {
       await fetchData();
     } catch (err) {
       console.error("Failed to redeem reward:", err);
-      alert("Failed to redeem reward. Please try again.");
+      showToast("Unable to redeem reward. Please try again.", "error");
     } finally {
       setRedeemingId(null);
     }
@@ -750,7 +751,7 @@ function AddressesTab() {
       await fetchAddresses();
     } catch (err) {
       console.error("Failed to save address:", err);
-      alert("Failed to save address. Please try again.");
+      showToast("Unable to save address. Please try again.", "error");
     }
   }
 

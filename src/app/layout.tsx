@@ -7,6 +7,7 @@ import SearchOverlay from "@/components/SearchOverlay";
 import NavigationLoader from "@/components/NavigationLoader";
 import WixChat from "@/components/WixChat";
 import FlyToCart from "@/components/FlyToCart";
+import Toast from "@/components/Toast";
 import "./globals.css";
 
 const notoSerif = Noto_Serif({
@@ -64,6 +65,7 @@ export default function RootLayout({
 
         {/* Cart feedback animation */}
         <FlyToCart />
+        <Toast />
 
         {/* Chat widget */}
         <WixChat />

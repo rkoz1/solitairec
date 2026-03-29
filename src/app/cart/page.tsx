@@ -17,6 +17,7 @@ import { getProductsByIds, type WishlistProduct } from "./actions";
 import type { cart } from "@wix/ecom";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import FreeShippingBar from "@/components/FreeShippingBar";
+import { showToast } from "@/lib/toast";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -261,7 +262,7 @@ function BagTab() {
       window.location.href = redirectUrl;
     } catch (error) {
       console.error("Failed to start checkout:", error);
-      alert("Failed to proceed to checkout. Please try again.");
+      showToast("Unable to proceed to checkout. Please try again.", "error");
       setCheckingOut(false);
     }
   }
@@ -618,7 +619,7 @@ function WishlistTab() {
     } catch (error) {
       console.error("Failed to add to bag:", error);
       setAddingId(null);
-      alert("Failed to add to bag. Please try again.");
+      showToast("Unable to add item to bag. Please try again.", "error");
     }
   }
 

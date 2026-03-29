@@ -6,6 +6,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
+import { showToast } from "@/lib/toast";
 
 const GIFT_CARD_APP_ID = "d80111c5-a0f4-47a8-b63a-65b54d774a27";
 const GIFT_CARD_PRODUCT_ID = "4d374f36-761a-4189-84f7-11de05394dbf";
@@ -54,7 +55,7 @@ export default function GiftCardForm() {
 
   async function addToCart(buyNow = false) {
     if (recipientType === "someone_else" && !recipientEmail.trim()) {
-      alert("Please enter the recipient's email address.");
+      showToast("Please enter the recipient's email address.", "info");
       return;
     }
 
@@ -141,7 +142,7 @@ export default function GiftCardForm() {
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
       console.error("Failed to add gift card to cart:", error);
-      alert("Failed to add to cart. Please try again.");
+      showToast("Unable to add gift card to bag. Please try again.", "error");
     } finally {
       setLoading(false);
     }

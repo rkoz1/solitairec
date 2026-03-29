@@ -5,6 +5,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
+import { showToast } from "@/lib/toast";
 
 // Catalog V1 (products without variants)
 const WIX_STORES_APP_ID = "1380b703-ce81-ff05-f115-39571d94dfcd";
@@ -79,7 +80,7 @@ export default function AddToCartButton({
       setTimeout(() => setAdded(false), 2000);
     } catch (error) {
       console.error("Failed to add to cart:", error);
-      alert("Failed to add to cart. Please try again.");
+      showToast("This item couldn't be added. Please check your selection.", "error");
     } finally {
       setLoading(false);
     }

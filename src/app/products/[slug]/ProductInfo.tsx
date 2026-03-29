@@ -7,6 +7,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
+import { showToast } from "@/lib/toast";
 
 interface ProductOption {
   name?: string | null;
@@ -268,12 +269,12 @@ function NotifyMeForm({ productId, productName, productPrice }: { productId: str
     } catch (err: unknown) {
       const errorCode = (err as { details?: { applicationError?: { code?: string } } })
         ?.details?.applicationError?.code;
-      if (errorCode === "ALREADY_EXISTS" || errorCode === "NOTIFICATION_REQUEST_ALREADY_EXISTS") {
+      if (errorCode === "BACK_IN_STOCK_NOTIFICATION_REQUEST_ALREADY_EXISTS") {
         // Already subscribed — treat as success
         setSubmitted(true);
       } else {
         console.error("Failed to create notification request:", err);
-        alert("Failed to submit. Please try again.");
+        showToast("Unable to submit notification request. Please try again.", "error");
       }
     } finally {
       setSubmitting(false);
