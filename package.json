@@ -16,6 +16,7 @@
     "@wix/loyalty": "^1.0.402",
     "@wix/media": "^1.0.237",
     "@wix/members": "^1.0.436",
+    "@wix/referral": "^1.0.264",
     "@wix/sdk": "^1.21.5",
     "@wix/stores": "^1.0.724",
     "next": "16.2.1",

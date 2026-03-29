@@ -164,6 +164,15 @@ export default function NavigationDrawer() {
           </div>
           <div className="border-b border-outline-variant/15">
             <Link
+              href="/refer-friends"
+              onClick={close}
+              className="block py-4 font-serif text-lg tracking-tight text-on-surface"
+            >
+              Refer Friends
+            </Link>
+          </div>
+          <div className="border-b border-outline-variant/15">
+            <Link
               href="/terms"
               onClick={close}
               className="block py-4 font-serif text-lg tracking-tight text-on-surface"

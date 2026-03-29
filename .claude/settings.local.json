@@ -63,7 +63,11 @@
       "Bash(grep -i \"trackingInfo\\\\|trackingNumber\\\\|trackingLink\\\\|trackingUrl\\\\|listFulfillments\\\\|interface Fulfillment \" /c/dev/solitairec/node_modules/@wix/auto_sdk_ecom_order-fulfillments/build/es/*.d.mts)",
       "Bash(node:*)",
       "WebFetch(domain:www.npmjs.com)",
-      "Bash(find /c/dev/solitairec/node_modules -path *@wix*loyalty* -type f -name *.d.ts)"
+      "Bash(find /c/dev/solitairec/node_modules -path *@wix*loyalty* -type f -name *.d.ts)",
+      "Bash(grep -r referral /c/dev/solitairec/node_modules/@wix --include=*.d.mts --include=*.d.ts)",
+      "Bash(grep -r \"generateReferral\\\\|createReferral\\\\|generateShareLink\\\\|getReferralLink\" /c/dev/solitairec/node_modules/@wix --include=*.d.ts --include=*.d.mts)",
+      "Bash(grep -r \"ReferralReward\\\\|referral\" /c/dev/solitairec/node_modules/@wix --include=*.d.mts)",
+      "WebFetch(domain:unsplash.com)"
     ]
   }
 }
