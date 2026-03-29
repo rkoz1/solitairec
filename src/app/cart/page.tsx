@@ -77,6 +77,7 @@ function BagTab() {
 
   const [totals, setTotals] = useState<{
     subtotal?: string;
+    shipping?: string;
     discount?: string;
     total?: string;
     discounts?: { name: string; amount: string }[];
@@ -119,6 +120,7 @@ function BagTab() {
 
         const ps = est.priceSummary as {
           subtotal?: { amount?: string; formattedAmount?: string };
+          shipping?: { amount?: string; formattedAmount?: string };
           discount?: { amount?: string; formattedAmount?: string };
           total?: { amount?: string; formattedAmount?: string };
         } | undefined;
@@ -137,8 +139,11 @@ function BagTab() {
           ? `${currencyPrefix}${computedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
           : ps?.total?.formattedAmount;
 
+        const shippingAmount = parseFloat(ps?.shipping?.amount ?? "0");
+
         setTotals({
           subtotal: ps?.subtotal?.formattedAmount,
+          shipping: shippingAmount > 0 ? ps?.shipping?.formattedAmount : undefined,
           discount: ps?.discount?.formattedAmount,
           total: totalFormatted,
           discounts: discountList,
@@ -378,10 +383,10 @@ function BagTab() {
 
           <div className="flex justify-between">
             <span className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
-              Shipping
+              {totals.shipping ? "Est. Shipping" : "Shipping"}
             </span>
             <span className="text-[10px] tracking-widest text-on-surface-variant">
-              Calculated at checkout
+              {totals.shipping ?? "Calculated at checkout"}
             </span>
           </div>
 
