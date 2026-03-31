@@ -67,7 +67,13 @@
       "Bash(grep -r referral /c/dev/solitairec/node_modules/@wix --include=*.d.mts --include=*.d.ts)",
       "Bash(grep -r \"generateReferral\\\\|createReferral\\\\|generateShareLink\\\\|getReferralLink\" /c/dev/solitairec/node_modules/@wix --include=*.d.ts --include=*.d.mts)",
       "Bash(grep -r \"ReferralReward\\\\|referral\" /c/dev/solitairec/node_modules/@wix --include=*.d.mts)",
-      "WebFetch(domain:unsplash.com)"
+      "WebFetch(domain:unsplash.com)",
+      "Bash(curl:*)",
+      "Bash(xargs cat:*)",
+      "Bash(wc:*)",
+      "Bash(find /c/dev/solitairec/node_modules -type d -name *delivery*)",
+      "Bash(grep -r deliveryRegion /c/dev/solitairec/src --include=*.ts --include=*.tsx)",
+      "Bash(grep -r \"headers\\\\|geolocation\\\\|country\\\\|locale\" /c/dev/solitairec/src --include=*.ts --include=*.tsx)"
     ]
   }
 }

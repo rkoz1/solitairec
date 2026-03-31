@@ -1,6 +1,7 @@
 "use server";
 
 import { getServerWixClient } from "@/lib/wix-server-client";
+import type { ShippingRegionData, ShippingRegion } from "@/lib/shipping-regions";
 
 let cachedThreshold: number | null = null;
 let cachedAt = 0;
@@ -96,5 +97,155 @@ export async function getProductVariantStock(
     return { manageVariants: product.manageVariants ?? false, stock: stockMap };
   } catch {
     return { manageVariants: false, stock: {} };
+  }
+}
+
+// --- Shipping regions ---
+
+let cachedRegions: ShippingRegionData | null = null;
+let regionsCachedAt = 0;
+const REGIONS_CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
+function getRegionDisplayName(title: string, countries: string[]): string {
+  if (countries.includes("HK")) return "Hong Kong";
+  if (countries.includes("MO") && countries.includes("TW")) return "Macau & Taiwan";
+  if (countries.includes("US")) return "United States";
+  if (countries.includes("AU")) return "Australia";
+  if (countries.includes("JP") || countries.includes("SG") || countries.includes("KR")) return "Asia";
+  if (countries.length === 0) return "Rest of World";
+  return title;
+}
+
+export async function getShippingRegions(): Promise<ShippingRegionData> {
+  if (cachedRegions && Date.now() - regionsCachedAt < REGIONS_CACHE_TTL) {
+    return cachedRegions;
+  }
+
+  try {
+    const wix = getServerWixClient();
+
+    const [profiles, shippingOpts] = await Promise.all([
+      wix.deliveryProfile.queryDeliveryProfiles().find(),
+      wix.shippingOptions.queryShippingOptions().find(),
+    ]);
+
+    const regionCountries = new Map<string, string[]>();
+
+    for (const profile of profiles.items ?? []) {
+      for (const region of (profile.deliveryRegions ?? []) as {
+        _id?: string;
+        destinations?: { countryCode?: string }[];
+      }[]) {
+        const regionId = region._id ?? "";
+        const countries = (region.destinations ?? [])
+          .map((d) => d.countryCode ?? "")
+          .filter(Boolean);
+        regionCountries.set(regionId, countries);
+      }
+    }
+
+    const regions: ShippingRegion[] = [];
+    const countryToRegionId: Record<string, string> = {};
+
+    for (const opt of (shippingOpts.items ?? []) as {
+      deliveryRegionIds?: string[];
+      title?: string;
+      estimatedDeliveryTime?: string;
+      rates?: { amount?: string; conditions?: { type?: string; value?: string; operator?: string }[] }[];
+    }[]) {
+      const regionId = opt.deliveryRegionIds?.[0] ?? "";
+      if (!regionId) continue;
+
+      const countries = regionCountries.get(regionId) ?? [];
+      const rates = opt.rates ?? [];
+      const paidRate = rates.find((r) => r.amount !== "0");
+      const shippingCost = parseFloat(paidRate?.amount ?? "0");
+      const freeRate = rates.find((r) => r.amount === "0");
+      const freeCondition = freeRate?.conditions?.find(
+        (c) => c.type === "BY_TOTAL_PRICE" && c.operator === "GT"
+      );
+      const freeThreshold = parseFloat(freeCondition?.value ?? "0");
+
+      regions.push({
+        id: regionId,
+        name: getRegionDisplayName(opt.title ?? "", countries),
+        countries,
+        shippingCost,
+        freeThreshold,
+        estimatedDelivery: opt.estimatedDeliveryTime ?? "4-14 Days",
+      });
+
+      for (const cc of countries) {
+        countryToRegionId[cc] = regionId;
+      }
+    }
+
+    const hkRegion = regions.find((r) => r.countries.includes("HK"));
+    const data: ShippingRegionData = {
+      regions,
+      countryToRegionId,
+      defaultRegionId: hkRegion?.id ?? regions[0]?.id ?? "",
+    };
+
+    cachedRegions = data;
+    regionsCachedAt = Date.now();
+    return data;
+  } catch {
+    return {
+      regions: [{ id: "hk", name: "Hong Kong", countries: ["HK"], shippingCost: 35, freeThreshold: 900, estimatedDelivery: "1-2 Days" }],
+      countryToRegionId: { HK: "hk" },
+      defaultRegionId: "hk",
+    };
+  }
+}
+
+// --- Currency conversion ---
+
+export interface CurrencyInfo {
+  code: string;
+  symbol: string;
+}
+
+export async function getSupportedCurrencies(): Promise<CurrencyInfo[]> {
+  try {
+    const wix = getServerWixClient();
+    const result = await wix.currencies.listCurrencies();
+    return (result.currencies ?? []).map((c) => ({
+      code: c.code ?? "",
+      symbol: c.symbol ?? c.code ?? "",
+    }));
+  } catch {
+    return [{ code: "HKD", symbol: "HK$" }];
+  }
+}
+
+const rateCache = new Map<string, { rate: number; at: number }>();
+const RATE_CACHE_TTL = 1000 * 60 * 30; // 30 min
+
+export async function getConversionRate(toCurrency: string): Promise<{ rate: number; symbol: string }> {
+  if (toCurrency === "HKD") return { rate: 1, symbol: "HK$" };
+
+  const cacheKey = `HKD-${toCurrency}`;
+  const cached = rateCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < RATE_CACHE_TTL) {
+    const currencies = await getSupportedCurrencies();
+    const symbol = currencies.find((c) => c.code === toCurrency)?.symbol ?? toCurrency;
+    return { rate: cached.rate, symbol };
+  }
+
+  try {
+    const wix = getServerWixClient();
+    const result = await wix.currencies.getConversionRate({ from: "HKD", to: toCurrency });
+    const rateValue = result.rate?.value ?? "1";
+    const decimalPlaces = result.rate?.decimalPlaces ?? 0;
+    const rate = parseInt(rateValue, 10) / Math.pow(10, decimalPlaces);
+
+    rateCache.set(cacheKey, { rate, at: Date.now() });
+
+    const currencies = await getSupportedCurrencies();
+    const symbol = currencies.find((c) => c.code === toCurrency)?.symbol ?? toCurrency;
+    return { rate, symbol };
+  } catch {
+    return { rate: 1, symbol: "HK$" };
   }
 }

@@ -1,3 +1,7 @@
+"use client";
+
+import { useDisplayCurrency } from "./Price";
+
 interface FreeShippingBarProps {
   subtotal: number;
   threshold: number;
@@ -7,6 +11,8 @@ export default function FreeShippingBar({
   subtotal,
   threshold,
 }: FreeShippingBarProps) {
+  const { format } = useDisplayCurrency();
+
   if (threshold <= 0) return null;
 
   const achieved = subtotal > threshold;
@@ -28,7 +34,7 @@ export default function FreeShippingBar({
         <>
           <p className="text-[11px] tracking-[0.15em] text-center text-on-surface-variant mb-2">
             <span className="font-medium text-on-surface">
-              HK${remaining.toLocaleString()}
+              {format(remaining)}
             </span>{" "}
             away from free shipping
           </p>

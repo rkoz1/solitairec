@@ -8,6 +8,8 @@ import NavigationLoader from "@/components/NavigationLoader";
 import WixChat from "@/components/WixChat";
 import FlyToCart from "@/components/FlyToCart";
 import Toast from "@/components/Toast";
+import RegionSelector from "@/components/RegionSelector";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const notoSerif = Noto_Serif({
@@ -22,16 +24,41 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 export const metadata: Metadata = {
-  title: "SOLITAIREC",
-  description: "SolitaireC — Clothing Store",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "SOLITAIREC — Editorial Luxury Clothing Store",
+    template: "%s | SOLITAIREC",
+  },
+  description:
+    "Curated selection of high-quality designer brands. Minimalistic and unique clothing, shoes, handbags, and accessories from Hong Kong.",
+  openGraph: {
+    siteName: "SOLITAIREC",
+    locale: "en_HK",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const detectedCountry =
+    headersList.get("x-vercel-ip-country") ??
+    headersList.get("cloudflare-ipcountry") ??
+    "HK";
+
   return (
     <html
       lang="en"
@@ -41,6 +68,21 @@ export default function RootLayout({
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "SOLITAIREC",
+              url: SITE_URL,
+              logo: `${SITE_URL}/favicon.ico`,
+              sameAs: ["https://www.instagram.com/solitairec"],
+              description:
+                "Curated selection of high-quality designer brands from Hong Kong. Clothing, shoes, handbags, and accessories.",
+            }),
+          }}
         />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface font-sans">
@@ -60,8 +102,13 @@ export default function RootLayout({
           </nav>
         </header>
 
-        {/* Main content with padding for fixed header/footer */}
-        <main className="flex-1 pt-16 pb-24">{children}</main>
+        {/* Shipping region bar — below header */}
+        <div className="fixed top-14 left-0 right-0 z-40 bg-surface-container-low/90 backdrop-blur-sm flex justify-center py-1">
+          <RegionSelector detectedCountry={detectedCountry} />
+        </div>
+
+        {/* Main content with padding for fixed header/footer + region bar */}
+        <main className="flex-1 pt-[4.5rem] pb-24">{children}</main>
 
         {/* Cart feedback animation */}
         <FlyToCart />

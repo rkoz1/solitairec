@@ -1,6 +1,13 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "SOLITAIREC — Editorial Luxury Clothing Store",
+  description:
+    "Curated selection of high-quality designer brands. Clothing, shoes, handbags, and accessories. Minimalistic and unique products from Hong Kong.",
+};
 import ProductCard from "@/components/ProductCard";
 import HeroCarousel from "@/components/HeroCarousel";
 import {
@@ -31,7 +38,7 @@ function ProductGrid({
     _id?: string | null;
     slug?: string | null;
     name?: string | null;
-    priceData?: { formatted?: { price?: string | null } | null } | null;
+    priceData?: { price?: number | null; formatted?: { price?: string | null } | null } | null;
     media?: {
       mainMedia?: { image?: { url?: string | null } | null } | null;
     } | null;
@@ -47,6 +54,7 @@ function ProductGrid({
             slug={product.slug ?? product._id ?? ""}
             name={product.name ?? "Untitled"}
             price={product.priceData?.formatted?.price ?? "Price unavailable"}
+            priceAmount={product.priceData?.price ?? undefined}
             imageUrl={product.media?.mainMedia?.image?.url}
             priority={priorityFirst && index === 0}
             productId={product._id ?? undefined}
@@ -71,10 +79,13 @@ export default async function HomePage() {
     getHomeSections(),
   ]);
 
-  // Fetch featured products if collection exists
-  const featuredProducts = featured?._id
-    ? await getCollectionProducts(featured._id, 4)
+  // Fetch featured products if collection exists, randomise selection
+  const allFeatured = featured?._id
+    ? await getCollectionProducts(featured._id, 20)
     : [];
+  const featuredProducts = allFeatured.length > 4
+    ? allFeatured.sort(() => Math.random() - 0.5).slice(0, 4)
+    : allFeatured;
 
   // Fetch products for each home section in parallel
   const sectionData = await Promise.all(
@@ -94,6 +105,7 @@ export default async function HomePage() {
               slug: p.slug ?? p._id ?? "",
               name: p.name ?? "Product",
               price: p.priceData?.formatted?.price ?? "",
+              priceAmount: p.priceData?.price ?? undefined,
               imageUrl: getWixImageUrl(
                 p.media?.mainMedia?.image?.url,
                 1600,

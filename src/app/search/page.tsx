@@ -99,6 +99,7 @@ export default function SearchPage() {
                     slug={product.slug}
                     name={product.name}
                     price={product.formattedPrice}
+                    priceAmount={product.price}
                     imageUrl={product.imageUrl}
                     productId={product._id}
                   />

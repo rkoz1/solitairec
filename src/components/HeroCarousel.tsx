@@ -4,11 +4,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+import Price from "./Price";
+
 interface HeroItem {
   slug: string;
   name: string;
   imageUrl: string;
   price: string;
+  priceAmount?: number;
 }
 
 interface HeroCarouselProps {
@@ -87,7 +90,7 @@ export default function HeroCarousel({
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6">
                 <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-white/80">
-                  {item.price}
+                  {item.priceAmount != null ? <Price amount={item.priceAmount} /> : item.price}
                 </p>
                 <h2 className="mt-1 font-serif italic text-xl tracking-tight text-white">
                   {item.name}
