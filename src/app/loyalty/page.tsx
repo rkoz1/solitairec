@@ -1,7 +1,14 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getServerWixClient } from "@/lib/wix-server-client";
+
+export const metadata: Metadata = {
+  title: "Rewards Programme",
+  description:
+    "Earn points on every purchase. Redeem for exclusive rewards and discounts at SolitaireC.",
+};
 
 interface EarningRule {
   title?: string;

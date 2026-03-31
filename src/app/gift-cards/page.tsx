@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import GiftCardForm from "./GiftCardForm";
+
+export const metadata: Metadata = {
+  title: "Gift Cards",
+  description:
+    "Give the gift of style. Purchase SolitaireC gift cards with bonus credits. Valid for 12 months.",
+};
 
 export default function GiftCardsPage() {
   return (

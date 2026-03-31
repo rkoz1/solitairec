@@ -69,7 +69,8 @@
       "Bash(grep -r \"ReferralReward\\\\|referral\" /c/dev/solitairec/node_modules/@wix --include=*.d.mts)",
       "WebFetch(domain:unsplash.com)",
       "Bash(curl:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(wc:*)"
     ]
   }
 }

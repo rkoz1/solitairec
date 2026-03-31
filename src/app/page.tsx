@@ -1,6 +1,13 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "SOLITAIREC — Editorial Luxury Clothing Store",
+  description:
+    "Curated selection of high-quality designer brands. Clothing, shoes, handbags, and accessories. Minimalistic and unique products from Hong Kong.",
+};
 import ProductCard from "@/components/ProductCard";
 import HeroCarousel from "@/components/HeroCarousel";
 import {

@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import NewsletterSignup from "@/components/NewsletterSignup";
+
+export const metadata: Metadata = {
+  title: "Terms & Conditions",
+  description:
+    "Delivery, exchange, refund policies, and product care instructions for SolitaireC.",
+};
 
 export default function TermsPage() {
   return (

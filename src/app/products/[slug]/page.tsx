@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getServerWixClient } from "@/lib/wix-server-client";
@@ -12,17 +13,54 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export default async function ProductPage({ params }: Props) {
-  const { slug } = await params;
+async function getProduct(slug: string) {
   const wix = getServerWixClient();
-
   const { items } = await wix.products
     .queryProducts()
     .eq("slug", slug)
     .limit(1)
     .find();
+  return items[0] ?? null;
+}
 
-  const product = items[0];
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProduct(slug);
+  if (!product) return {};
+
+  // Extract SEO data from Wix if available
+  const seoTags = (product.seoData as { tags?: { type?: string; children?: string; props?: Record<string, string> }[] })?.tags ?? [];
+  const seoTitle = seoTags.find((t) => t.type === "title")?.children;
+  const seoDesc = seoTags.find((t) => t.type === "meta" && t.props?.name === "description")?.props?.content;
+
+  const title = seoTitle || product.name || "Product";
+  const description = seoDesc || (product.description ? stripHtml(product.description).slice(0, 160) : "Shop at SOLITAIREC");
+  const imageUrl = getWixImageUrl(product.media?.mainMedia?.image?.url, 1200, 630);
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [{ url: imageUrl, width: 1200, height: 630 }],
+      type: "website",
+    },
+    twitter: {
+      title,
+      description,
+      images: [imageUrl],
+    },
+  };
+}
+
+export default async function ProductPage({ params }: Props) {
+  const { slug } = await params;
+  const product = await getProduct(slug);
   if (!product) notFound();
 
   const mainImage = getWixImageUrl(
@@ -42,8 +80,32 @@ export default async function ProductPage({ params }: Props) {
 
   const allImages = [mainImage, ...additionalImages.slice(0, 5)];
 
+  const stockStatus = (product.stock as { inventoryStatus?: string } | undefined)?.inventoryStatus;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description ? stripHtml(product.description).slice(0, 500) : undefined,
+    image: mainImage,
+    brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
+    offers: {
+      "@type": "Offer",
+      price: product.priceData?.price ?? 0,
+      priceCurrency: product.priceData?.currency ?? "HKD",
+      availability:
+        stockStatus === "OUT_OF_STOCK"
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com"}/products/${product.slug}`,
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:max-w-6xl lg:mx-auto lg:px-8 lg:pt-8">
         {/* Image gallery */}
         <div className="relative">

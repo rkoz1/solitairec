@@ -22,9 +22,28 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 export const metadata: Metadata = {
-  title: "SOLITAIREC",
-  description: "SolitaireC — Clothing Store",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "SOLITAIREC — Editorial Luxury Clothing Store",
+    template: "%s | SOLITAIREC",
+  },
+  description:
+    "Curated selection of high-quality designer brands. Minimalistic and unique clothing, shoes, handbags, and accessories from Hong Kong.",
+  openGraph: {
+    siteName: "SOLITAIREC",
+    locale: "en_HK",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -41,6 +60,21 @@ export default function RootLayout({
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "SOLITAIREC",
+              url: SITE_URL,
+              logo: `${SITE_URL}/favicon.ico`,
+              sameAs: ["https://www.instagram.com/solitairec"],
+              description:
+                "Curated selection of high-quality designer brands from Hong Kong. Clothing, shoes, handbags, and accessories.",
+            }),
+          }}
         />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface font-sans">
