@@ -71,10 +71,13 @@ export default async function HomePage() {
     getHomeSections(),
   ]);
 
-  // Fetch featured products if collection exists
-  const featuredProducts = featured?._id
-    ? await getCollectionProducts(featured._id, 4)
+  // Fetch featured products if collection exists, randomise selection
+  const allFeatured = featured?._id
+    ? await getCollectionProducts(featured._id, 20)
     : [];
+  const featuredProducts = allFeatured.length > 4
+    ? allFeatured.sort(() => Math.random() - 0.5).slice(0, 4)
+    : allFeatured;
 
   // Fetch products for each home section in parallel
   const sectionData = await Promise.all(

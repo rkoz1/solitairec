@@ -67,7 +67,8 @@
       "Bash(grep -r referral /c/dev/solitairec/node_modules/@wix --include=*.d.mts --include=*.d.ts)",
       "Bash(grep -r \"generateReferral\\\\|createReferral\\\\|generateShareLink\\\\|getReferralLink\" /c/dev/solitairec/node_modules/@wix --include=*.d.ts --include=*.d.mts)",
       "Bash(grep -r \"ReferralReward\\\\|referral\" /c/dev/solitairec/node_modules/@wix --include=*.d.mts)",
-      "WebFetch(domain:unsplash.com)"
+      "WebFetch(domain:unsplash.com)",
+      "Bash(curl:*)"
     ]
   }
 }
