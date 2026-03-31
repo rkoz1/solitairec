@@ -8,6 +8,7 @@ import {
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
 import { showToast } from "@/lib/toast";
+import { buildStockKey } from "@/lib/cart";
 
 interface ProductOption {
   name?: string | null;
@@ -35,13 +36,6 @@ interface ProductInfoProps {
   productQuantity?: number;
   trackInventory?: boolean;
   manageVariants?: boolean;
-}
-
-function buildStockKey(opts: Record<string, string>): string {
-  return Object.entries(opts)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, v]) => `${k}:${v}`)
-    .join("|");
 }
 
 export default function ProductInfo({
@@ -249,8 +243,9 @@ export default function ProductInfo({
           <AddToCartButton
             productId={productId}
             productName={productName}
-            selectedOptions={manageVariants ? selectedOptions : undefined}
-            variantId={manageVariants ? selectedVariantId : undefined}
+            manageVariants={manageVariants}
+            selectedOptions={selectedOptions}
+            variantId={selectedVariantId}
           />
         )}
       </div>

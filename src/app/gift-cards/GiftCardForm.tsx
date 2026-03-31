@@ -68,7 +68,7 @@ export default function GiftCardForm() {
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
 
-      await wix.currentCart.addToCurrentCart({
+      const result = await wix.currentCart.addToCurrentCart({
         lineItems: [
           {
             quantity,
@@ -95,6 +95,15 @@ export default function GiftCardForm() {
           },
         ],
       });
+
+      // Verify the gift card was added
+      const { verifyItemInCart } = await import("@/lib/cart");
+      if (!verifyItemInCart(result.cart as Parameters<typeof verifyItemInCart>[0], GIFT_CARD_PRODUCT_ID)) {
+        const { log } = await import("@/lib/logger");
+        log({ level: "error", action: "gift-card-add-rejected", details: { variantId: selectedVariant.id } });
+        showToast("Gift card couldn't be added to your bag. Please try again.", "error");
+        return;
+      }
 
       window.dispatchEvent(new Event("cart-updated"));
 
