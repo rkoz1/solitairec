@@ -2,11 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { getWixImageUrl } from "@/lib/wix-image";
 import ProductCardActions from "./ProductCardActions";
+import Price from "./Price";
 
 interface ProductCardProps {
   slug: string;
   name: string;
   price: string;
+  priceAmount?: number;
   imageUrl: string | undefined | null;
   priority?: boolean;
   productId?: string;
@@ -17,6 +19,7 @@ export default function ProductCard({
   slug,
   name,
   price,
+  priceAmount,
   imageUrl,
   priority = false,
   productId,
@@ -57,7 +60,7 @@ export default function ProductCard({
           {name}
         </h3>
         <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
-          {price}
+          {priceAmount != null ? <Price amount={priceAmount} /> : price}
         </p>
       </Link>
     </div>

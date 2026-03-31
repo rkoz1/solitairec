@@ -19,6 +19,7 @@ import LoadingIndicator from "@/components/LoadingIndicator";
 import FreeShippingBar from "@/components/FreeShippingBar";
 import { showToast } from "@/lib/toast";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
+import { useDisplayCurrency } from "@/components/Price";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -73,6 +74,7 @@ function BagTab() {
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [updatingQtyId, setUpdatingQtyId] = useState<string | null>(null);
+  const displayCurrency = useDisplayCurrency();
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(0);
   const [subtotalNum, setSubtotalNum] = useState(0);
 
@@ -81,7 +83,7 @@ function BagTab() {
     shipping?: string;
     discount?: string;
     total?: string;
-    discounts?: { name: string; amount: string }[];
+    discounts?: { name: string; amount: string; rawAmount: number }[];
   } | null>(null);
 
   const loadCart = useCallback(async () => {
@@ -117,6 +119,7 @@ function BagTab() {
           .map(([name, amount]) => ({
             name,
             amount: `${currencyPrefix}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            rawAmount: amount,
           }));
 
         const ps = est.priceSummary as {
@@ -170,9 +173,15 @@ function BagTab() {
 
   useEffect(() => {
     loadCart();
-    import("@/app/actions").then(({ getFreeShippingThreshold }) =>
-      getFreeShippingThreshold().then(setFreeShippingThreshold)
-    );
+    // Load region-specific free shipping threshold
+    Promise.all([
+      import("@/app/actions").then((m) => m.getShippingRegions()),
+      import("@/lib/shipping-regions"),
+    ]).then(([data, { getRegionForCountry }]) => {
+      const countryCode = localStorage.getItem("shipping_country") || "HK";
+      const region = getRegionForCountry(countryCode, data);
+      setFreeShippingThreshold(region.freeThreshold);
+    });
 
     // Refresh when items are added from wishlist (or elsewhere)
     const handler = () => loadCart();
@@ -386,33 +395,27 @@ function BagTab() {
                   </button>
                 </div>
 
-                {/* Price — show line total when qty > 1 */}
+                {/* Price — show line total when qty > 1, in display currency */}
                 {(() => {
-                  const full = item.fullPrice?.formattedAmount;
-                  const unitPrice = item.price?.formattedAmount;
+                  const fullAmount = parseFloat(item.fullPrice?.amount ?? "0");
                   const unitAmount = parseFloat(item.price?.amount ?? "0");
-                  const isDiscounted = full && unitPrice && full !== unitPrice;
+                  const isDiscounted = fullAmount > 0 && unitAmount > 0 && fullAmount !== unitAmount;
                   const qty = item.quantity ?? 1;
-
-                  // Extract currency prefix from formatted price
-                  const prefix = unitPrice?.replace(/[\d.,]+/g, "").trim() ?? "";
-                  const lineTotal = qty > 1
-                    ? `${prefix}${(unitAmount * qty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : null;
+                  const lineTotalAmount = unitAmount * qty;
 
                   return (
                     <div className="mt-1 flex items-center gap-2">
                       {isDiscounted && (
                         <span className="text-[10px] tracking-widest text-on-surface-variant line-through">
-                          {full}
+                          {displayCurrency.format(fullAmount)}
                         </span>
                       )}
                       <span className={`text-[10px] tracking-widest ${isDiscounted ? "text-secondary font-medium" : "text-on-surface-variant"}`}>
-                        {lineTotal ?? unitPrice ?? ""}
+                        {qty > 1 ? displayCurrency.format(lineTotalAmount) : displayCurrency.format(unitAmount)}
                       </span>
                       {qty > 1 && (
                         <span className="text-[10px] tracking-widest text-on-surface-variant/60">
-                          ({unitPrice} each)
+                          ({displayCurrency.format(unitAmount)} each)
                         </span>
                       )}
                     </div>
@@ -445,14 +448,20 @@ function BagTab() {
       )}
 
       {/* Cart summary */}
-      {totals && (
+      {totals && (() => {
+        const isConverted = displayCurrency.isConverted;
+        const totalAmount = parseFloat(
+          (totals.total ?? "").replace(/[^0-9.]/g, "") || "0"
+        );
+
+        return (
         <div className="pt-8 space-y-2">
           <div className="flex justify-between">
             <span className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
               Subtotal
             </span>
             <span className="text-[10px] tracking-widest text-on-surface">
-              {totals.subtotal ?? ""}
+              {isConverted ? displayCurrency.format(subtotalNum) : totals.subtotal}
             </span>
           </div>
 
@@ -462,17 +471,23 @@ function BagTab() {
                 {d.name}
               </span>
               <span className="text-[10px] tracking-widest text-secondary">
-                -{d.amount}
+                -{isConverted ? displayCurrency.format(d.rawAmount) : d.amount}
               </span>
             </div>
           ))}
 
           <div className="flex justify-between">
             <span className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
-              {totals.shipping ? "Est. Shipping" : "Shipping"}
+              {totals.shipping || (freeShippingThreshold > 0 && subtotalNum > freeShippingThreshold) ? "Est. Shipping" : "Shipping"}
             </span>
             <span className="text-[10px] tracking-widest text-on-surface-variant">
-              {totals.shipping ?? "Calculated at checkout"}
+              {freeShippingThreshold > 0 && subtotalNum > freeShippingThreshold
+                ? <span className="text-secondary font-medium">Free</span>
+                : totals.shipping
+                  ? isConverted
+                    ? displayCurrency.format(parseFloat(totals.shipping.replace(/[^0-9.]/g, "") || "0"))
+                    : totals.shipping
+                  : "Calculated at checkout"}
             </span>
           </div>
 
@@ -480,12 +495,26 @@ function BagTab() {
             <span className="text-xs tracking-[0.15em] uppercase font-medium text-on-surface">
               Total
             </span>
-            <span className="text-xs tracking-widest font-medium text-on-surface">
-              {totals.total ?? ""}
-            </span>
+            <div className="text-right">
+              <span className="text-xs tracking-widest font-medium text-on-surface block">
+                {isConverted ? displayCurrency.format(totalAmount) : totals.total}
+              </span>
+              {isConverted && (
+                <span className="text-[10px] tracking-widest text-on-surface-variant block mt-0.5">
+                  {totals.total}
+                </span>
+              )}
+            </div>
           </div>
+
+          {isConverted && (
+            <p className="text-[9px] tracking-wide text-on-surface-variant/60 text-right pt-1">
+              Approximate conversion. Billed in HKD.
+            </p>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       <div className="pt-6">
         <button

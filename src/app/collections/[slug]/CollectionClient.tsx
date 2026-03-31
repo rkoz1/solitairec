@@ -101,6 +101,7 @@ export default function CollectionClient({ slug }: Props) {
                 slug={product.slug}
                 name={product.name}
                 price={product.formattedPrice}
+                priceAmount={product.price}
                 imageUrl={product.imageUrl}
                 productId={product._id}
                 productOptions={product.sizes.length > 0 || product.colors.length > 0

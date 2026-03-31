@@ -38,7 +38,7 @@ function ProductGrid({
     _id?: string | null;
     slug?: string | null;
     name?: string | null;
-    priceData?: { formatted?: { price?: string | null } | null } | null;
+    priceData?: { price?: number | null; formatted?: { price?: string | null } | null } | null;
     media?: {
       mainMedia?: { image?: { url?: string | null } | null } | null;
     } | null;
@@ -54,6 +54,7 @@ function ProductGrid({
             slug={product.slug ?? product._id ?? ""}
             name={product.name ?? "Untitled"}
             price={product.priceData?.formatted?.price ?? "Price unavailable"}
+            priceAmount={product.priceData?.price ?? undefined}
             imageUrl={product.media?.mainMedia?.image?.url}
             priority={priorityFirst && index === 0}
             productId={product._id ?? undefined}
@@ -104,6 +105,7 @@ export default async function HomePage() {
               slug: p.slug ?? p._id ?? "",
               name: p.name ?? "Product",
               price: p.priceData?.formatted?.price ?? "",
+              priceAmount: p.priceData?.price ?? undefined,
               imageUrl: getWixImageUrl(
                 p.media?.mainMedia?.image?.url,
                 1600,

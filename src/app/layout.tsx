@@ -8,6 +8,8 @@ import NavigationLoader from "@/components/NavigationLoader";
 import WixChat from "@/components/WixChat";
 import FlyToCart from "@/components/FlyToCart";
 import Toast from "@/components/Toast";
+import RegionSelector from "@/components/RegionSelector";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const notoSerif = Noto_Serif({
@@ -46,11 +48,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const detectedCountry =
+    headersList.get("x-vercel-ip-country") ??
+    headersList.get("cloudflare-ipcountry") ??
+    "HK";
+
   return (
     <html
       lang="en"
@@ -94,8 +102,13 @@ export default function RootLayout({
           </nav>
         </header>
 
-        {/* Main content with padding for fixed header/footer */}
-        <main className="flex-1 pt-16 pb-24">{children}</main>
+        {/* Shipping region bar — below header */}
+        <div className="fixed top-14 left-0 right-0 z-40 bg-surface-container-low/90 backdrop-blur-sm flex justify-center py-1">
+          <RegionSelector detectedCountry={detectedCountry} />
+        </div>
+
+        {/* Main content with padding for fixed header/footer + region bar */}
+        <main className="flex-1 pt-[4.5rem] pb-24">{children}</main>
 
         {/* Cart feedback animation */}
         <FlyToCart />

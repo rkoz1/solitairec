@@ -7,6 +7,9 @@ import { getServerWixClient } from "@/lib/wix-server-client";
 import { getWixImageUrl } from "@/lib/wix-image";
 import ImageCarousel from "@/components/ImageCarousel";
 import CompleteTheLook from "@/components/CompleteTheLook";
+import ShippingInfo from "@/components/ShippingInfo";
+import FreeShippingProgress from "@/components/FreeShippingProgress";
+import Price from "@/components/Price";
 import ProductInfo from "./ProductInfo";
 
 interface Props {
@@ -156,9 +159,9 @@ export default async function ProductPage({ params }: Props) {
           )}
 
           {/* Price */}
-          <p className="mt-3 text-lg tracking-tight text-on-surface-variant">
-            {product.priceData?.formatted?.price ?? "Price unavailable"}
-          </p>
+          <div className="mt-3 text-lg tracking-tight text-on-surface-variant">
+            <Price amount={product.priceData?.price ?? 0} />
+          </div>
 
           {/* Variant selectors + Add to Cart (client component) */}
           <ProductInfo
@@ -178,6 +181,10 @@ export default async function ProductPage({ params }: Props) {
             trackInventory={(product.stock as { trackInventory?: boolean } | undefined)?.trackInventory ?? false}
             manageVariants={product.manageVariants ?? false}
           />
+
+          {/* Shipping info + free shipping progress */}
+          <ShippingInfo />
+          <FreeShippingProgress />
 
           {/* Description — editorial layout */}
           {product.description && (
