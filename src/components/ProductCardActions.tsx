@@ -8,9 +8,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
-
-const WIX_STORES_APP_ID = "1380b703-ce81-ff05-f115-39571d94dfcd";
-const WIX_STORES_V3_APP_ID = "215238eb-22a5-4c36-9e7b-e7c08025e04e";
+import { addItemToCart, buildStockKey } from "@/lib/cart";
 
 interface ProductOption {
   name: string;
@@ -40,6 +38,7 @@ export default memo(function ProductCardActions({
   const [mounted, setMounted] = useState(false);
   const [variantStock, setVariantStock] = useState<Record<string, { inStock: boolean; quantity: number; variantId?: string }>>({});
   const [manageVariants, setManageVariants] = useState(false);
+  const [variantDataLoaded, setVariantDataLoaded] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -66,8 +65,9 @@ export default memo(function ProductCardActions({
     e.preventDefault();
     e.stopPropagation();
 
+    // No options → add immediately with V1, no need to fetch variant data
     if (productOptions.length === 0) {
-      addToBag({});
+      addToBag({}, false);
       return;
     }
 
@@ -78,32 +78,26 @@ export default memo(function ProductCardActions({
     }
     setSelectedOptions(defaults);
     setSheetOpen(true);
+    setVariantDataLoaded(false);
 
     // Lazy-fetch variant stock + manageVariants flag
     import("@/app/actions").then(({ getProductVariantStock }) =>
       getProductVariantStock(productId).then((data) => {
         setVariantStock(data.stock);
         setManageVariants(data.manageVariants);
+        setVariantDataLoaded(true);
 
         // Re-select defaults if current selection is out of stock
         if (data.manageVariants && Object.keys(data.stock).length > 0) {
           setSelectedOptions((prev) => {
             const updated = { ...prev };
             for (const opt of productOptions) {
-              const currentLabel = updated[opt.name];
-              const currentKey = Object.entries(updated)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([k, v]) => `${k}:${v}`)
-                .join("|");
+              const currentKey = buildStockKey(updated);
               if (data.stock[currentKey]?.inStock === false) {
-                // Find first in-stock choice for this option
                 for (const c of opt.choices) {
                   const label = c.description || c.value;
                   const testOpts = { ...updated, [opt.name]: label };
-                  const testKey = Object.entries(testOpts)
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([k, v]) => `${k}:${v}`)
-                    .join("|");
+                  const testKey = buildStockKey(testOpts);
                   if (data.stock[testKey]?.inStock !== false) {
                     updated[opt.name] = label;
                     break;
@@ -121,45 +115,36 @@ export default memo(function ProductCardActions({
   function getChoiceStock(optionName: string, choiceLabel: string): { inStock: boolean; quantity: number } | null {
     if (Object.keys(variantStock).length === 0) return null;
     const testOptions = { ...selectedOptions, [optionName]: choiceLabel };
-    const key = Object.entries(testOptions)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => `${k}:${v}`)
-      .join("|");
+    const key = buildStockKey(testOptions);
     return variantStock[key] ?? null;
   }
 
-  async function addToBag(opts: Record<string, string>) {
+  async function addToBag(opts: Record<string, string>, useVariantData: boolean = true) {
     setAdding(true);
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      const hasOptions = manageVariants && Object.keys(opts).length > 0;
+      // Resolve variant ID from stock data
+      let resolvedVariantId: string | undefined;
+      if (useVariantData && manageVariants && Object.keys(opts).length > 0) {
+        const key = buildStockKey(opts);
+        resolvedVariantId = variantStock[key]?.variantId;
+      }
 
-      await wix.currentCart.addToCurrentCart({
-        lineItems: [
-          {
-            catalogReference: {
-              catalogItemId: productId,
-              appId: hasOptions ? WIX_STORES_V3_APP_ID : WIX_STORES_APP_ID,
-              options: hasOptions
-                ? {
-                    options: opts,
-                    variantId: (() => {
-                      // Look up real variant ID from stock data
-                      const key = Object.entries(opts)
-                        .sort(([a], [b]) => a.localeCompare(b))
-                        .map(([k, v]) => `${k}:${v}`)
-                        .join("|");
-                      return variantStock[key]?.variantId || "00000000-0000-0000-0000-000000000000";
-                    })(),
-                  }
-                : undefined,
-            },
-            quantity: 1,
-          },
-        ],
+      const result = await addItemToCart(wix, {
+        productId,
+        productName,
+        manageVariants: useVariantData ? manageVariants : false,
+        selectedOptions: opts,
+        variantId: resolvedVariantId,
       });
+
+      if (!result.success) {
+        const { showToast } = await import("@/lib/toast");
+        showToast(result.error ?? "This item couldn't be added to your bag.", "error");
+        return;
+      }
 
       window.dispatchEvent(new Event("cart-updated"));
 
@@ -252,17 +237,17 @@ export default memo(function ProductCardActions({
                           return (
                             <button
                               key={choice.value}
-                              onClick={() => {
-                                if (oos) return;
+                              onClick={() =>
                                 setSelectedOptions((prev) => ({
                                   ...prev,
                                   [option.name]: label,
-                                }));
-                              }}
-                              disabled={oos}
+                                }))
+                              }
                               className={`relative w-8 h-8 transition-colors ${
                                 oos
-                                  ? "opacity-25 cursor-not-allowed"
+                                  ? isSelected
+                                    ? "opacity-50 ring-2 ring-on-surface ring-offset-2 ring-offset-white"
+                                    : "opacity-25"
                                   : isSelected
                                     ? "ring-2 ring-on-surface ring-offset-2 ring-offset-white"
                                     : "border border-outline-variant/20 hover:border-outline"
@@ -289,17 +274,17 @@ export default memo(function ProductCardActions({
                           return (
                             <button
                               key={choice.value}
-                              onClick={() => {
-                                if (oos) return;
+                              onClick={() =>
                                 setSelectedOptions((prev) => ({
                                   ...prev,
                                   [option.name]: label,
-                                }));
-                              }}
-                              disabled={oos}
+                                }))
+                              }
                               className={`px-3 py-2 text-[10px] tracking-[0.15em] uppercase font-medium transition-colors border border-outline-variant/20 ${
                                 oos
-                                  ? "opacity-30 line-through cursor-not-allowed"
+                                  ? isSelected
+                                    ? "opacity-50 line-through bg-on-surface text-on-primary"
+                                    : "opacity-30 line-through"
                                   : isSelected
                                     ? "bg-on-surface text-on-primary"
                                     : "bg-transparent text-on-surface hover:bg-surface-container-low"
@@ -317,10 +302,10 @@ export default memo(function ProductCardActions({
 
               <button
                 onClick={() => addToBag(selectedOptions)}
-                disabled={adding}
+                disabled={adding || !variantDataLoaded}
                 className="w-full bg-on-surface text-on-primary py-4 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
               >
-                {adding ? "Adding..." : "Add to Bag"}
+                {adding ? "Adding..." : !variantDataLoaded ? "Loading..." : "Add to Bag"}
               </button>
             </div>
           </div>

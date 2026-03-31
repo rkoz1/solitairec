@@ -18,14 +18,10 @@ import type { cart } from "@wix/ecom";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import FreeShippingBar from "@/components/FreeShippingBar";
 import { showToast } from "@/lib/toast";
+import { addItemToCart, buildStockKey } from "@/lib/cart";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
-
-// Catalog V1 (products without variants)
-const WIX_STORES_APP_ID = "1380b703-ce81-ff05-f115-39571d94dfcd";
-// Catalog V3 (products with variant options like size/color)
-const WIX_STORES_V3_APP_ID = "215238eb-22a5-4c36-9e7b-e7c08025e04e";
 
 export default function CartPage() {
   const searchParams = useSearchParams();
@@ -567,11 +563,7 @@ function WishlistTab() {
         ? opt.choices.find((c) => {
             const label = c.description || c.value;
             const testOpts = { ...defaults, [opt.name]: label };
-            const key = Object.entries(testOpts)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([k, v]) => `${k}:${v}`)
-              .join("|");
-            return inStockKeys.has(key);
+            return inStockKeys.has(buildStockKey(testOpts));
           })
         : null;
       const c = firstInStock ?? opt.choices[0];
@@ -590,50 +582,26 @@ function WishlistTab() {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      const hasOptions = product.manageVariants && Object.keys(opts).length > 0;
-
       // Look up real variant ID from product variant data
-      let variantId = "00000000-0000-0000-0000-000000000000";
-      if (hasOptions && product.variants.length > 0) {
-        const key = Object.entries(opts)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([k, v]) => `${k}:${v}`)
-          .join("|");
+      let resolvedVariantId: string | undefined;
+      if (product.manageVariants && product.variants.length > 0 && Object.keys(opts).length > 0) {
+        const key = buildStockKey(opts);
         const match = product.variants.find((v) => v.key === key);
-        if (match?.variantId) variantId = match.variantId;
+        if (match?.variantId) resolvedVariantId = match.variantId;
       }
 
-      const result = await wix.currentCart.addToCurrentCart({
-        lineItems: [
-          {
-            catalogReference: {
-              catalogItemId: product._id,
-              appId: hasOptions ? WIX_STORES_V3_APP_ID : WIX_STORES_APP_ID,
-              options: hasOptions
-                ? {
-                    options: opts,
-                    variantId,
-                  }
-                : undefined,
-            },
-            quantity: 1,
-          },
-        ],
+      const result = await addItemToCart(wix, {
+        productId: product._id,
+        productName: product.name,
+        manageVariants: product.manageVariants,
+        selectedOptions: opts,
+        variantId: resolvedVariantId,
       });
 
-      // Verify the item was actually added (Wix may silently drop invalid items)
-      const addedItem = result.cart?.lineItems?.some(
-        (li: { catalogReference?: { catalogItemId?: string } }) =>
-          li.catalogReference?.catalogItemId === product._id
-      );
-      if (!addedItem) {
-        const { log } = await import("@/lib/logger");
-        log({
-          level: "error",
-          action: "wishlist-add-to-bag-rejected",
-          details: { productId: product._id, productName: product.name, opts },
-        });
-        throw new Error("Item was not added.");
+      if (!result.success) {
+        showToast(result.error ?? "This item couldn't be added to your bag.", "error");
+        setAddingId(null);
+        return;
       }
 
       window.dispatchEvent(new Event("cart-updated"));
@@ -757,11 +725,7 @@ function WishlistTab() {
               function isChoiceOos(optName: string, choiceLabel: string): boolean {
                 if (!product.manageVariants || product.variants.length === 0) return false;
                 const testOpts = { ...selectedOptions, [optName]: choiceLabel };
-                const key = Object.entries(testOpts)
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([k, v]) => `${k}:${v}`)
-                  .join("|");
-                const match = product.variants.find((v) => v.key === key);
+                const match = product.variants.find((v) => v.key === buildStockKey(testOpts));
                 return match ? !match.inStock : false;
               }
 
