@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import AddToCartButton from "./AddToCartButton";
+import ExpressCheckout from "./ExpressCheckout";
 import WishlistButton from "@/components/WishlistButton";
 import {
   getBrowserWixClient,
@@ -240,13 +241,23 @@ export default function ProductInfo({
         {isOutOfStock ? (
           <NotifyMeForm productId={productId} productName={productName ?? ""} productPrice={productPrice ?? "0"} />
         ) : (
-          <AddToCartButton
-            productId={productId}
-            productName={productName}
-            manageVariants={manageVariants}
-            selectedOptions={selectedOptions}
-            variantId={selectedVariantId}
-          />
+          <>
+            <AddToCartButton
+              productId={productId}
+              productName={productName}
+              manageVariants={manageVariants}
+              selectedOptions={selectedOptions}
+              variantId={selectedVariantId}
+            />
+            <ExpressCheckout
+              productId={productId}
+              productName={productName}
+              productPrice={productPrice ?? "0"}
+              selectedOptions={selectedOptions}
+              variantId={selectedVariantId}
+              manageVariants={manageVariants}
+            />
+          </>
         )}
       </div>
 
