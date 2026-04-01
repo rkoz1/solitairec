@@ -8,6 +8,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import type {
+  StripeExpressCheckoutElementClickEvent,
   StripeExpressCheckoutElementConfirmEvent,
   StripeExpressCheckoutElementReadyEvent,
   StripeExpressCheckoutElementShippingAddressChangeEvent,
@@ -115,6 +116,21 @@ function ExpressCheckoutInner({
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
 
+
+  const onClick = useCallback(
+    (event: StripeExpressCheckoutElementClickEvent) => {
+      event.resolve({
+        emailRequired: true,
+        shippingAddressRequired: true,
+        allowedShippingCountries: [
+          "HK", "US", "GB", "AU", "CA", "JP", "KR", "SG", "TW",
+          "DE", "FR", "IT", "ES", "NL", "BE", "AT", "CH", "SE",
+          "DK", "NO", "FI", "IE", "PT", "PL", "CZ", "NZ",
+        ],
+      });
+    },
+    []
+  );
 
   const onReady = useCallback(
     ({ availablePaymentMethods }: StripeExpressCheckoutElementReadyEvent) => {
@@ -227,6 +243,7 @@ function ExpressCheckoutInner({
       </div>
 
       <ExpressCheckoutElement
+        onClick={onClick}
         onReady={onReady}
         onConfirm={onConfirm}
         onShippingAddressChange={onShippingAddressChange}
