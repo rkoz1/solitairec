@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Elements,
   ExpressCheckoutElement,
@@ -29,6 +29,13 @@ export default function ExpressCheckout(props: ExpressCheckoutProps) {
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Stabilize selectedOptions to avoid infinite useEffect loops
+  const optionsKey = JSON.stringify(props.selectedOptions);
+  const optionsRef = useRef(props.selectedOptions);
+  if (JSON.stringify(optionsRef.current) !== optionsKey) {
+    optionsRef.current = props.selectedOptions;
+  }
+
   // Create PaymentIntent when component mounts or variant changes
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +51,7 @@ export default function ExpressCheckout(props: ExpressCheckoutProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             productId: props.productId,
-            selectedOptions: props.selectedOptions,
+            selectedOptions: optionsRef.current,
             variantId: props.variantId,
             quantity: 1,
           }),
@@ -73,7 +80,8 @@ export default function ExpressCheckout(props: ExpressCheckoutProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.productId, props.selectedOptions, props.variantId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.productId, optionsKey, props.variantId]);
 
   if (error || !clientSecret || !paymentIntentId) return null;
 
@@ -106,6 +114,7 @@ function ExpressCheckoutInner({
   const elements = useElements();
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
+
 
   const onReady = useCallback(
     ({ availablePaymentMethods }: StripeExpressCheckoutElementReadyEvent) => {
@@ -207,10 +216,8 @@ function ExpressCheckoutInner({
     [stripe, elements, paymentIntentId]
   );
 
-  if (!ready) return null;
-
   return (
-    <div className="mt-4">
+    <div className={`mt-4 ${ready ? "" : "hidden"}`}>
       <div className="flex items-center gap-4 my-4">
         <div className="flex-1 h-px bg-outline-variant/30" />
         <span className="text-[10px] tracking-[0.25em] uppercase text-on-surface-variant">
