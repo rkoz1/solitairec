@@ -73,7 +73,8 @@
       "Bash(wc:*)",
       "Bash(find /c/dev/solitairec/node_modules -type d -name *delivery*)",
       "Bash(grep -r deliveryRegion /c/dev/solitairec/src --include=*.ts --include=*.tsx)",
-      "Bash(grep -r \"headers\\\\|geolocation\\\\|country\\\\|locale\" /c/dev/solitairec/src --include=*.ts --include=*.tsx)"
+      "Bash(grep -r \"headers\\\\|geolocation\\\\|country\\\\|locale\" /c/dev/solitairec/src --include=*.ts --include=*.tsx)",
+      "Bash(find /c/dev/solitairec/node_modules/@wix/headless-ecom -name *.d.ts -type f)"
     ]
   }
 }
