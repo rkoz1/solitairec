@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripeServer } from "@/lib/stripe";
+import { getShippingRegions } from "@/app/actions";
+import { getRegionForCountry } from "@/lib/shipping-regions";
 
 export async function POST(request: Request) {
   try {
@@ -16,29 +18,35 @@ export async function POST(request: Request) {
     const paymentIntent = await getStripeServer().paymentIntents.retrieve(paymentIntentId);
     const unitPrice = parseFloat(paymentIntent.metadata.unitPrice ?? "0");
     const quantity = parseInt(paymentIntent.metadata.quantity ?? "1", 10);
-    const productAmount = Math.round(unitPrice * quantity * 100);
+    const productTotal = unitPrice * quantity;
+    const productAmountCents = Math.round(productTotal * 100);
 
-    // For now, use a flat shipping calculation.
-    // TODO: integrate with Wix shippingOptions module for dynamic rates
-    // based on shippingAddress.country
+    // Look up real shipping rates from Wix
+    const regionData = await getShippingRegions();
+    const country = shippingAddress?.country ?? "HK";
+    const region = getRegionForCountry(country, regionData);
+
+    // Compare the single product total against the free shipping threshold
+    const qualifiesForFreeShipping =
+      region.freeThreshold > 0 && productTotal > region.freeThreshold;
+
+    const shippingCostCents = qualifiesForFreeShipping
+      ? 0
+      : Math.round(region.shippingCost * 100);
+
     const shippingOptions = [
       {
         id: "standard",
-        label: "Standard Shipping",
-        detail: "5-10 business days",
-        amount: shippingAddress?.country === "HK" ? 0 : 5000, // Free for HK, 50 HKD otherwise
-      },
-      {
-        id: "express",
-        label: "Express Shipping",
-        detail: "2-3 business days",
-        amount: shippingAddress?.country === "HK" ? 3000 : 10000, // 30 HKD for HK, 100 HKD otherwise
+        label: qualifiesForFreeShipping
+          ? "Free Shipping"
+          : `Standard Shipping (${region.name})`,
+        detail: region.estimatedDelivery,
+        amount: shippingCostCents,
       },
     ];
 
-    // Default to the first (cheapest) option
     const defaultShipping = shippingOptions[0];
-    const totalAmount = productAmount + defaultShipping.amount;
+    const totalAmount = productAmountCents + defaultShipping.amount;
 
     // Update PaymentIntent with shipping-inclusive total
     await getStripeServer().paymentIntents.update(paymentIntentId, {

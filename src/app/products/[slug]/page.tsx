@@ -30,6 +30,14 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
+/** Clean Wix HTML: strip inline styles, fix missing spaces after colons */
+function fixWixHtml(html: string): string {
+  return html
+    .replace(/\s*style="[^"]*"/gi, "")
+    .replace(/\s*style='[^']*'/gi, "")
+    .replace(/:([^\s/<])/g, ": $1");
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProduct(slug);
@@ -191,11 +199,11 @@ export default async function ProductPage({ params }: Props) {
             <div className="mt-16 space-y-10">
               <div className="pb-8 border-b border-outline-variant/30">
                 <h3 className="font-serif italic text-xl tracking-tight text-on-surface mb-4">
-                  The Narrative
+                  Description
                 </h3>
                 <div
-                  className="text-sm leading-relaxed text-on-surface-variant"
-                  dangerouslySetInnerHTML={{ __html: product.description }}
+                  className="wix-rich-content text-sm leading-relaxed text-on-surface-variant"
+                  dangerouslySetInnerHTML={{ __html: fixWixHtml(product.description) }}
                 />
               </div>
               {(product.additionalInfoSections?.length ?? 0) > 0 ? (
@@ -205,8 +213,8 @@ export default async function ProductPage({ params }: Props) {
                       {section.title}
                     </h3>
                     <div
-                      className="text-sm leading-relaxed text-on-surface-variant"
-                      dangerouslySetInnerHTML={{ __html: section.description ?? "" }}
+                      className="wix-rich-content text-sm leading-relaxed text-on-surface-variant"
+                      dangerouslySetInnerHTML={{ __html: fixWixHtml(section.description ?? "") }}
                     />
                   </div>
                 ))

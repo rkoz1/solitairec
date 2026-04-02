@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "SOLITAIREC — Editorial Luxury Clothing Store",
+  title: "SOLITAIREC — Quality Korean and Japanese Fashion",
   description:
     "Curated selection of high-quality designer brands. Clothing, shoes, handbags, and accessories. Minimalistic and unique products from Hong Kong.",
 };
