@@ -3,8 +3,10 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { getServerWixClient } from "@/lib/wix-server-client";
 import { getWixImageUrl } from "@/lib/wix-image";
+import { getAllCollections, CATEGORY_HIERARCHY, displayName } from "@/lib/collections";
 import ImageCarousel from "@/components/ImageCarousel";
 import CompleteTheLook from "@/components/CompleteTheLook";
 import ShippingInfo from "@/components/ShippingInfo";
@@ -149,10 +151,11 @@ export default async function ProductPage({ params }: Props) {
 
         {/* Product info */}
         <div className="mt-12 px-6 lg:mt-0 lg:px-0 lg:py-8 lg:sticky lg:top-24 lg:self-start">
-          {/* Brand / collection label */}
-          <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-secondary">
-            {product.brand || "Collection"}
-          </p>
+          {/* Breadcrumb: brand or collection links */}
+          <ProductBreadcrumb
+            brand={product.brand}
+            collectionIds={product.collectionIds ?? []}
+          />
 
           {/* Name */}
           <h1 className="mt-3 font-serif text-4xl tracking-tight text-on-surface">
@@ -237,5 +240,81 @@ export default async function ProductPage({ params }: Props) {
       {/* Complete the Look — cross-sell */}
       <CompleteTheLook currentProductId={product._id ?? ""} />
     </>
+  );
+}
+
+const SKIP_COLLECTIONS = new Set(["All Products", "Featured", "New Arrivals"]);
+
+async function ProductBreadcrumb({
+  brand,
+  collectionIds,
+}: {
+  brand?: string | null;
+  collectionIds: string[];
+}) {
+  const allCollections = await getAllCollections();
+  const collectionMap = new Map(allCollections.map((c) => [c._id, c]));
+
+  // Find the product's collections, excluding generic ones
+  const productCollections = collectionIds
+    .map((id) => collectionMap.get(id))
+    .filter((c) => c && !SKIP_COLLECTIONS.has(c.name));
+
+  // Match against hierarchy to find parent → child breadcrumb
+  let parent: { name: string; slug: string } | null = null;
+  let child: { name: string; slug: string } | null = null;
+
+  for (const cat of CATEGORY_HIERARCHY) {
+    const parentCol = productCollections.find((c) => c!.name === cat.name);
+    if (cat.children) {
+      const childCol = productCollections.find((c) =>
+        cat.children!.includes(c!.name)
+      );
+      if (childCol) {
+        parent = parentCol ?? { name: cat.name, slug: allCollections.find((c) => c.name === cat.name)?.slug ?? "" };
+        child = childCol;
+        break;
+      }
+    }
+    if (parentCol && !child) {
+      parent = parentCol;
+    }
+  }
+
+  // Fallback: use first non-skipped collection
+  if (!parent && !child && productCollections.length > 0) {
+    parent = productCollections[0]!;
+  }
+
+  if (!parent && !child && !brand) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] tracking-[0.25em] uppercase font-medium">
+      {parent && (
+        <Link
+          href={`/collections/${parent.slug}`}
+          className="text-secondary hover:text-on-surface transition-colors"
+        >
+          {displayName(parent.name)}
+        </Link>
+      )}
+      {parent && child && (
+        <span className="text-outline">›</span>
+      )}
+      {child && (
+        <Link
+          href={`/collections/${child.slug}`}
+          className="text-secondary hover:text-on-surface transition-colors"
+        >
+          {displayName(child.name)}
+        </Link>
+      )}
+      {brand && (parent || child) && (
+        <span className="text-outline">›</span>
+      )}
+      {brand && (
+        <span className="text-on-surface-variant">{brand}</span>
+      )}
+    </div>
   );
 }
