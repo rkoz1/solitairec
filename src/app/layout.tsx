@@ -29,7 +29,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "SOLITAIREC — Editorial Luxury Clothing Store",
+    default: "SOLITAIREC — Quality Korean and Japanese Fashion",
     template: "%s | SOLITAIREC",
   },
   description:
