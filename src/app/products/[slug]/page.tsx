@@ -191,7 +191,7 @@ export default async function ProductPage({ params }: Props) {
             <div className="mt-16 space-y-10">
               <div className="pb-8 border-b border-outline-variant/30">
                 <h3 className="font-serif italic text-xl tracking-tight text-on-surface mb-4">
-                  The Narrative
+                  Description
                 </h3>
                 <div
                   className="text-sm leading-relaxed text-on-surface-variant"
