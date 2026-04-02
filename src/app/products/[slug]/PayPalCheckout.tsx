@@ -1,10 +1,7 @@
 "use client";
 
 import { useRef, useCallback } from "react";
-import {
-  PayPalScriptProvider,
-  PayPalButtons,
-} from "@paypal/react-paypal-js";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 interface PayPalCheckoutProps {
   productId: string;
@@ -65,24 +62,21 @@ function PayPalButtonsInner({
     return data.orderID;
   }, []);
 
-  const onApprove = useCallback(
-    async (data: { orderID: string }) => {
-      const res = await fetch("/api/paypal/capture-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderID: data.orderID }),
-      });
+  const onApprove = useCallback(async (data: { orderID: string }) => {
+    const res = await fetch("/api/paypal/capture-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderID: data.orderID }),
+    });
 
-      if (res.ok) {
-        const { orderId } = await res.json();
-        window.location.href = `/order-confirmation?orderId=${orderId}`;
-      } else {
-        // Payment captured but Wix order failed — still redirect
-        window.location.href = `/order-confirmation?paypalOrder=${data.orderID}`;
-      }
-    },
-    []
-  );
+    if (res.ok) {
+      const { orderId } = await res.json();
+      window.location.href = `/order-confirmation?orderId=${orderId}`;
+    } else {
+      // Payment captured but Wix order failed — still redirect
+      window.location.href = `/order-confirmation?paypalOrder=${data.orderID}`;
+    }
+  }, []);
 
   return (
     <div className="mt-3 [&_iframe]:!rounded-none">
@@ -92,7 +86,7 @@ function PayPalButtonsInner({
           shape: "rect",
           label: "buynow",
           height: 52,
-          color: "black",
+          color: "silver",
           tagline: false,
         }}
         fundingSource="paypal"
