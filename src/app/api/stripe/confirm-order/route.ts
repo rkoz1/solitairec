@@ -181,31 +181,44 @@ export async function POST(request: Request) {
       }
     );
 
-    // Add payment record and approve it to trigger order approval
-    const payResult = await wix.orderTransactions.addPayments(order._id!, [
-      {
-        amount: { amount: total },
-        regularPaymentDetails: { status: "APPROVED", offlinePayment: true },
-      },
-    ]);
+    // Add payment record and approve it to trigger order approval + real order number
+    let orderNumber = order.number ?? 0;
+    let orderStatus = order.status ?? "INITIALIZED";
 
-    const paymentId = payResult.paymentsIds?.[0];
-    if (paymentId) {
-      await wix.orderTransactions.updatePaymentStatus(
-        { orderId: order._id!, paymentId },
-        { status: "APPROVED" }
-      );
+    try {
+      const payResult = await wix.orderTransactions.addPayments(order._id!, [
+        {
+          amount: { amount: total },
+          regularPaymentDetails: { status: "APPROVED", offlinePayment: true },
+        },
+      ]);
+      console.log("[confirm-order] Payment added, IDs:", payResult.paymentsIds);
+
+      const paymentId = payResult.paymentsIds?.[0];
+      if (paymentId) {
+        await wix.orderTransactions.updatePaymentStatus(
+          { orderId: order._id!, paymentId },
+          { status: "APPROVED" }
+        );
+        console.log("[confirm-order] Payment status updated to APPROVED");
+
+        // Fetch the updated order to get the real order number
+        const approvedOrder = await wix.orders.getOrder(order._id!);
+        orderNumber = approvedOrder.number ?? orderNumber;
+        orderStatus = approvedOrder.status ?? orderStatus;
+        console.log("[confirm-order] Approved order number:", orderNumber, "status:", orderStatus);
+      }
+    } catch (payError) {
+      console.error("[confirm-order] Payment recording failed:", payError);
+      // Order was still created — return it with number 0
     }
 
-    // Fetch the updated order to get the real order number
-    const approvedOrder = await wix.orders.getOrder(order._id!);
-
     return NextResponse.json({
-      orderId: approvedOrder._id,
-      orderNumber: approvedOrder.number ?? 0,
+      orderId: order._id,
+      orderNumber,
       total: `HK$${total}`,
       itemCount: quantity,
-      status: approvedOrder.status ?? "APPROVED",
+      status: orderStatus,
       date: new Date().toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
