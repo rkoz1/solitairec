@@ -70,8 +70,9 @@ function PayPalButtonsInner({
     });
 
     if (res.ok) {
-      const { orderId } = await res.json();
-      window.location.href = `/order-confirmation?orderId=${orderId}`;
+      const orderData = await res.json();
+      sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
+      window.location.href = `/order-confirmation?source=express`;
     } else {
       // Payment captured but Wix order failed — still redirect
       window.location.href = `/order-confirmation?paypalOrder=${data.orderID}`;

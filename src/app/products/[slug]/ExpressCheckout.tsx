@@ -219,8 +219,9 @@ function ExpressCheckoutInner({
         });
 
         if (orderRes.ok) {
-          const { orderId } = await orderRes.json();
-          window.location.href = `/order-confirmation?orderId=${orderId}`;
+          const orderData = await orderRes.json();
+          sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
+          window.location.href = `/order-confirmation?source=express`;
         } else {
           // Payment succeeded but order creation failed — still show confirmation
           window.location.href = `/order-confirmation?stripePayment=${paymentIntentId}`;
