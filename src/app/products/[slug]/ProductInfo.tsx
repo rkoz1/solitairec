@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import AddToCartButton from "./AddToCartButton";
 import ExpressCheckout from "./ExpressCheckout";
+import PayPalCheckout from "./PayPalCheckout";
 import WishlistButton from "@/components/WishlistButton";
 import {
   getBrowserWixClient,
@@ -250,6 +251,14 @@ export default function ProductInfo({
               variantId={selectedVariantId}
             />
             <ExpressCheckout
+              productId={productId}
+              productName={productName}
+              productPrice={productPrice ?? "0"}
+              selectedOptions={selectedOptions}
+              variantId={selectedVariantId}
+              manageVariants={manageVariants}
+            />
+            <PayPalCheckout
               productId={productId}
               productName={productName}
               productPrice={productPrice ?? "0"}

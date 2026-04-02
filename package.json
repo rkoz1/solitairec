@@ -12,6 +12,7 @@
     "test:cart": "tsx scripts/test-cart-integration.ts"
   },
   "dependencies": {
+    "@paypal/react-paypal-js": "^9.1.0",
     "@stripe/react-stripe-js": "^6.1.0",
     "@stripe/stripe-js": "^9.0.1",
     "@wix/contacts": "^1.0.27",

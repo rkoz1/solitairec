@@ -252,7 +252,9 @@ function ExpressCheckoutInner({
           buttonType: {
             applePay: "buy",
             googlePay: "buy",
-            paypal: "buynow",
+          },
+          paymentMethods: {
+            paypal: "never",
           },
           buttonHeight: 52,
           layout: {
