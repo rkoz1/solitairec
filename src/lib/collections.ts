@@ -121,6 +121,7 @@ export async function getCollectionProducts(
   const { items } = await wix.products
     .queryProducts()
     .hasSome("collectionIds", [collectionId])
+    .descending("lastUpdated")
     .limit(limit)
     .find();
   return items;

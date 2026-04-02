@@ -19,10 +19,33 @@ interface OrderSummary {
 export default function OrderConfirmationPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const source = searchParams.get("source");
   const [order, setOrder] = useState<OrderSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Express checkout orders: read from sessionStorage (created by server API key)
+    if (source === "express") {
+      try {
+        const stored = sessionStorage.getItem("expressOrder");
+        if (stored) {
+          const data = JSON.parse(stored);
+          setOrder({
+            orderNumber: String(data.orderNumber ?? ""),
+            total: data.total ?? "",
+            itemCount: data.itemCount ?? 1,
+            status: data.status ?? "APPROVED",
+            date: data.date ?? "",
+          });
+          sessionStorage.removeItem("expressOrder");
+        }
+      } catch {
+        // Fall through to generic message
+      }
+      setLoading(false);
+      return;
+    }
+
     if (!orderId) {
       setLoading(false);
       return;
@@ -33,7 +56,7 @@ export default function OrderConfirmationPage() {
         const wix = getBrowserWixClient();
         await ensureVisitorTokens(wix);
 
-        // Search for the order by ID
+        // Search for the order by ID (cart checkout orders tied to visitor session)
         const result = await wix.orders.searchOrders({
           search: { filter: { "id": { "$eq": orderId } } },
         });
@@ -61,7 +84,7 @@ export default function OrderConfirmationPage() {
       }
     }
     fetchOrder();
-  }, [orderId]);
+  }, [orderId, source]);
 
   // Clear cart badge since order is placed
   useEffect(() => {

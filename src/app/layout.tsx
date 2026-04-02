@@ -6,6 +6,7 @@ import CartBadge from "@/components/CartBadge";
 import SearchOverlay from "@/components/SearchOverlay";
 import NavigationLoader from "@/components/NavigationLoader";
 import WixChat from "@/components/WixChat";
+import MarqueeBanner from "@/components/MarqueeBanner";
 import FlyToCart from "@/components/FlyToCart";
 import Toast from "@/components/Toast";
 import RegionSelector from "@/components/RegionSelector";
@@ -87,28 +88,31 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface font-sans">
         <NavigationLoader />
-        {/* Frosted glass header */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-surface-container-high/40">
-          <nav className="flex items-center justify-between px-5 h-14">
-            <NavigationDrawer />
+        {/* Sticky header — marquee + nav + region bar flow naturally */}
+        <header className="sticky top-0 z-50">
+          {/* Marquee banner */}
+          <MarqueeBanner />
+          <div className="bg-white/80 backdrop-blur-xl border-b border-surface-container-high/40">
+            <nav className="flex items-center justify-between px-5 h-14">
+              <NavigationDrawer />
 
-            <Link href="/" className="absolute left-1/2 -translate-x-1/2">
-              <span className="font-serif font-bold text-lg tracking-[0.3em] text-on-surface">
-                SOLITAIREC
-              </span>
-            </Link>
+              <Link href="/" className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-serif font-bold text-lg tracking-[0.3em] text-on-surface">
+                  SOLITAIREC
+                </span>
+              </Link>
 
-            <SearchOverlay />
-          </nav>
+              <SearchOverlay />
+            </nav>
+          </div>
+          {/* Shipping region bar */}
+          <div className="bg-surface-container-low/90 backdrop-blur-sm flex justify-center py-1">
+            <RegionSelector detectedCountry={detectedCountry} />
+          </div>
         </header>
 
-        {/* Shipping region bar — below header */}
-        <div className="fixed top-14 left-0 right-0 z-40 bg-surface-container-low/90 backdrop-blur-sm flex justify-center py-1">
-          <RegionSelector detectedCountry={detectedCountry} />
-        </div>
-
-        {/* Main content with padding for fixed header/footer + region bar */}
-        <main className="flex-1 pt-[4.5rem] pb-24">{children}</main>
+        {/* Main content */}
+        <main className="flex-1 pb-24">{children}</main>
 
         {/* Cart feedback animation */}
         <FlyToCart />

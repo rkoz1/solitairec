@@ -11,6 +11,7 @@ import {
 import { contacts } from "@wix/crm";
 import { conversations, messages } from "@wix/inbox";
 import { files } from "@wix/media";
+import { items as dataItems } from "@wix/data";
 
 /**
  * Server-side Wix client — uses API Key auth.
@@ -42,6 +43,7 @@ export function getServerWixClient() {
       conversations,
       messages,
       files,
+      dataItems,
     },
     auth: ApiKeyStrategy({
       apiKey: process.env.WIX_API_KEY,

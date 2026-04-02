@@ -45,7 +45,9 @@ export async function POST(request: Request) {
           };
         };
         payments?: {
-          captures?: Array<{ amount?: { value?: string; currency_code?: string } }>;
+          captures?: Array<{
+            amount?: { value?: string; currency_code?: string };
+          }>;
         };
       }>;
     };
@@ -70,9 +72,9 @@ export async function POST(request: Request) {
 
     const hasOptions = Object.keys(selectedOptions).length > 0;
 
-    // Build catalog reference (same logic as cart.ts)
+    // Build catalog reference
     let appId: string;
-    let options:
+    let catalogOptions:
       | { options: Record<string, string>; variantId: string }
       | undefined;
 
@@ -80,78 +82,132 @@ export async function POST(request: Request) {
       appId = WIX_STORES_V1_APP_ID;
     } else if (manageVariants && variantId) {
       appId = WIX_STORES_V3_APP_ID;
-      options = { options: selectedOptions, variantId };
+      catalogOptions = { options: selectedOptions, variantId };
     } else {
       appId = WIX_STORES_V3_APP_ID;
-      options = { options: selectedOptions, variantId: ZERO_VARIANT_ID };
+      catalogOptions = {
+        options: selectedOptions,
+        variantId: ZERO_VARIANT_ID,
+      };
     }
 
-    // Extract shipping and buyer info from PayPal
+    // Extract payment and shipping details from PayPal
     const paypalShipping = capture.purchase_units[0]?.shipping;
     const paypalPayer = capture.payer;
     const paypalAddress = paypalShipping?.address;
+    const capturedAmount =
+      capture.purchase_units[0]?.payments?.captures?.[0]?.amount;
+    const total = capturedAmount?.value ?? "0";
+    const currency = capturedAmount?.currency_code ?? "HKD";
 
-    // Split full name into first/last
     const fullName = paypalShipping?.name?.full_name ?? "";
     const nameParts = fullName.split(" ");
-    const firstName = nameParts[0] ?? paypalPayer?.name?.given_name ?? "";
-    const lastName = nameParts.slice(1).join(" ") || paypalPayer?.name?.surname || "";
+    const firstName =
+      nameParts[0] ?? paypalPayer?.name?.given_name ?? "";
+    const lastName =
+      nameParts.slice(1).join(" ") ||
+      paypalPayer?.name?.surname ||
+      "";
 
-    const addressWithContact = {
-      address: {
-        country: paypalAddress?.country_code ?? null,
-        subdivision: paypalAddress?.admin_area_1 ?? null,
-        city: paypalAddress?.admin_area_2 ?? null,
-        postalCode: paypalAddress?.postal_code ?? null,
-        addressLine1: paypalAddress?.address_line_1 ?? null,
-        addressLine2: paypalAddress?.address_line_2 ?? null,
-      },
-      contactDetails: {
-        firstName,
-        lastName,
-        phone: paypalPayer?.phone?.phone_number?.national_number ?? null,
-      },
-    };
-
-    // Create Wix order for fulfillment
+    // Fetch product name from Wix
     const wix = getServerWixClient();
+    let productName = "Product";
+    try {
+      const { items } = await wix.products
+        .queryProducts()
+        .eq("_id", productId)
+        .limit(1)
+        .find();
+      productName = items[0]?.name ?? "Product";
+    } catch {
+      // Continue with default name
+    }
 
-    const checkoutResult = await wix.checkout.createCheckout({
-      channelType: "WEB",
-      lineItems: [
-        {
-          quantity: 1,
-          catalogReference: {
-            catalogItemId: productId,
-            appId,
-            options: options as Record<string, unknown> | undefined,
+    // Create order directly via orders API
+    const order = await wix.orders.createOrder(
+      {
+        channelInfo: { type: "WEB" },
+        paymentStatus: "PAID",
+        currency,
+        lineItems: [
+          {
+            productName: { original: productName },
+            catalogReference: {
+              catalogItemId: productId,
+              appId,
+              options: catalogOptions as Record<string, unknown> | undefined,
+            },
+            quantity: 1,
+            price: { amount: total },
+            itemType: { preset: "PHYSICAL" },
+            taxDetails: { taxRate: "0" },
           },
+        ],
+        priceSummary: {
+          subtotal: { amount: total },
+          shipping: { amount: "0" },
+          total: { amount: total },
         },
-      ],
-      checkoutInfo: {
-        shippingInfo: {
-          shippingDestination: addressWithContact,
-        },
-        billingInfo: addressWithContact,
         buyerInfo: {
           email: paypalPayer?.email_address ?? undefined,
         },
+        billingInfo: {
+          address: {
+            country: paypalAddress?.country_code ?? null,
+            subdivision: paypalAddress?.admin_area_1 ?? null,
+            city: paypalAddress?.admin_area_2 ?? null,
+            postalCode: paypalAddress?.postal_code ?? null,
+            addressLine1: paypalAddress?.address_line_1 ?? null,
+            addressLine2: paypalAddress?.address_line_2 ?? null,
+          },
+          contactDetails: {
+            firstName,
+            lastName,
+            phone:
+              paypalPayer?.phone?.phone_number?.national_number ?? null,
+          },
+        },
+        shippingInfo: {
+          title: "Standard Shipping",
+          logistics: {
+            shippingDestination: {
+              address: {
+                country: paypalAddress?.country_code ?? null,
+                subdivision: paypalAddress?.admin_area_1 ?? null,
+                city: paypalAddress?.admin_area_2 ?? null,
+                postalCode: paypalAddress?.postal_code ?? null,
+                addressLine1: paypalAddress?.address_line_1 ?? null,
+                addressLine2: paypalAddress?.address_line_2 ?? null,
+              },
+              contactDetails: {
+                firstName,
+                lastName,
+                phone:
+                  paypalPayer?.phone?.phone_number?.national_number ??
+                  null,
+              },
+            },
+          },
+        },
       },
-    });
-
-    const checkoutId = checkoutResult._id;
-    if (!checkoutId) {
-      return NextResponse.json(
-        { error: "Failed to create Wix checkout" },
-        { status: 500 }
-      );
-    }
-
-    const orderResult = await wix.checkout.createOrder(checkoutId);
+      {
+        settings: {
+          orderApprovalStrategy: "PAYMENT_RECEIVED",
+        },
+      }
+    );
 
     return NextResponse.json({
-      orderId: orderResult.orderId,
-      paypalOrderId: orderID,
+      orderId: order._id,
+      orderNumber: order.number ?? 0,
+      total: `HK$${total}`,
+      itemCount: 1,
+      status: order.status ?? "APPROVED",
+      date: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
     });
   } catch (error) {
     console.error("Error capturing PayPal order:", error);
