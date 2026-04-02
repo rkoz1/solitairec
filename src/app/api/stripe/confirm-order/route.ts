@@ -181,12 +181,31 @@ export async function POST(request: Request) {
       }
     );
 
+    // Add payment record and approve it to trigger order approval
+    const payResult = await wix.orderTransactions.addPayments(order._id!, [
+      {
+        amount: { amount: total },
+        regularPaymentDetails: { status: "APPROVED", offlinePayment: true },
+      },
+    ]);
+
+    const paymentId = payResult.paymentsIds?.[0];
+    if (paymentId) {
+      await wix.orderTransactions.updatePaymentStatus(
+        { orderId: order._id!, paymentId },
+        { status: "APPROVED" }
+      );
+    }
+
+    // Fetch the updated order to get the real order number
+    const approvedOrder = await wix.orders.getOrder(order._id!);
+
     return NextResponse.json({
-      orderId: order._id,
-      orderNumber: order.number ?? 0,
+      orderId: approvedOrder._id,
+      orderNumber: approvedOrder.number ?? 0,
       total: `HK$${total}`,
       itemCount: quantity,
-      status: order.status ?? "APPROVED",
+      status: approvedOrder.status ?? "APPROVED",
       date: new Date().toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
