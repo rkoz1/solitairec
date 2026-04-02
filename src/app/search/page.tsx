@@ -12,6 +12,7 @@ import CollectionFilters, {
   type FilterState,
 } from "@/components/CollectionFilters";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import { trackEvent } from "@/lib/meta-pixel";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -39,6 +40,12 @@ export default function SearchPage() {
   useEffect(() => {
     loadResults();
   }, [loadResults]);
+
+  useEffect(() => {
+    if (query.trim()) {
+      trackEvent("Search", { search_string: query });
+    }
+  }, [query]);
 
   const filtered = useMemo(() => {
     if (!data) return [];

@@ -35,7 +35,7 @@ export default function NavigationDrawer() {
   }
 
   const overlay = open ? (
-    <div className="fixed inset-0 z-[60] flex">
+    <div className="fixed inset-0 z-[9999] flex">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/20 animate-[fadeIn_300ms_ease-out]"

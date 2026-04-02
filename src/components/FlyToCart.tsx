@@ -120,11 +120,15 @@ function FlyingThumbnail({ item }: { item: FlyItem }) {
         opacity: animated ? 0.6 : 1,
       }}
     >
-      <img
-        src={item.imageUrl}
-        alt=""
-        className="w-12 h-16 object-cover shadow-lg"
-      />
+      {item.imageUrl ? (
+        <img
+          src={item.imageUrl}
+          alt=""
+          className="w-12 h-16 object-cover shadow-lg"
+        />
+      ) : (
+        <div className="w-12 h-16 bg-surface-container shadow-lg" />
+      )}
     </div>
   );
 }

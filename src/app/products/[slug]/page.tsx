@@ -13,6 +13,7 @@ import ShippingInfo from "@/components/ShippingInfo";
 import FreeShippingProgress from "@/components/FreeShippingProgress";
 import Price from "@/components/Price";
 import ProductInfo from "./ProductInfo";
+import TrackView from "./TrackView";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -115,6 +116,12 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
+      <TrackView
+        productId={product._id ?? ""}
+        productName={product.name ?? ""}
+        price={product.priceData?.price ?? 0}
+        currency={product.priceData?.currency ?? "HKD"}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -13,6 +13,7 @@ import {
   getWishlistIds,
   removeFromWishlist,
 } from "@/lib/wishlist";
+import { getRecentlyViewedIds } from "@/lib/recently-viewed";
 import { getProductsByIds, type WishlistProduct } from "./actions";
 import type { cart } from "@wix/ecom";
 import LoadingIndicator from "@/components/LoadingIndicator";
@@ -20,14 +21,16 @@ import FreeShippingBar from "@/components/FreeShippingBar";
 import { showToast } from "@/lib/toast";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { useDisplayCurrency } from "@/components/Price";
+import { trackEvent } from "@/lib/meta-pixel";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
 
 export default function CartPage() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") === "wishlist" ? "wishlist" : "bag";
-  const [activeTab, setActiveTab] = useState<"bag" | "wishlist">(initialTab);
+  const tabParam = searchParams.get("tab");
+  const initialTab = tabParam === "wishlist" ? "wishlist" : tabParam === "recent" ? "recent" : "bag";
+  const [activeTab, setActiveTab] = useState<"bag" | "wishlist" | "recent">(initialTab);
 
   return (
     <div className="px-6 pt-12">
@@ -58,9 +61,19 @@ export default function CartPage() {
         >
           Wishlist
         </button>
+        <button
+          onClick={() => setActiveTab("recent")}
+          className={`pb-2 text-[10px] tracking-[0.25em] uppercase font-medium transition-colors ${
+            activeTab === "recent"
+              ? "text-on-surface border-b-2 border-on-surface"
+              : "text-on-surface-variant"
+          }`}
+        >
+          Recently Viewed
+        </button>
       </div>
 
-      {activeTab === "bag" ? <BagTab /> : <WishlistTab />}
+      {activeTab === "bag" ? <BagTab /> : activeTab === "wishlist" ? <WishlistTab /> : <RecentlyViewedTab />}
     </div>
   );
 }
@@ -242,6 +255,7 @@ function BagTab() {
 
   async function handleCheckout() {
     setCheckingOut(true);
+    trackEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
@@ -751,6 +765,302 @@ function WishlistTab() {
             {/* Inline variant selector — expanded state */}
             {isExpanded && (() => {
               // Stock check helper using product.variants
+              function isChoiceOos(optName: string, choiceLabel: string): boolean {
+                if (!product.manageVariants || product.variants.length === 0) return false;
+                const testOpts = { ...selectedOptions, [optName]: choiceLabel };
+                const match = product.variants.find((v) => v.key === buildStockKey(testOpts));
+                return match ? !match.inStock : false;
+              }
+
+              return (
+              <div className="mt-4 pt-4 border-t border-outline-variant/20">
+                {product.productOptions.map((option) => (
+                  <div key={option.name} className="mb-4">
+                    <label className="block text-[10px] tracking-[0.25em] uppercase font-medium text-on-surface mb-2">
+                      {option.name}
+                    </label>
+                    {option.choices[0]?.value && /^(#|rgb)/.test(option.choices[0].value) ? (
+                      <div>
+                        <div className="flex gap-2">
+                          {option.choices.map((choice) => {
+                            const label = choice.description || choice.value;
+                            const isSelected = selectedOptions[option.name] === label;
+                            const oos = isChoiceOos(option.name, label);
+                            return (
+                              <button
+                                key={choice.value}
+                                onClick={() =>
+                                  setSelectedOptions((prev) => ({
+                                    ...prev,
+                                    [option.name]: label,
+                                  }))
+                                }
+                                className={`relative w-8 h-8 transition-colors ${
+                                  oos
+                                    ? isSelected
+                                      ? "opacity-50 ring-2 ring-on-surface ring-offset-2 ring-offset-surface-container-low"
+                                      : "opacity-25"
+                                    : isSelected
+                                      ? "ring-2 ring-on-surface ring-offset-2 ring-offset-surface-container-low"
+                                      : "border border-outline-variant/20 hover:border-outline"
+                                }`}
+                                style={{ backgroundColor: choice.value }}
+                                aria-label={`${label}${oos ? " (Sold Out)" : ""}`}
+                              >
+                                {oos && (
+                                  <span className="absolute inset-0 flex items-center justify-center">
+                                    <span className="block w-[140%] h-[1px] bg-on-surface/50 rotate-45 origin-center" />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="mt-1.5 text-[10px] tracking-[0.2em] uppercase font-medium text-on-surface-variant">
+                          {selectedOptions[option.name] ?? ""}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2">
+                        {option.choices.map((choice) => {
+                          const label = choice.description || choice.value;
+                          const isSelected = selectedOptions[option.name] === label;
+                          const oos = isChoiceOos(option.name, label);
+                          return (
+                            <button
+                              key={choice.value}
+                              onClick={() =>
+                                setSelectedOptions((prev) => ({
+                                  ...prev,
+                                  [option.name]: label,
+                                }))
+                              }
+                              className={`h-10 text-[10px] tracking-[0.15em] uppercase font-medium transition-colors border border-outline-variant/20 ${
+                                oos
+                                  ? isSelected
+                                    ? "opacity-50 line-through bg-on-surface text-on-primary"
+                                    : "opacity-30 line-through"
+                                  : isSelected
+                                    ? "bg-on-surface text-on-primary"
+                                    : "bg-transparent text-on-surface hover:bg-surface-container"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <button
+                  onClick={() => confirmAddToBag(product, selectedOptions)}
+                  disabled={isAdding}
+                  className="w-full bg-on-surface text-on-primary py-4 text-[10px] tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
+                >
+                  {isAdding ? "Adding..." : "Add to Bag"}
+                </button>
+              </div>
+              );
+            })()}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Recently Viewed Tab                                               */
+/* ------------------------------------------------------------------ */
+
+function RecentlyViewedTab() {
+  const [products, setProducts] = useState<WishlistProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [addedId, setAddedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const ids = getRecentlyViewedIds();
+        if (ids.length === 0) {
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
+        const fetched = await getProductsByIds(ids);
+        const productMap = new Map(fetched.map((p) => [p._id, p]));
+        setProducts(
+          ids.map((id) => productMap.get(id)).filter(Boolean) as WishlistProduct[]
+        );
+      } catch (err) {
+        console.error("Failed to load recently viewed:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  function handleAddToBagClick(product: WishlistProduct) {
+    if (product.productOptions.length === 0) {
+      confirmAddToBag(product, {});
+      return;
+    }
+    const inStockKeys = new Set(
+      product.variants.filter((v) => v.inStock).map((v) => v.key)
+    );
+    const defaults: Record<string, string> = {};
+    for (const opt of product.productOptions) {
+      const firstInStock = product.manageVariants
+        ? opt.choices.find((c) => {
+            const label = c.description || c.value;
+            const testOpts = { ...defaults, [opt.name]: label };
+            return inStockKeys.has(buildStockKey(testOpts));
+          })
+        : null;
+      const c = firstInStock ?? opt.choices[0];
+      if (c) defaults[opt.name] = c.description || c.value;
+    }
+    setSelectedOptions(defaults);
+    setExpandedId(product._id);
+  }
+
+  async function confirmAddToBag(
+    product: WishlistProduct,
+    opts: Record<string, string>
+  ) {
+    setAddingId(product._id);
+    try {
+      const wix = getBrowserWixClient();
+      await ensureVisitorTokens(wix);
+
+      let resolvedVariantId: string | undefined;
+      if (product.manageVariants && product.variants.length > 0 && Object.keys(opts).length > 0) {
+        const key = buildStockKey(opts);
+        const match = product.variants.find((v) => v.key === key);
+        if (match?.variantId) resolvedVariantId = match.variantId;
+      }
+
+      const result = await addItemToCart(wix, {
+        productId: product._id,
+        productName: product.name,
+        manageVariants: product.manageVariants,
+        selectedOptions: opts,
+        variantId: resolvedVariantId,
+      });
+
+      if (!result.success) {
+        showToast(result.error ?? "This item couldn't be added to your bag.", "error");
+        setAddingId(null);
+        return;
+      }
+
+      window.dispatchEvent(new Event("cart-updated"));
+      setAddingId(null);
+      setAddedId(product._id);
+      setExpandedId(null);
+      setTimeout(() => setAddedId(null), 2000);
+    } catch {
+      setAddingId(null);
+      showToast("This item couldn't be added to your bag. It may be out of stock.", "error");
+    }
+  }
+
+  if (loading) return <LoadingIndicator />;
+
+  if (products.length === 0) {
+    return (
+      <div className="pt-16 text-center">
+        <span className="material-symbols-outlined text-[40px] text-outline-variant">
+          history
+        </span>
+        <p className="mt-4 text-sm text-on-surface-variant">
+          No recently viewed items yet.
+        </p>
+        <Link
+          href="/"
+          className="mt-4 inline-block text-[10px] tracking-[0.15em] uppercase font-medium text-secondary underline underline-offset-4"
+        >
+          Start Browsing
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8">
+      <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary mb-6">
+        {products.length} recently viewed
+      </p>
+
+      {products.map((product) => {
+        const isExpanded = expandedId === product._id;
+        const isAdding = addingId === product._id;
+        const isAdded = addedId === product._id;
+        const isSoldOut = !product.inStock;
+
+        return (
+          <div
+            key={product._id}
+            className="bg-surface-container-low px-4 py-4 mb-2"
+          >
+            <div className={`flex gap-4 ${isSoldOut ? "opacity-40" : ""}`}>
+              <Link
+                href={`/products/${product.slug}`}
+                className="shrink-0 w-16 h-[85px] bg-surface-container relative"
+              >
+                <Image
+                  src={product.imageUrl}
+                  alt={product.name}
+                  fill
+                  sizes="64px"
+                  className="object-cover"
+                />
+              </Link>
+
+              <div className="flex-1 flex flex-col justify-between min-w-0">
+                <div>
+                  <Link href={`/products/${product.slug}`}>
+                    <h3 className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface truncate">
+                      {product.name}
+                    </h3>
+                  </Link>
+                  <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
+                    {product.price}
+                  </p>
+                </div>
+
+                <div className="flex gap-4 mt-2">
+                  {isSoldOut ? (
+                    <span className="text-[10px] tracking-[0.15em] uppercase font-medium text-secondary">
+                      Sold Out
+                    </span>
+                  ) : (
+                    !isExpanded && (
+                      <button
+                        onClick={() => handleAddToBagClick(product)}
+                        disabled={isAdding || isAdded}
+                        className="text-[10px] tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors disabled:opacity-50"
+                      >
+                        {isAdding
+                          ? "Adding..."
+                          : isAdded
+                            ? "Added \u2713"
+                            : "Add to Bag"}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Inline variant selector */}
+            {isExpanded && (() => {
               function isChoiceOos(optName: string, choiceLabel: string): boolean {
                 if (!product.manageVariants || product.variants.length === 0) return false;
                 const testOpts = { ...selectedOptions, [optName]: choiceLabel };

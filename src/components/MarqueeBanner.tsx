@@ -38,7 +38,7 @@ export default async function MarqueeBanner() {
 
   return (
     <div className="bg-on-surface text-on-primary overflow-hidden whitespace-nowrap">
-      <div className="animate-marquee inline-block py-2">
+      <div className="animate-marquee inline-block pt-1 pb-1.5 leading-none">
         {Array.from({ length: 8 }).map((_, i) => (
           <span
             key={i}

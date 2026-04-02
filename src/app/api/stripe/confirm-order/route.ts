@@ -6,10 +6,14 @@ import {
   WIX_STORES_V3_APP_ID,
   ZERO_VARIANT_ID,
 } from "@/lib/cart";
+import { sendCapiEvent } from "@/lib/meta-capi";
 
 export async function POST(request: Request) {
   try {
-    const { paymentIntentId } = await request.json();
+    const { paymentIntentId, wixVisitorId, wixMemberId, metaEventId } = await request.json();
+    const userAgent = request.headers.get("user-agent") ?? "";
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    const userIp = forwardedFor?.split(",")[0]?.trim() ?? "";
 
     if (!paymentIntentId) {
       return NextResponse.json(
@@ -137,6 +141,8 @@ export async function POST(request: Request) {
         },
         buyerInfo: {
           email: billingDetails?.email ?? undefined,
+          ...(wixMemberId ? { memberId: wixMemberId } : {}),
+          ...(wixVisitorId && !wixMemberId ? { visitorId: wixVisitorId } : {}),
         },
         billingInfo: {
           address: {
@@ -211,6 +217,24 @@ export async function POST(request: Request) {
     } catch (payError) {
       console.error("[confirm-order] Payment recording failed:", payError);
       // Order was still created — return it with number 0
+    }
+
+    // Send Purchase event to Meta CAPI (fire-and-forget)
+    if (metaEventId) {
+      sendCapiEvent(
+        "Purchase",
+        metaEventId,
+        {
+          value: parseFloat(total),
+          currency,
+          contentIds: [productId],
+          contentName: metaProductName || "Product",
+          contentType: "product",
+          orderId: String(orderNumber),
+          numItems: quantity,
+        },
+        { email: billingDetails?.email ?? undefined, ip: userIp, userAgent }
+      ).catch(() => {});
     }
 
     return NextResponse.json({
