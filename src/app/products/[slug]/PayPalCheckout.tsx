@@ -2,6 +2,7 @@
 
 import { useRef, useCallback } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
 
 interface PayPalCheckoutProps {
   productId: string;
@@ -63,10 +64,32 @@ function PayPalButtonsInner({
   }, []);
 
   const onApprove = useCallback(async (data: { orderID: string }) => {
+    // Get Wix visitor/member ID to associate order with this session
+    let wixVisitorId: string | undefined;
+    let wixMemberId: string | undefined;
+    try {
+      const wixClient = getBrowserWixClient();
+      await ensureVisitorTokens(wixClient);
+      const member = await wixClient.members.getCurrentMember({ fieldsets: ["FULL"] }).catch(() => null);
+      const memberData = member as { member?: { _id?: string } } | null;
+      if (memberData?.member?._id) {
+        wixMemberId = memberData.member._id;
+      } else {
+        const tokens = wixClient.auth.getTokens();
+        const accessToken = tokens.accessToken?.value;
+        if (accessToken) {
+          try {
+            const payload = JSON.parse(atob(accessToken.split(".")[1]));
+            wixVisitorId = payload.sub;
+          } catch { /* ignore */ }
+        }
+      }
+    } catch { /* ignore */ }
+
     const res = await fetch("/api/paypal/capture-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderID: data.orderID }),
+      body: JSON.stringify({ orderID: data.orderID, wixVisitorId, wixMemberId }),
     });
 
     if (res.ok) {

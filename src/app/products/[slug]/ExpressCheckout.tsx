@@ -15,6 +15,7 @@ import type {
   StripeExpressCheckoutElementShippingRateChangeEvent,
 } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
+import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
 
 interface ExpressCheckoutProps {
   productId: string;
@@ -211,11 +212,34 @@ function ExpressCheckoutInner({
           return;
         }
 
+        // Get Wix visitor/member ID to associate order with this session
+        let wixVisitorId: string | undefined;
+        let wixMemberId: string | undefined;
+        try {
+          const wixClient = getBrowserWixClient();
+          await ensureVisitorTokens(wixClient);
+          const member = await wixClient.members.getCurrentMember({ fieldsets: ["FULL"] }).catch(() => null);
+          const memberData = member as { member?: { _id?: string } } | null;
+          if (memberData?.member?._id) {
+            wixMemberId = memberData.member._id;
+          } else {
+            // Extract visitor ID from tokens
+            const tokens = wixClient.auth.getTokens();
+            const accessToken = tokens.accessToken?.value;
+            if (accessToken) {
+              try {
+                const payload = JSON.parse(atob(accessToken.split(".")[1]));
+                wixVisitorId = payload.sub;
+              } catch { /* ignore */ }
+            }
+          }
+        } catch { /* ignore - order will still be created */ }
+
         // Payment succeeded — create order in Wix
         const orderRes = await fetch("/api/stripe/confirm-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentIntentId }),
+          body: JSON.stringify({ paymentIntentId, wixVisitorId, wixMemberId }),
         });
 
         if (orderRes.ok) {

@@ -9,7 +9,7 @@ import {
 
 export async function POST(request: Request) {
   try {
-    const { paymentIntentId } = await request.json();
+    const { paymentIntentId, wixVisitorId, wixMemberId } = await request.json();
 
     if (!paymentIntentId) {
       return NextResponse.json(
@@ -137,6 +137,8 @@ export async function POST(request: Request) {
         },
         buyerInfo: {
           email: billingDetails?.email ?? undefined,
+          ...(wixMemberId ? { memberId: wixMemberId } : {}),
+          ...(wixVisitorId && !wixMemberId ? { visitorId: wixVisitorId } : {}),
         },
         billingInfo: {
           address: {
