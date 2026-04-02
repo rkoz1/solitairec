@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const paymentIntent = await getStripeServer().paymentIntents.create({
       amount: amountInCents,
       currency: currency.toLowerCase(),
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: ["card"],
       metadata: {
         productId,
         productName: product.name ?? "",

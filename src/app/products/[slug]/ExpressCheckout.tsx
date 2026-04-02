@@ -261,7 +261,7 @@ function ExpressCheckoutInner({
           },
           wallets: {
             applePay: "always",
-            googlePay: "always",
+            googlePay: "auto",
           },
           buttonHeight: 52,
           layout: {
