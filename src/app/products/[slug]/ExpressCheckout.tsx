@@ -16,6 +16,7 @@ import type {
 } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 
 interface ExpressCheckoutProps {
   productId: string;
@@ -120,6 +121,7 @@ function ExpressCheckoutInner({
 
   const onClick = useCallback(
     (event: StripeExpressCheckoutElementClickEvent) => {
+      trackEvent("InitiateCheckout", { currency: "HKD" });
       event.resolve({
         emailRequired: true,
         shippingAddressRequired: true,
@@ -236,14 +238,21 @@ function ExpressCheckoutInner({
         } catch { /* ignore - order will still be created */ }
 
         // Payment succeeded — create order in Wix
+        const eventId = generateEventId();
         const orderRes = await fetch("/api/stripe/confirm-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentIntentId, wixVisitorId, wixMemberId }),
+          body: JSON.stringify({ paymentIntentId, wixVisitorId, wixMemberId, metaEventId: eventId }),
         });
 
         if (orderRes.ok) {
           const orderData = await orderRes.json();
+          trackEvent("Purchase", {
+            value: parseFloat(orderData.total?.replace(/[^0-9.]/g, "") || "0"),
+            currency: "HKD",
+            content_ids: [paymentIntentId],
+            order_id: String(orderData.orderNumber),
+          }, eventId);
           sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
           window.location.href = `/order-confirmation?source=express`;
         } else {

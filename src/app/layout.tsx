@@ -10,6 +10,7 @@ import MarqueeBanner from "@/components/MarqueeBanner";
 import FlyToCart from "@/components/FlyToCart";
 import Toast from "@/components/Toast";
 import RegionSelector from "@/components/RegionSelector";
+import MetaPixel from "@/components/MetaPixel";
 import { headers } from "next/headers";
 import "./globals.css";
 
@@ -120,6 +121,9 @@ export default async function RootLayout({
 
         {/* Chat widget */}
         <WixChat />
+
+        {/* Analytics */}
+        <MetaPixel />
 
         {/* Fixed bottom navigation */}
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-surface-container-high/40">

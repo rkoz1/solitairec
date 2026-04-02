@@ -7,6 +7,7 @@ import {
 } from "@/lib/wix-browser-client";
 import { showToast } from "@/lib/toast";
 import { addItemToCart } from "@/lib/cart";
+import { trackEvent } from "@/lib/meta-pixel";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -49,6 +50,13 @@ export default function AddToCartButton({
       }
 
       window.dispatchEvent(new Event("cart-updated"));
+
+      trackEvent("AddToCart", {
+        content_ids: [productId],
+        content_name: productName,
+        content_type: "product",
+        currency: "HKD",
+      });
 
       // Fly-to-cart animation
       const btn = document.querySelector("[data-add-to-cart]");

@@ -3,6 +3,7 @@
 import { useRef, useCallback } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 
 interface PayPalCheckoutProps {
   productId: string;
@@ -42,6 +43,8 @@ function PayPalButtonsInner({
 
   const createOrder = useCallback(async (): Promise<string> => {
     const { productId, selectedOptions, variantId } = propsRef.current;
+
+    trackEvent("InitiateCheckout", { currency: "HKD" });
 
     const res = await fetch("/api/paypal/create-order", {
       method: "POST",
@@ -86,14 +89,20 @@ function PayPalButtonsInner({
       }
     } catch { /* ignore */ }
 
+    const eventId = generateEventId();
     const res = await fetch("/api/paypal/capture-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderID: data.orderID, wixVisitorId, wixMemberId }),
+      body: JSON.stringify({ orderID: data.orderID, wixVisitorId, wixMemberId, metaEventId: eventId }),
     });
 
     if (res.ok) {
       const orderData = await res.json();
+      trackEvent("Purchase", {
+        value: parseFloat(orderData.total?.replace(/[^0-9.]/g, "") || "0"),
+        currency: "HKD",
+        order_id: String(orderData.orderNumber),
+      }, eventId);
       sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
       window.location.href = `/order-confirmation?source=express`;
     } else {

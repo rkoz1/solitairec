@@ -116,7 +116,12 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
-      <TrackView productId={product._id ?? ""} />
+      <TrackView
+        productId={product._id ?? ""}
+        productName={product.name ?? ""}
+        price={product.priceData?.price ?? 0}
+        currency={product.priceData?.currency ?? "HKD"}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

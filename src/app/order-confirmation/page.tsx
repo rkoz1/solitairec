@@ -7,6 +7,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
+import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 
 interface OrderSummary {
   orderNumber: string;
@@ -76,6 +77,19 @@ export default function OrderConfirmationPage() {
                 })
               : "",
           });
+
+          // Track Purchase for cart checkout (Wix redirect flow)
+          const totalAmount = parseFloat(
+            (found.priceSummary?.total?.amount ?? "0").replace(/[^0-9.]/g, "")
+          );
+          if (totalAmount > 0) {
+            trackEvent("Purchase", {
+              value: totalAmount,
+              currency: "HKD",
+              order_id: found.number?.toString(),
+              num_items: found.lineItems?.length ?? 0,
+            }, generateEventId());
+          }
         }
       } catch (err) {
         console.error("Failed to fetch order:", err);

@@ -21,6 +21,7 @@ import FreeShippingBar from "@/components/FreeShippingBar";
 import { showToast } from "@/lib/toast";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { useDisplayCurrency } from "@/components/Price";
+import { trackEvent } from "@/lib/meta-pixel";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -254,6 +255,7 @@ function BagTab() {
 
   async function handleCheckout() {
     setCheckingOut(true);
+    trackEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
