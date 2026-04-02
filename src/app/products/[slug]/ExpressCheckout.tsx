@@ -135,8 +135,10 @@ function ExpressCheckoutInner({
   const onReady = useCallback(
     ({ availablePaymentMethods }: StripeExpressCheckoutElementReadyEvent) => {
       if (availablePaymentMethods) {
-        const hasMethod = Object.values(availablePaymentMethods).some(Boolean);
-        setReady(hasMethod);
+        // Only show for Apple Pay or Google Pay — not Link
+        const hasWallet =
+          availablePaymentMethods.applePay || availablePaymentMethods.googlePay;
+        setReady(!!hasWallet);
       }
     },
     []
@@ -255,6 +257,11 @@ function ExpressCheckoutInner({
           },
           paymentMethods: {
             paypal: "never",
+            link: "never",
+          },
+          wallets: {
+            applePay: "always",
+            googlePay: "always",
           },
           buttonHeight: 52,
           layout: {
