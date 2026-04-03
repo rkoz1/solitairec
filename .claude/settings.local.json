@@ -84,7 +84,9 @@
       "Bash(dig solitairec.com A +short)",
       "Bash(nslookup:*)",
       "Bash(grep -r \"className=\" /c/dev/solitairec/src/components/*.tsx)",
-      "Bash(grep -r \"wix\\\\\\\\.inbox\\\\|wix\\\\\\\\.conversations\\\\|wix\\\\\\\\.messages\" /c/dev/solitairec/src --include=\"*.ts\" --include=\"*.tsx\")"
+      "Bash(grep -r \"wix\\\\\\\\.inbox\\\\|wix\\\\\\\\.conversations\\\\|wix\\\\\\\\.messages\" /c/dev/solitairec/src --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(find . -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"memberId\\\\|visitorId\" {} \\\\;)",
+      "Bash(find ./src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"memberId\\\\|visitorId\" {} \\\\;)"
     ]
   }
 }

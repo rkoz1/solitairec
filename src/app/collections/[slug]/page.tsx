@@ -1,3 +1,5 @@
+export const revalidate = 600;
+
 import type { Metadata } from "next";
 import { displayName } from "@/lib/collections";
 import { getCollectionBySlug } from "@/lib/collections";

@@ -1,9 +1,10 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 600;
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
 import { getWixImageUrl } from "@/lib/wix-image";
 import { getAllCollections, CATEGORY_HIERARCHY, displayName } from "@/lib/collections";
@@ -19,15 +20,19 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-async function getProduct(slug: string) {
-  const wix = getServerWixClient();
-  const { items } = await wix.products
-    .queryProducts()
-    .eq("slug", slug)
-    .limit(1)
-    .find();
-  return items[0] ?? null;
-}
+const getProduct = unstable_cache(
+  async (slug: string) => {
+    const wix = getServerWixClient();
+    const { items } = await wix.products
+      .queryProducts()
+      .eq("slug", slug)
+      .limit(1)
+      .find();
+    return items[0] ?? null;
+  },
+  ["product-by-slug"],
+  { revalidate: 600, tags: ["product-catalog"] }
+);
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
@@ -70,21 +75,24 @@ function richContentToHtml(nodes: RichContentNode[]): string {
   }).join("");
 }
 
-async function getFittingDefaults(): Promise<Record<string, string>> {
-  const wix = getServerWixClient();
-  const result = await wix.dataItems.query("Fitting").find();
-  const map: Record<string, string> = {};
-  for (const item of result.items) {
-    const title = (item.title ?? item.title_fld) as string | undefined;
-    // Prefer rich content field (output), fall back to description_fld
-    const richContent = item.output as { nodes?: RichContentNode[] } | undefined;
-    const html = richContent?.nodes
-      ? richContentToHtml(richContent.nodes)
-      : (item.description ?? item.description_fld) as string | undefined;
-    if (title && html) map[title] = html;
-  }
-  return map;
-}
+const getFittingDefaults = unstable_cache(
+  async (): Promise<Record<string, string>> => {
+    const wix = getServerWixClient();
+    const result = await wix.dataItems.query("Fitting").find();
+    const map: Record<string, string> = {};
+    for (const item of result.items) {
+      const title = (item.title ?? item.title_fld) as string | undefined;
+      const richContent = item.output as { nodes?: RichContentNode[] } | undefined;
+      const html = richContent?.nodes
+        ? richContentToHtml(richContent.nodes)
+        : (item.description ?? item.description_fld) as string | undefined;
+      if (title && html) map[title] = html;
+    }
+    return map;
+  },
+  ["fitting-defaults"],
+  { revalidate: 3600, tags: ["product-catalog"] }
+);
 
 async function getProductCategories(collectionIds: string[]): Promise<string[]> {
   const allCollections = await getAllCollections();
@@ -110,6 +118,7 @@ async function getProductCategories(collectionIds: string[]): Promise<string[]> 
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  if (!VALID_SLUG.test(slug)) return {};
   const product = await getProduct(slug);
   if (!product) return {};
 
@@ -139,8 +148,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
+  if (!VALID_SLUG.test(slug)) notFound();
   const product = await getProduct(slug);
   if (!product) notFound();
 
