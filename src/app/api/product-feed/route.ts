@@ -49,11 +49,13 @@ export async function GET() {
             ? "out of stock"
             : "in stock";
 
-        const priceData = p.priceData as {
-          price?: number;
-          currency?: string;
-          discountedPrice?: number;
-        } | undefined;
+        const priceData = p.priceData as
+          | {
+              price?: number;
+              currency?: string;
+              discountedPrice?: number;
+            }
+          | undefined;
         const price = priceData?.price ?? 0;
         const currency = priceData?.currency ?? "HKD";
         const salePrice = priceData?.discountedPrice;
@@ -62,15 +64,21 @@ export async function GET() {
           ? stripHtml(p.description as string).slice(0, 5000)
           : name;
 
-        const media = p.media as {
-          mainMedia?: { image?: { url?: string } };
-          items?: { image?: { url?: string } }[];
-        } | undefined;
-        const imageUrl = getWixImageUrl(media?.mainMedia?.image?.url, 1200, 630);
+        const media = p.media as
+          | {
+              mainMedia?: { image?: { url?: string } };
+              items?: { image?: { url?: string } }[];
+            }
+          | undefined;
+        const imageUrl = getWixImageUrl(
+          media?.mainMedia?.image?.url,
+          1200,
+          1200,
+        );
 
         const additionalImages = (media?.items ?? [])
-          .slice(1, 4)
-          .map((m) => getWixImageUrl(m.image?.url, 1200, 630));
+          .slice(1, 10)
+          .map((m) => getWixImageUrl(m.image?.url, 1200, 1200));
 
         const link = `${SITE_URL}/products/${slug}`;
 
@@ -111,7 +119,7 @@ ${items.join("\n")}
     console.error("Product feed generation failed:", err);
     return NextResponse.json(
       { error: "Failed to generate feed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
