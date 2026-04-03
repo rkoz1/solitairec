@@ -118,6 +118,7 @@ async function getProductCategories(collectionIds: string[]): Promise<string[]> 
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  if (!VALID_SLUG.test(slug)) return {};
   const product = await getProduct(slug);
   if (!product) return {};
 
@@ -147,8 +148,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+const VALID_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
+  if (!VALID_SLUG.test(slug)) notFound();
   const product = await getProduct(slug);
   if (!product) notFound();
 
