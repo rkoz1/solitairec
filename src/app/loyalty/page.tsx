@@ -130,7 +130,7 @@ export default async function LoyaltyPage() {
                         {fixedPts
                           ? `${fixedPts} pts`
                           : conv
-                            ? `${conv.points} pts / $${conv.moneyAmount}`
+                            ? `${conv.points} pts / HK$${conv.moneyAmount}`
                             : ""}
                       </span>
                     </div>
@@ -190,7 +190,7 @@ export default async function LoyaltyPage() {
                       </span>
                       {config && (
                         <span className="text-[10px] tracking-widest text-secondary font-medium">
-                          {config.costInPoints?.toLocaleString()} pts → ${config.amount} off
+                          {config.costInPoints?.toLocaleString()} pts → HK${config.amount} off
                         </span>
                       )}
                     </div>

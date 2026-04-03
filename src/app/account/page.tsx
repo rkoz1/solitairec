@@ -629,7 +629,7 @@ function RewardsTab() {
                   </p>
                   {coupon.discountAmount && (
                     <p className="mt-0.5 text-[10px] tracking-widest text-on-surface-variant">
-                      ${coupon.discountAmount} off
+                      HK${coupon.discountAmount} off
                     </p>
                   )}
                 </div>
