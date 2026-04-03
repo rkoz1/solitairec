@@ -8,6 +8,8 @@ import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
 import { getWixImageUrl } from "@/lib/wix-image";
 import { getAllCollections, CATEGORY_HIERARCHY, displayName } from "@/lib/collections";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 import ImageCarousel from "@/components/ImageCarousel";
 import CompleteTheLook from "@/components/CompleteTheLook";
 import ShippingInfo from "@/components/ShippingInfo";
@@ -134,9 +136,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    alternates: {
+      canonical: `${SITE_URL}/products/${slug}`,
+    },
     openGraph: {
       title,
       description,
+      url: `${SITE_URL}/products/${slug}`,
       images: [{ url: imageUrl, width: 1200, height: 630 }],
       type: "website",
     },

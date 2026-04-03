@@ -5,6 +5,8 @@ import { displayName } from "@/lib/collections";
 import { getCollectionBySlug } from "@/lib/collections";
 import CollectionClient from "./CollectionClient";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 interface Props {
   params: Promise<{ slug: string }>;
 }
@@ -21,9 +23,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: name,
     description,
+    alternates: {
+      canonical: `${SITE_URL}/collections/${slug}`,
+    },
     openGraph: {
       title: `${name} | SOLITAIREC`,
       description,
+      url: `${SITE_URL}/collections/${slug}`,
     },
   };
 }
