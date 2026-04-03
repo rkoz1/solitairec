@@ -30,7 +30,7 @@ export default function ReferFriendsPage() {
   }, []);
 
   const referralUrl = referralCode
-    ? `www.solitairec.com/referral/${referralCode}`
+    ? `${typeof window !== "undefined" ? window.location.origin : "https://solitairec.com"}/referral/${referralCode}`
     : null;
 
   function handleCopy() {
