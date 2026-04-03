@@ -75,7 +75,10 @@
       "Bash(grep -r deliveryRegion /c/dev/solitairec/src --include=*.ts --include=*.tsx)",
       "Bash(grep -r \"headers\\\\|geolocation\\\\|country\\\\|locale\" /c/dev/solitairec/src --include=*.ts --include=*.tsx)",
       "Bash(find /c/dev/solitairec/node_modules/@wix/headless-ecom -name *.d.ts -type f)",
-      "Bash(grep -l \"Address\" /c/dev/solitairec/node_modules/@wix/auto_sdk_crm_contacts/build/cjs/*.d.ts)"
+      "Bash(grep -l \"Address\" /c/dev/solitairec/node_modules/@wix/auto_sdk_crm_contacts/build/cjs/*.d.ts)",
+      "Bash(gh api:*)",
+      "Bash(python3 -c \"import sys,json,base64; d=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(d['content']\\).decode\\(\\)\\)\")",
+      "Bash(gh search:*)"
     ]
   }
 }
