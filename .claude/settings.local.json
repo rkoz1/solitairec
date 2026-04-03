@@ -78,7 +78,13 @@
       "Bash(grep -l \"Address\" /c/dev/solitairec/node_modules/@wix/auto_sdk_crm_contacts/build/cjs/*.d.ts)",
       "Bash(gh api:*)",
       "Bash(python3 -c \"import sys,json,base64; d=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(d['content']\\).decode\\(\\)\\)\")",
-      "Bash(gh search:*)"
+      "Bash(gh search:*)",
+      "WebFetch(domain:community.vercel.com)",
+      "Bash(nslookup solitairec.com)",
+      "Bash(dig solitairec.com A +short)",
+      "Bash(nslookup:*)",
+      "Bash(grep -r \"className=\" /c/dev/solitairec/src/components/*.tsx)",
+      "Bash(grep -r \"wix\\\\\\\\.inbox\\\\|wix\\\\\\\\.conversations\\\\|wix\\\\\\\\.messages\" /c/dev/solitairec/src --include=\"*.ts\" --include=\"*.tsx\")"
     ]
   }
 }

@@ -10,7 +10,7 @@ import {
 
 const UNSUB_KEY = "solitairec_newsletter_unsub";
 
-export default function NewsletterSignup() {
+export default function NewsletterSignup({ alwaysShow = false }: { alwaysShow?: boolean }) {
   const [email, setEmail] = useState("");
   const [memberEmail, setMemberEmail] = useState<string | null>(null);
   const [status, setStatus] = useState<
@@ -96,17 +96,34 @@ export default function NewsletterSignup() {
   }, [status]);
 
   // Don't render at all if already subscribed or fully faded
-  if (status === "loading" || status === "already") return null;
-  if (fading) return null;
+  if (!alwaysShow && (status === "loading" || status === "already")) return null;
+  if (!alwaysShow && fading) return null;
+
+  // Dedicated page: show thank-you when already subscribed
+  if (alwaysShow && (status === "already" || fading)) {
+    return (
+      <div className="pt-8 pb-8">
+        <p className="text-sm leading-relaxed text-on-surface-variant">
+          You&apos;re already subscribed — thank you for staying in touch with
+          SolitaireC. We&apos;ll keep you updated on new arrivals, exclusive
+          offers, and editorial stories.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className={`pt-28 pb-8 transition-opacity duration-1000 ${status === "success" ? "opacity-100" : ""}`}>
-      <h2 className="font-serif italic text-2xl tracking-tight text-on-surface">
-        Stay in Touch
-      </h2>
-      <div className="mt-3 w-12 h-[2px] bg-secondary" />
+    <div className={`${alwaysShow ? "pt-0" : "pt-28"} pb-8 transition-opacity duration-1000 ${status === "success" ? "opacity-100" : ""}`}>
+      {!alwaysShow && (
+        <>
+          <h2 className="font-serif italic text-2xl tracking-tight text-on-surface">
+            Stay in Touch
+          </h2>
+          <div className="mt-3 w-12 h-[2px] bg-secondary" />
+        </>
+      )}
 
-      <p className="mt-6 text-sm leading-relaxed text-on-surface-variant max-w-md">
+      <p className={`${alwaysShow ? "mt-0" : "mt-6"} text-sm leading-relaxed text-on-surface-variant max-w-md`}>
         Be the first to know about new arrivals, exclusive offers, and
         editorial stories.
       </p>

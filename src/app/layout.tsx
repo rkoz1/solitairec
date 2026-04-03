@@ -115,6 +115,13 @@ export default async function RootLayout({
               </Link>
               <DesktopNav />
               <div className="flex items-center gap-4 shrink-0">
+                <Link
+                  href="/gift-cards"
+                  className="flex items-center justify-center w-10 h-10 text-on-surface hover:text-secondary transition-colors"
+                  aria-label="Gift Cards"
+                >
+                  <span className="material-symbols-outlined text-[22px]">redeem</span>
+                </Link>
                 <SearchOverlay />
                 <CartBadge />
                 <Link

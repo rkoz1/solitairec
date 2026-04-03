@@ -74,7 +74,7 @@ export default function NavigationDrawer() {
         </div>
 
         {/* Category list */}
-        <nav className="flex-1 overflow-y-auto px-8 pt-6 pb-24">
+        <nav className="flex-1 flex flex-col overflow-y-auto px-8 pt-6 pb-24">
           {categories.map((cat) => {
             const hasChildren = cat.children && cat.children.length > 0;
             const isExpanded = expandedSlug === cat.slug;
@@ -148,8 +148,10 @@ export default function NavigationDrawer() {
             {[
               { href: "/gift-cards", label: "Gift Cards", icon: "redeem" },
               { href: "/loyalty", label: "Rewards" },
+              { href: "/newsletter", label: "Newsletter", icon: "newspaper" },
               { href: "/our-mission", label: "Our Mission" },
               { href: "/terms", label: "Terms & Conditions" },
+              { href: "/contact", label: "Contact Us", icon: "mail" },
             ].map((link) => (
               <Link
                 key={link.href}
@@ -163,6 +165,16 @@ export default function NavigationDrawer() {
                 {link.label}
               </Link>
             ))}
+          </div>
+          <div className="mt-auto pt-6 pb-2 flex justify-end">
+            <a
+              href="https://www.linkedin.com/in/rafalkoziarz/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] tracking-[0.15em] text-on-surface-variant hover:text-secondary transition-colors"
+            >
+              Designed by rkoz1
+            </a>
           </div>
         </nav>
       </div>
