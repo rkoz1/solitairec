@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -39,6 +40,38 @@ function fixWixHtml(html: string): string {
     .replace(/\s*style="[^"]*"/gi, "")
     .replace(/\s*style='[^']*'/gi, "")
     .replace(/:([^\s/<])/g, ": $1");
+}
+
+const getFittingDefaults = unstable_cache(
+  async (): Promise<Record<string, string>> => {
+    const wix = getServerWixClient();
+    const result = await wix.dataItems.query("Fitting").find();
+    const map: Record<string, string> = {};
+    for (const item of result.items) {
+      const title = (item.title ?? item.title_fld) as string | undefined;
+      const desc = (item.description ?? item.description_fld) as string | undefined;
+      if (title && desc) map[title] = desc;
+    }
+    return map;
+  },
+  ["fitting-defaults"],
+  { revalidate: 86400, tags: ["fitting"] }
+);
+
+async function getProductCategory(collectionIds: string[]): Promise<string | null> {
+  const allCollections = await getAllCollections();
+  const collectionMap = new Map(allCollections.map((c) => [c._id, c]));
+  const productCollections = collectionIds
+    .map((id) => collectionMap.get(id))
+    .filter(Boolean) as { name: string; slug: string; _id: string }[];
+
+  for (const cat of CATEGORY_HIERARCHY) {
+    if (productCollections.some((c) => c.name === cat.name)) return displayName(cat.name);
+    if (cat.children?.some((child) => productCollections.some((c) => c.name === child))) {
+      return displayName(cat.name);
+    }
+  }
+  return null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -93,6 +126,26 @@ export default async function ProductPage({ params }: Props) {
       .map((item) => getWixImageUrl(item.image?.url, 800, 1067)) ?? [];
 
   const allImages = [mainImage, ...additionalImages.slice(0, 5)];
+
+  // Inject CMS fitting fallback if product lacks a "Fitting" section
+  const hasFitting = product.additionalInfoSections?.some(
+    (s) => s.title?.toLowerCase() === "fitting"
+  );
+  if (!hasFitting) {
+    const [fittingDefaults, category] = await Promise.all([
+      getFittingDefaults(),
+      getProductCategory(product.collectionIds ?? []),
+    ]);
+    if (category) {
+      const fallbackDesc = fittingDefaults[category];
+      if (fallbackDesc) {
+        product.additionalInfoSections = [
+          ...(product.additionalInfoSections ?? []),
+          { title: "Fitting", description: fallbackDesc },
+        ];
+      }
+    }
+  }
 
   const stockStatus = (product.stock as { inventoryStatus?: string } | undefined)?.inventoryStatus;
   const jsonLd = {

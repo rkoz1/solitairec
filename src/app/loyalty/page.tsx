@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
 
 export const metadata: Metadata = {
@@ -33,33 +34,38 @@ interface Reward {
   };
 }
 
+const getLoyaltyData = unstable_cache(
+  async () => {
+    try {
+      const wix = getServerWixClient();
+
+      const [programResult, rulesResult, tiersResult, rewardsResult, tierSettingsResult] =
+        await Promise.all([
+          wix.loyaltyPrograms.getLoyaltyProgram().catch(() => null),
+          wix.earningRules.listEarningRules().catch(() => ({ earningRules: [] })),
+          wix.loyaltyTiers.listTiers().catch(() => ({ tiers: [] })),
+          wix.loyaltyRewards.listRewards().catch(() => ({ rewards: [] })),
+          wix.loyaltyTiers.getTiersProgramSettings().catch(() => null),
+        ]);
+
+      return {
+        program: programResult ?? null,
+        rules: (rulesResult?.earningRules ?? []) as EarningRule[],
+        tiers: (tiersResult?.tiers ?? []) as Tier[],
+        rewards: (rewardsResult?.rewards ?? []) as Reward[],
+        tierSettings: tierSettingsResult,
+      };
+    } catch (err) {
+      console.error("Failed to load loyalty program:", err);
+      return { program: null, rules: [] as EarningRule[], tiers: [] as Tier[], rewards: [] as Reward[], tierSettings: null };
+    }
+  },
+  ["loyalty-program"],
+  { revalidate: 3600, tags: ["loyalty"] }
+);
+
 export default async function LoyaltyPage() {
-  let program = null;
-  let rules: EarningRule[] = [];
-  let tiers: Tier[] = [];
-  let rewards: Reward[] = [];
-  let tierSettings: unknown = null;
-
-  try {
-    const wix = getServerWixClient();
-
-    const [programResult, rulesResult, tiersResult, rewardsResult, tierSettingsResult] =
-      await Promise.all([
-        wix.loyaltyPrograms.getLoyaltyProgram().catch(() => null),
-        wix.earningRules.listEarningRules().catch(() => ({ earningRules: [] })),
-        wix.loyaltyTiers.listTiers().catch(() => ({ tiers: [] })),
-        wix.loyaltyRewards.listRewards().catch(() => ({ rewards: [] })),
-        wix.loyaltyTiers.getTiersProgramSettings().catch(() => null),
-      ]);
-
-    program = programResult ?? null;
-    rules = (rulesResult?.earningRules ?? []) as EarningRule[];
-    tiers = (tiersResult?.tiers ?? []) as Tier[];
-    rewards = (rewardsResult?.rewards ?? []) as Reward[];
-    tierSettings = tierSettingsResult;
-  } catch (err) {
-    console.error("Failed to load loyalty program:", err);
-  }
+  const { program, rules, tiers, rewards, tierSettings } = await getLoyaltyData();
 
   const activeRules = rules.filter((r) => r.status === "ACTIVE");
   const activeRewards = rewards.filter((r) => r.active);
@@ -130,7 +136,7 @@ export default async function LoyaltyPage() {
                         {fixedPts
                           ? `${fixedPts} pts`
                           : conv
-                            ? `${conv.points} pts / $${conv.moneyAmount}`
+                            ? `${conv.points} pts / HK$${conv.moneyAmount}`
                             : ""}
                       </span>
                     </div>
@@ -190,7 +196,7 @@ export default async function LoyaltyPage() {
                       </span>
                       {config && (
                         <span className="text-[10px] tracking-widest text-secondary font-medium">
-                          {config.costInPoints?.toLocaleString()} pts → ${config.amount} off
+                          {config.costInPoints?.toLocaleString()} pts → HK${config.amount} off
                         </span>
                       )}
                     </div>

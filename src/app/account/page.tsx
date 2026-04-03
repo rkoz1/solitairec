@@ -629,7 +629,7 @@ function RewardsTab() {
                   </p>
                   {coupon.discountAmount && (
                     <p className="mt-0.5 text-[10px] tracking-widest text-on-surface-variant">
-                      ${coupon.discountAmount} off
+                      HK${coupon.discountAmount} off
                     </p>
                   )}
                 </div>
@@ -681,6 +681,40 @@ function RewardsTab() {
 /*  Addresses Tab (SOL-12)                                            */
 /* ------------------------------------------------------------------ */
 
+const COUNTRIES = [
+  { code: "AU", name: "Australia" },
+  { code: "AT", name: "Austria" },
+  { code: "BE", name: "Belgium" },
+  { code: "BR", name: "Brazil" },
+  { code: "CA", name: "Canada" },
+  { code: "CN", name: "China" },
+  { code: "DK", name: "Denmark" },
+  { code: "FI", name: "Finland" },
+  { code: "FR", name: "France" },
+  { code: "DE", name: "Germany" },
+  { code: "GR", name: "Greece" },
+  { code: "HK", name: "Hong Kong" },
+  { code: "IN", name: "India" },
+  { code: "IE", name: "Ireland" },
+  { code: "IL", name: "Israel" },
+  { code: "IT", name: "Italy" },
+  { code: "JP", name: "Japan" },
+  { code: "MX", name: "Mexico" },
+  { code: "NL", name: "Netherlands" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "NO", name: "Norway" },
+  { code: "PL", name: "Poland" },
+  { code: "PT", name: "Portugal" },
+  { code: "SG", name: "Singapore" },
+  { code: "KR", name: "South Korea" },
+  { code: "ES", name: "Spain" },
+  { code: "SE", name: "Sweden" },
+  { code: "CH", name: "Switzerland" },
+  { code: "AE", name: "United Arab Emirates" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "US", name: "United States" },
+];
+
 interface AddressData {
   _id?: string;
   addressLine?: string;
@@ -697,6 +731,7 @@ function AddressesTab() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [form, setForm] = useState<AddressData>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchAddresses();
@@ -706,11 +741,12 @@ function AddressesTab() {
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
-      const member = await wix.members.getCurrentMember({
+      const response = await wix.members.getCurrentMember({
         fieldsets: ["FULL"],
       });
-      setMemberId(member._id ?? null);
-      setAddresses(member.contact?.addresses ?? []);
+      const member = (response as unknown as { member?: Record<string, unknown> }).member ?? response;
+      setMemberId((member._id as string) ?? null);
+      setAddresses(((member.contact as Record<string, unknown>)?.addresses as AddressData[]) ?? []);
     } catch (err) {
       console.error("Failed to load addresses:", err);
     } finally {
@@ -730,6 +766,11 @@ function AddressesTab() {
 
   async function saveAddress() {
     if (!memberId) return;
+    if (!form.country || !form.addressLine?.trim() || !form.city?.trim() || !form.postalCode?.trim()) {
+      showToast("Please fill in all required fields.", "error");
+      return;
+    }
+    setSaving(true);
     try {
       const wix = getBrowserWixClient();
       let updated: AddressData[];
@@ -749,9 +790,12 @@ function AddressesTab() {
       setEditing(null);
       setForm({});
       await fetchAddresses();
+      showToast("Address saved.", "success");
     } catch (err) {
       console.error("Failed to save address:", err);
       showToast("Unable to save address. Please try again.", "error");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -780,21 +824,37 @@ function AddressesTab() {
         </p>
 
         <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Address line 1"
-            value={form.addressLine ?? ""}
-            onChange={(e) => setForm({ ...form, addressLine: e.target.value })}
-            className="w-full bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none border-b border-outline-variant/20 focus:border-on-surface transition-colors"
-          />
-          <input
-            type="text"
-            placeholder="Apartment, suite, etc."
-            value={form.addressLine2 ?? ""}
-            onChange={(e) => setForm({ ...form, addressLine2: e.target.value })}
-            className="w-full bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none border-b border-outline-variant/20 focus:border-on-surface transition-colors"
-          />
-          <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[10px] tracking-[0.2em] uppercase font-medium text-on-surface-variant mb-2">
+              Country / Region *
+            </label>
+            <select
+              value={form.country ?? ""}
+              onChange={(e) => setForm({ ...form, country: e.target.value })}
+              className="w-full bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none border-b border-outline-variant/20 focus:border-on-surface transition-colors appearance-none"
+            >
+              <option value="">Select country</option>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] tracking-[0.2em] uppercase font-medium text-on-surface-variant mb-2">
+              Address *
+            </label>
+            <input
+              type="text"
+              placeholder="Street address"
+              value={form.addressLine ?? ""}
+              onChange={(e) => setForm({ ...form, addressLine: e.target.value })}
+              className="w-full bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none border-b border-outline-variant/20 focus:border-on-surface transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] tracking-[0.2em] uppercase font-medium text-on-surface-variant mb-2">
+              City *
+            </label>
             <input
               type="text"
               placeholder="City"
@@ -802,27 +862,16 @@ function AddressesTab() {
               onChange={(e) => setForm({ ...form, city: e.target.value })}
               className="w-full bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none border-b border-outline-variant/20 focus:border-on-surface transition-colors"
             />
-            <input
-              type="text"
-              placeholder="State / Region"
-              value={form.subdivision ?? ""}
-              onChange={(e) => setForm({ ...form, subdivision: e.target.value })}
-              className="w-full bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none border-b border-outline-variant/20 focus:border-on-surface transition-colors"
-            />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[10px] tracking-[0.2em] uppercase font-medium text-on-surface-variant mb-2">
+              Zip / Postal code *
+            </label>
             <input
               type="text"
               placeholder="Postal code"
               value={form.postalCode ?? ""}
               onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
-              className="w-full bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none border-b border-outline-variant/20 focus:border-on-surface transition-colors"
-            />
-            <input
-              type="text"
-              placeholder="Country"
-              value={form.country ?? ""}
-              onChange={(e) => setForm({ ...form, country: e.target.value })}
               className="w-full bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none border-b border-outline-variant/20 focus:border-on-surface transition-colors"
             />
           </div>
@@ -831,9 +880,10 @@ function AddressesTab() {
         <div className="flex gap-4 mt-8">
           <button
             onClick={saveAddress}
-            className="flex-1 bg-on-surface text-on-primary py-4 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98]"
+            disabled={saving}
+            className="flex-1 bg-on-surface text-on-primary py-4 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
           >
-            Save
+            {saving ? "Saving..." : "Save"}
           </button>
           <button
             onClick={() => {
@@ -859,7 +909,7 @@ function AddressesTab() {
         <div className="space-y-2 mb-6">
           {addresses.map((addr, i) => (
             <div
-              key={addr._id ?? i}
+              key={i}
               className="bg-surface-container-low px-5 py-4"
             >
               <p className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface">
@@ -868,7 +918,7 @@ function AddressesTab() {
                   .join(", ")}
               </p>
               <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
-                {[addr.city, addr.subdivision, addr.postalCode, addr.country]
+                {[addr.city, addr.postalCode, COUNTRIES.find((c) => c.code === addr.country)?.name ?? addr.country]
                   .filter(Boolean)
                   .join(", ")}
               </p>
@@ -970,7 +1020,7 @@ export default function AccountPage() {
 
   if (!loggedIn) {
     return (
-      <section className="px-5">
+      <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
         <SectionHeading title="Account" />
         <div className="max-w-md">
           <p className="text-sm leading-relaxed text-on-surface-variant">
@@ -988,7 +1038,7 @@ export default function AccountPage() {
   }
 
   return (
-    <section className="px-5">
+    <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
       <SectionHeading title={memberName ? `Hello, ${memberName}` : "Account"} />
       <TabBar active={activeTab} onChange={setActiveTab} />
       {activeTab === "orders" && <OrdersTab />}
