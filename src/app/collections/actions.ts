@@ -1,8 +1,10 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { getNavCategories, type NavCategory } from "@/lib/collections";
 import { getServerWixClient } from "@/lib/wix-server-client";
 import { getWixImageUrl } from "@/lib/wix-image";
+import { getProductCatalog } from "@/app/search/actions";
 
 export async function fetchNavCategories(): Promise<NavCategory[]> {
   return getNavCategories();
@@ -56,68 +58,30 @@ function sortSizes(sizes: string[]): string[] {
   });
 }
 
-export async function fetchSearchResults(
-  query: string,
-  sort: "relevance" | "price_asc" | "price_desc" = "relevance"
-): Promise<CollectionData | null> {
-  const trimmed = query.trim().toLowerCase();
-  if (trimmed.length < 2) return null;
-
-  const { getProductCatalog: getCatalog } = await import("@/app/search/actions");
-  const catalog = await getCatalog();
-  const words = trimmed.split(/\s+/).filter(Boolean);
-
-  type CatProduct = typeof catalog[0];
-  let matched: { product: CatProduct; score: number }[] = catalog
-    .map((p) => {
-      const allMatch = words.every(
-        (w) => p.nameLower.includes(w) || p.descriptionLower.includes(w)
-      );
-      if (!allMatch) return null;
-      let score = 0;
-      for (const w of words) {
-        if (p.nameLower.includes(w)) score += 10;
-        if (p.nameLower.startsWith(w)) score += 5;
-        if (p.descriptionLower.includes(w)) score += 1;
-      }
-      return { product: p, score };
-    })
-    .filter(Boolean) as { product: CatProduct; score: number }[];
-
-  // Sort
-  if (sort === "price_asc") {
-    matched.sort((a, b) => parseFloat(a.product.price) - parseFloat(b.product.price));
-  } else if (sort === "price_desc") {
-    matched.sort((a, b) => parseFloat(b.product.price) - parseFloat(a.product.price));
-  } else {
-    matched.sort((a, b) => b.score - a.score);
-  }
-
-  // Now fetch full product data for these IDs to get options (size/color)
-  // We'll batch fetch from the Wix API
-  const ids = matched.map((m) => m.product._id);
-  const wix = getServerWixClient();
+function extractProductDetails(items: unknown[]): {
+  products: CollectionProduct[];
+  allSizes: string[];
+  allColors: ColorOption[];
+  priceRange: { min: number; max: number };
+} {
+  type WixProduct = {
+    _id?: string | null;
+    name?: string | null;
+    slug?: string | null;
+    priceData?: { price?: number; formatted?: { price?: string | null } | null } | null;
+    media?: { mainMedia?: { image?: { url?: string | null } | null } | null } | null;
+    productOptions?: { name?: string | null; choices?: { value?: string | null; description?: string | null }[] | null }[] | null;
+    stock?: { inventoryStatus?: string } | null;
+  };
 
   const allSizes = new Set<string>();
   const colorMap = new Map<string, ColorOption>();
   let minPrice = Infinity;
   let maxPrice = 0;
 
-  // Fetch in batches of 50
-  const fullProducts: CollectionProduct[] = [];
-  for (let i = 0; i < ids.length; i += 50) {
-    const batch = ids.slice(i, i + 50);
-    const { items } = await wix.products
-      .queryProducts()
-      .hasSome("_id", batch)
-      .limit(50)
-      .find();
-
-    for (const p of items) {
-      // Skip out-of-stock products
-      const stock = p.stock as { inventoryStatus?: string } | undefined;
-      if (stock?.inventoryStatus === "OUT_OF_STOCK") continue;
-
+  const products: CollectionProduct[] = (items as WixProduct[])
+    .filter((p) => p.stock?.inventoryStatus !== "OUT_OF_STOCK")
+    .map((p) => {
       const price = p.priceData?.price ?? 0;
       if (price < minPrice) minPrice = price;
       if (price > maxPrice) maxPrice = price;
@@ -130,7 +94,10 @@ export async function fetchSearchResults(
         for (const choice of opt.choices ?? []) {
           if (optName === "size") {
             const val = choice.description || choice.value || "";
-            if (val) { sizes.push(val); allSizes.add(val); }
+            if (val) {
+              sizes.push(val);
+              allSizes.add(val);
+            }
           } else if (optName === "color" || optName === "colour") {
             const name = choice.description || choice.value || "";
             const value = choice.value || "";
@@ -143,7 +110,7 @@ export async function fetchSearchResults(
         }
       }
 
-      fullProducts.push({
+      return {
         _id: p._id ?? "",
         name: p.name ?? "",
         slug: p.slug ?? "",
@@ -152,22 +119,13 @@ export async function fetchSearchResults(
         imageUrl: getWixImageUrl(p.media?.mainMedia?.image?.url, 600, 800),
         sizes,
         colors,
-      });
-    }
-  }
-
-  // Preserve the sort order from the search scoring
-  const idOrder = new Map(ids.map((id, idx) => [id, idx]));
-  if (sort === "relevance") {
-    fullProducts.sort((a, b) => (idOrder.get(a._id) ?? 0) - (idOrder.get(b._id) ?? 0));
-  }
+      };
+    });
 
   return {
-    name: `Search: "${query}"`,
-    slug: "",
-    products: fullProducts,
-    availableSizes: sortSizes([...allSizes]),
-    availableColors: [...colorMap.values()],
+    products,
+    allSizes: sortSizes([...allSizes]),
+    allColors: [...colorMap.values()],
     priceRange: {
       min: minPrice === Infinity ? 0 : Math.floor(minPrice),
       max: Math.ceil(maxPrice),
@@ -175,111 +133,131 @@ export async function fetchSearchResults(
   };
 }
 
-export async function fetchCollectionProducts(
-  slug: string,
-  sort: "newest" | "price_asc" | "price_desc" = "newest"
-): Promise<CollectionData | null> {
-  const wix = getServerWixClient();
+export const fetchSearchResults = unstable_cache(
+  async (
+    query: string,
+    sort: "relevance" | "price_asc" | "price_desc" = "relevance"
+  ): Promise<CollectionData | null> => {
+    const trimmed = query.trim().toLowerCase();
+    if (trimmed.length < 2) return null;
 
-  const collectionResult = await wix.collections.getCollectionBySlug(slug);
-  const collection = collectionResult.collection;
-  if (!collection?._id) return null;
+    const catalog = await getProductCatalog();
+    const words = trimmed.split(/\s+/).filter(Boolean);
 
-  // Paginate to get all products
-  const allItems: unknown[] = [];
-  let offset = 0;
-  const PAGE_SIZE = 100;
-
-  const sortField =
-    sort === "price_asc" ? "price" :
-    sort === "price_desc" ? "price" :
-    "lastUpdated";
-  const sortDir = sort === "price_asc" ? "asc" : "desc";
-
-  while (true) {
-    let query = wix.products
-      .queryProducts()
-      .hasSome("collectionIds", [collection._id])
-      .limit(PAGE_SIZE)
-      .skip(offset);
-
-    if (sortDir === "asc") query = query.ascending(sortField);
-    else query = query.descending(sortField);
-
-    const { items } = await query.find();
-    allItems.push(...items);
-
-    if (items.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-
-  type WixProduct = {
-    _id?: string | null;
-    name?: string | null;
-    slug?: string | null;
-    priceData?: { price?: number; formatted?: { price?: string | null } | null } | null;
-    media?: { mainMedia?: { image?: { url?: string | null } | null } | null } | null;
-    productOptions?: { name?: string | null; choices?: { value?: string | null; description?: string | null }[] | null }[] | null;
-    stock?: { inventoryStatus?: string } | null;
-  };
-
-  const allSizes = new Set<string>();
-  const colorMap = new Map<string, ColorOption>(); // name → { name, value }
-  let minPrice = Infinity;
-  let maxPrice = 0;
-
-  const products: CollectionProduct[] = (allItems as WixProduct[])
-  .filter((p) => p.stock?.inventoryStatus !== "OUT_OF_STOCK")
-  .map((p) => {
-    const price = p.priceData?.price ?? 0;
-    if (price < minPrice) minPrice = price;
-    if (price > maxPrice) maxPrice = price;
-
-    const sizes: string[] = [];
-    const colors: ColorOption[] = [];
-
-    for (const opt of p.productOptions ?? []) {
-      const optName = (opt.name ?? "").toLowerCase();
-      for (const choice of opt.choices ?? []) {
-        if (optName === "size") {
-          const val = choice.description || choice.value || "";
-          if (val) {
-            sizes.push(val);
-            allSizes.add(val);
-          }
-        } else if (optName === "color" || optName === "colour") {
-          const name = choice.description || choice.value || "";
-          const value = choice.value || "";
-          if (name) {
-            const colorOpt = { name, value };
-            colors.push(colorOpt);
-            if (!colorMap.has(name)) colorMap.set(name, colorOpt);
-          }
+    type CatProduct = (typeof catalog)[0];
+    let matched: { product: CatProduct; score: number }[] = catalog
+      .map((p) => {
+        const allMatch = words.every(
+          (w) => p.nameLower.includes(w) || p.descriptionLower.includes(w)
+        );
+        if (!allMatch) return null;
+        let score = 0;
+        for (const w of words) {
+          if (p.nameLower.includes(w)) score += 10;
+          if (p.nameLower.startsWith(w)) score += 5;
+          if (p.descriptionLower.includes(w)) score += 1;
         }
-      }
+        return { product: p, score };
+      })
+      .filter(Boolean) as { product: CatProduct; score: number }[];
+
+    // Sort
+    if (sort === "price_asc") {
+      matched.sort((a, b) => parseFloat(a.product.price) - parseFloat(b.product.price));
+    } else if (sort === "price_desc") {
+      matched.sort((a, b) => parseFloat(b.product.price) - parseFloat(a.product.price));
+    } else {
+      matched.sort((a, b) => b.score - a.score);
+    }
+
+    // Fetch full product data for matched IDs
+    const ids = matched.map((m) => m.product._id);
+    const wix = getServerWixClient();
+
+    const allItems: unknown[] = [];
+    for (let i = 0; i < ids.length; i += 50) {
+      const batch = ids.slice(i, i + 50);
+      const { items } = await wix.products
+        .queryProducts()
+        .hasSome("_id", batch)
+        .limit(50)
+        .find();
+      allItems.push(...items);
+    }
+
+    const { products: fullProducts, allSizes, allColors, priceRange } =
+      extractProductDetails(allItems);
+
+    // Preserve the sort order from the search scoring
+    const idOrder = new Map(ids.map((id, idx) => [id, idx]));
+    if (sort === "relevance") {
+      fullProducts.sort((a, b) => (idOrder.get(a._id) ?? 0) - (idOrder.get(b._id) ?? 0));
     }
 
     return {
-      _id: p._id ?? "",
-      name: p.name ?? "",
-      slug: p.slug ?? "",
-      price,
-      formattedPrice: p.priceData?.formatted?.price ?? "",
-      imageUrl: getWixImageUrl(p.media?.mainMedia?.image?.url, 600, 800),
-      sizes,
-      colors,
+      name: `Search: "${query}"`,
+      slug: "",
+      products: fullProducts,
+      availableSizes: allSizes,
+      availableColors: allColors,
+      priceRange,
     };
-  });
+  },
+  ["search-results"],
+  { revalidate: 600, tags: ["search-results", "product-catalog"] }
+);
 
-  return {
-    name: collection.name ?? "",
-    slug: collection.slug ?? "",
-    products,
-    availableSizes: sortSizes([...allSizes]),
-    availableColors: [...colorMap.values()],
-    priceRange: {
-      min: minPrice === Infinity ? 0 : Math.floor(minPrice),
-      max: Math.ceil(maxPrice),
-    },
-  };
-}
+export const fetchCollectionProducts = unstable_cache(
+  async (
+    slug: string,
+    sort: "newest" | "price_asc" | "price_desc" = "newest"
+  ): Promise<CollectionData | null> => {
+    const wix = getServerWixClient();
+
+    const collectionResult = await wix.collections.getCollectionBySlug(slug);
+    const collection = collectionResult.collection;
+    if (!collection?._id) return null;
+
+    // Paginate to get all products
+    const allItems: unknown[] = [];
+    let offset = 0;
+    const PAGE_SIZE = 100;
+
+    const sortField =
+      sort === "price_asc" ? "price" :
+      sort === "price_desc" ? "price" :
+      "lastUpdated";
+    const sortDir = sort === "price_asc" ? "asc" : "desc";
+
+    while (true) {
+      let query = wix.products
+        .queryProducts()
+        .hasSome("collectionIds", [collection._id])
+        .limit(PAGE_SIZE)
+        .skip(offset);
+
+      if (sortDir === "asc") query = query.ascending(sortField);
+      else query = query.descending(sortField);
+
+      const { items } = await query.find();
+      allItems.push(...items);
+
+      if (items.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    const { products, allSizes, allColors, priceRange } =
+      extractProductDetails(allItems);
+
+    return {
+      name: collection.name ?? "",
+      slug: collection.slug ?? "",
+      products,
+      availableSizes: allSizes,
+      availableColors: allColors,
+      priceRange,
+    };
+  },
+  ["collection-products-full"],
+  { revalidate: 600, tags: ["collection-products"] }
+);
