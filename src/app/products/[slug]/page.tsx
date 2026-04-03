@@ -218,7 +218,7 @@ export default async function ProductPage({ params }: Props) {
       <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:max-w-6xl lg:mx-auto lg:px-8 lg:pt-8">
         {/* Image gallery */}
         <div className="relative">
-          {/* Mobile: interactive carousel with dots */}
+          {/* Mobile: carousel */}
           <div className="lg:hidden">
             <ImageCarousel
               images={allImages}
@@ -245,32 +245,23 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Product info */}
-        <div className="mt-12 px-6 lg:mt-0 lg:px-0 lg:py-8 lg:sticky lg:top-24 lg:self-start">
-          {/* Breadcrumb: brand or collection links */}
+        {/* Product info — sticky on desktop, scrolls within if tall */}
+        <div className="mt-12 px-6 lg:mt-0 lg:px-0 lg:py-8 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto no-scrollbar">
           <ProductBreadcrumb
             brand={product.brand}
             collectionIds={product.collectionIds ?? []}
           />
-
-          {/* Name */}
           <h1 className="mt-3 font-serif text-4xl tracking-tight text-on-surface">
             {product.name}
           </h1>
-
-          {/* Ribbon badge */}
           {product.ribbon && (
             <span className="mt-3 inline-block text-[10px] tracking-[0.2em] uppercase font-medium text-secondary border border-secondary px-3 py-1">
               {product.ribbon}
             </span>
           )}
-
-          {/* Price */}
           <div className="mt-3 text-lg tracking-tight text-on-surface-variant">
             <Price amount={product.priceData?.price ?? 0} />
           </div>
-
-          {/* Variant selectors + Add to Cart (client component) */}
           <ProductInfo
             productId={product._id ?? ""}
             productName={product.name ?? ""}
@@ -288,12 +279,8 @@ export default async function ProductPage({ params }: Props) {
             trackInventory={(product.stock as { trackInventory?: boolean } | undefined)?.trackInventory ?? false}
             manageVariants={product.manageVariants ?? false}
           />
-
-          {/* Shipping info + free shipping progress */}
           <ShippingInfo />
           <FreeShippingProgress />
-
-          {/* Description — editorial layout */}
           {product.description && (
             <div className="mt-16 space-y-10">
               <div className="pb-8 border-b border-outline-variant/30">
