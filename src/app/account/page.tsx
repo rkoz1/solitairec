@@ -1020,7 +1020,7 @@ export default function AccountPage() {
 
   if (!loggedIn) {
     return (
-      <section className="px-5">
+      <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
         <SectionHeading title="Account" />
         <div className="max-w-md">
           <p className="text-sm leading-relaxed text-on-surface-variant">
@@ -1038,7 +1038,7 @@ export default function AccountPage() {
   }
 
   return (
-    <section className="px-5">
+    <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
       <SectionHeading title={memberName ? `Hello, ${memberName}` : "Account"} />
       <TabBar active={activeTab} onChange={setActiveTab} />
       {activeTab === "orders" && <OrdersTab />}

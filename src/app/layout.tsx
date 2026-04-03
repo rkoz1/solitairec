@@ -10,6 +10,8 @@ import MarqueeBanner from "@/components/MarqueeBanner";
 import FlyToCart from "@/components/FlyToCart";
 import Toast from "@/components/Toast";
 import RegionSelector from "@/components/RegionSelector";
+import DesktopNav from "@/components/DesktopNav";
+import Footer from "@/components/Footer";
 import MetaPixel from "@/components/MetaPixel";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -94,16 +96,35 @@ export default async function RootLayout({
           {/* Marquee banner */}
           <MarqueeBanner />
           <div className="bg-white/80 backdrop-blur-xl border-b border-surface-container-high/40">
-            <nav className="flex items-center justify-between px-5 h-14">
+            {/* Mobile nav */}
+            <nav className="flex lg:hidden items-center justify-between px-5 h-14">
               <NavigationDrawer />
-
               <Link href="/" className="absolute left-1/2 -translate-x-1/2">
                 <span className="font-serif font-bold text-lg tracking-[0.3em] text-on-surface">
                   SOLITAIREC
                 </span>
               </Link>
-
               <SearchOverlay />
+            </nav>
+            {/* Desktop nav */}
+            <nav className="hidden lg:flex items-center justify-between px-10 h-14">
+              <Link href="/" className="shrink-0">
+                <span className="font-serif font-bold text-lg tracking-[0.3em] text-on-surface">
+                  SOLITAIREC
+                </span>
+              </Link>
+              <DesktopNav />
+              <div className="flex items-center gap-4 shrink-0">
+                <SearchOverlay />
+                <CartBadge />
+                <Link
+                  href="/account"
+                  className="flex items-center justify-center w-10 h-10 text-on-surface hover:text-secondary transition-colors"
+                  aria-label="Account"
+                >
+                  <span className="material-symbols-outlined text-[22px]">person</span>
+                </Link>
+              </div>
             </nav>
           </div>
           {/* Shipping region bar */}
@@ -113,7 +134,10 @@ export default async function RootLayout({
         </header>
 
         {/* Main content */}
-        <main className="flex-1 pb-24">{children}</main>
+        <main className="flex-1 pb-24 lg:pb-0">{children}</main>
+
+        {/* Desktop footer */}
+        <Footer />
 
         {/* Cart feedback animation */}
         <FlyToCart />
@@ -125,8 +149,8 @@ export default async function RootLayout({
         {/* Analytics */}
         <MetaPixel />
 
-        {/* Fixed bottom navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-surface-container-high/40">
+        {/* Fixed bottom navigation — mobile only */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-surface-container-high/40 lg:hidden">
           <div className="flex items-center justify-around h-16">
             <Link
               href="/"

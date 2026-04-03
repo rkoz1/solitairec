@@ -47,7 +47,7 @@ function ProductGrid({
   priorityFirst?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-5 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-5 lg:grid-cols-3 lg:gap-x-6 xl:grid-cols-4 xl:gap-x-8">
       {products.map((product, index) => (
         <div key={product._id} className={index % 2 === 1 ? "mt-8" : ""}>
           <ProductCard
@@ -91,12 +91,12 @@ export default async function HomePage() {
   const sectionData = await Promise.all(
     sections.map(async (section) => ({
       ...section,
-      products: await getCollectionProducts(section._id, 6),
+      products: await getCollectionProducts(section._id, 4),
     }))
   );
 
   return (
-    <section className="px-5">
+    <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
       {/* Hero — Featured products carousel */}
       {featuredProducts.length > 0 && (
         <div className="pt-4">

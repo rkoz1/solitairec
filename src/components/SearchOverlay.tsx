@@ -69,136 +69,150 @@ export default function SearchOverlay() {
   }
 
   const overlay = open ? (
-    <div className="fixed inset-0 z-[60] bg-white flex flex-col">
-      {/* Top bar — matches NavigationDrawer */}
-      <div className="relative flex items-center justify-between px-5 h-14">
-        <button
-          type="button"
-          aria-label="Back"
-          className="flex items-center justify-center w-10 h-10"
-          onClick={() => setOpen(false)}
-        >
-          <span className="material-symbols-outlined text-on-surface">
-            arrow_back
-          </span>
-        </button>
+    <div className="fixed inset-0 z-[60] flex flex-col lg:items-center lg:justify-start lg:bg-black/20">
+      {/* Desktop backdrop click */}
+      <div className="hidden lg:block absolute inset-0" onClick={() => setOpen(false)} />
 
-        <span className="absolute left-1/2 -translate-x-1/2 font-serif font-bold text-lg tracking-[0.3em] text-on-surface">
-          SOLITAIREC
-        </span>
+      {/* Panel — full screen on mobile, centered dropdown on desktop */}
+      <div className="relative flex flex-col bg-white w-full h-full lg:h-auto lg:max-w-2xl lg:mt-16 lg:max-h-[80vh] lg:shadow-lg">
+        {/* Top bar — mobile only */}
+        <div className="relative flex lg:hidden items-center justify-between px-5 h-14">
+          <button
+            type="button"
+            aria-label="Back"
+            className="flex items-center justify-center w-10 h-10"
+            onClick={() => setOpen(false)}
+          >
+            <span className="material-symbols-outlined text-on-surface">
+              arrow_back
+            </span>
+          </button>
 
-        <button
-          type="button"
-          aria-label="Close search"
-          className="flex items-center justify-center w-10 h-10"
-          onClick={() => setOpen(false)}
-        >
-          <span className="material-symbols-outlined text-on-surface">
-            close
+          <span className="absolute left-1/2 -translate-x-1/2 font-serif font-bold text-lg tracking-[0.3em] text-on-surface">
+            SOLITAIREC
           </span>
-        </button>
-      </div>
 
-      {/* Search input */}
-      <div className="px-6 pt-8">
-        <div className="flex items-center gap-3 pb-3 border-b border-on-surface/20">
-          <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
-            search
-          </span>
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={query}
-            onChange={(e) => handleInput(e.target.value)}
-            placeholder="Search products..."
-            className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/60 outline-none tracking-wide"
-          />
-          {query && (
+          <button
+            type="button"
+            aria-label="Close search"
+            className="flex items-center justify-center w-10 h-10"
+            onClick={() => setOpen(false)}
+          >
+            <span className="material-symbols-outlined text-on-surface">
+              close
+            </span>
+          </button>
+        </div>
+
+        {/* Search input */}
+        <div className="px-6 pt-8 lg:pt-6">
+          <div className="flex items-center gap-3 pb-3 border-b border-on-surface/20">
+            <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
+              search
+            </span>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={query}
+              onChange={(e) => handleInput(e.target.value)}
+              placeholder="Search products..."
+              className="flex-1 bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/60 outline-none tracking-wide"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setResults([]);
+                  setSearched(false);
+                  inputRef.current?.focus();
+                }}
+                className="flex items-center justify-center w-6 h-6"
+              >
+                <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
+                  close
+                </span>
+              </button>
+            )}
+            {/* Desktop close button */}
             <button
               type="button"
-              onClick={() => {
-                setQuery("");
-                setResults([]);
-                setSearched(false);
-                inputRef.current?.focus();
-              }}
-              className="flex items-center justify-center w-6 h-6"
+              onClick={() => setOpen(false)}
+              className="hidden lg:flex items-center justify-center w-8 h-8 text-on-surface-variant hover:text-on-surface transition-colors"
+              aria-label="Close search"
             >
-              <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
-                close
-              </span>
+              <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
+          </div>
+        </div>
+
+        {/* Results */}
+        <div className="flex-1 overflow-y-auto px-6 pt-6 lg:pb-2">
+          {loading && (
+            <div className="flex justify-center pt-12 lg:pt-8">
+              <span className="font-serif text-2xl text-on-surface animate-brand-pulse">
+                S
+              </span>
+            </div>
+          )}
+
+          {!loading && searched && results.length === 0 && (
+            <p className="text-center text-sm text-on-surface-variant pt-12 lg:pt-8 lg:pb-8">
+              No products found.
+            </p>
+          )}
+
+          {!loading && results.length > 0 && (
+            <div className="space-y-0">
+              <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary mb-4">
+                Top results
+              </p>
+              {results.map((product) => (
+                <Link
+                  key={product._id}
+                  href={`/products/${product.slug}`}
+                  onClick={handleResultClick}
+                  className="flex gap-4 py-3 group"
+                >
+                  <div className="shrink-0 w-16 h-[85px] bg-surface-container-low relative">
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.name}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-center min-w-0">
+                    <h3 className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface truncate group-hover:text-secondary transition-colors">
+                      {product.name}
+                    </h3>
+                    <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
+                      {product.price}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Results */}
-      <div className="flex-1 overflow-y-auto px-6 pt-6">
-        {loading && (
-          <div className="flex justify-center pt-12">
-            <span className="font-serif text-2xl text-on-surface animate-brand-pulse">
-              S
-            </span>
-          </div>
-        )}
-
-        {!loading && searched && results.length === 0 && (
-          <p className="text-center text-sm text-on-surface-variant pt-12">
-            No products found.
-          </p>
-        )}
-
-        {!loading && results.length > 0 && (
-          <div className="space-y-0">
-            <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary mb-4">
-              Top results
-            </p>
-            {results.map((product) => (
-              <Link
-                key={product._id}
-                href={`/products/${product.slug}`}
-                onClick={handleResultClick}
-                className="flex gap-4 py-3 group"
-              >
-                <div className="shrink-0 w-16 h-[85px] bg-surface-container-low relative">
-                  <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="flex-1 flex flex-col justify-center min-w-0">
-                  <h3 className="text-[11px] tracking-[0.12em] uppercase font-medium text-on-surface truncate group-hover:text-secondary transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="mt-1 text-[10px] tracking-widest text-on-surface-variant">
-                    {product.price}
-                  </p>
-                </div>
-              </Link>
-            ))}
-
+        {/* Fixed footer: View all results */}
+        {!loading && searched && results.length > 0 && (
+          <div className="shrink-0 border-t border-outline-variant/20 px-6">
+            <Link
+              href={`/search?q=${encodeURIComponent(query)}`}
+              onClick={handleResultClick}
+              className="flex items-center justify-center gap-2 py-4 text-xs tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors"
+            >
+              View all results
+              <span className="material-symbols-outlined text-[16px]">
+                arrow_forward
+              </span>
+            </Link>
           </div>
         )}
       </div>
-
-      {/* Fixed footer: View all results */}
-      {!loading && searched && results.length > 0 && (
-        <div className="shrink-0 border-t border-outline-variant/20 px-6">
-          <Link
-            href={`/search?q=${encodeURIComponent(query)}`}
-            onClick={handleResultClick}
-            className="flex items-center justify-center gap-2 py-4 text-xs tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors"
-          >
-            View all results
-            <span className="material-symbols-outlined text-[16px]">
-              arrow_forward
-            </span>
-          </Link>
-        </div>
-      )}
     </div>
   ) : null;
 

@@ -70,7 +70,7 @@ export default function CollectionClient({ slug }: Props) {
   }
 
   return (
-    <section className="px-5">
+    <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
       <div className="pt-12 pb-10">
         <h1 className="font-serif italic text-2xl tracking-tight text-on-surface">
           {displayName(data.name)}
@@ -94,7 +94,7 @@ export default function CollectionClient({ slug }: Props) {
           No products match your filters.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-5 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-5 lg:grid-cols-3 lg:gap-x-6 xl:grid-cols-4 xl:gap-x-8">
           {filtered.map((product, index) => (
             <div key={product._id} className={index % 2 === 1 ? "mt-8" : ""}>
               <ProductCard

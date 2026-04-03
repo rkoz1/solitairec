@@ -33,7 +33,7 @@ export default function CartPage() {
   const [activeTab, setActiveTab] = useState<"bag" | "wishlist" | "recent">(initialTab);
 
   return (
-    <div className="px-6 pt-12">
+    <div className="px-6 pt-12 lg:px-10 xl:max-w-7xl xl:mx-auto">
       <h1 className="font-serif italic text-2xl tracking-tight text-on-surface">
         Your Bag
       </h1>
