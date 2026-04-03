@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
 import { getWixImageUrl } from "@/lib/wix-image";
 
@@ -21,73 +22,47 @@ interface CatalogProduct {
   descriptionLower: string;
 }
 
-let cachedProducts: CatalogProduct[] = [];
-let cacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+async function fetchFullCatalog(): Promise<CatalogProduct[]> {
+  const wix = getServerWixClient();
+  const allProducts: CatalogProduct[] = [];
+  let offset = 0;
+  const PAGE_SIZE = 100;
 
-let refreshing = false;
+  while (true) {
+    const { items } = await wix.products
+      .queryProducts()
+      .limit(PAGE_SIZE)
+      .skip(offset)
+      .find();
 
-async function refreshCatalog() {
-  if (refreshing) return;
-  refreshing = true;
-  try {
-    const wix = getServerWixClient();
-    const allProducts: CatalogProduct[] = [];
-    let offset = 0;
-    const PAGE_SIZE = 100;
+    for (const p of items) {
+      // Skip out-of-stock products
+      const stock = p.stock as { inventoryStatus?: string } | undefined;
+      if (stock?.inventoryStatus === "OUT_OF_STOCK") continue;
 
-    while (true) {
-      const { items } = await wix.products
-        .queryProducts()
-        .limit(PAGE_SIZE)
-        .skip(offset)
-        .find();
-
-      for (const p of items) {
-        // Skip out-of-stock products
-        const stock = p.stock as { inventoryStatus?: string } | undefined;
-        if (stock?.inventoryStatus === "OUT_OF_STOCK") continue;
-
-        allProducts.push({
-          _id: p._id ?? "",
-          name: p.name ?? "",
-          nameLower: (p.name ?? "").toLowerCase(),
-          slug: p.slug ?? "",
-          price: p.priceData?.formatted?.price ?? "",
-          imageUrl: getWixImageUrl(p.media?.mainMedia?.image?.url, 200, 267),
-          descriptionLower: (p.description ?? "").toLowerCase(),
-        });
-      }
-
-      if (items.length < PAGE_SIZE) break;
-      offset += PAGE_SIZE;
+      allProducts.push({
+        _id: p._id ?? "",
+        name: p.name ?? "",
+        nameLower: (p.name ?? "").toLowerCase(),
+        slug: p.slug ?? "",
+        price: p.priceData?.formatted?.price ?? "",
+        imageUrl: getWixImageUrl(p.media?.mainMedia?.image?.url, 200, 267),
+        descriptionLower: (p.description ?? "").toLowerCase(),
+      });
     }
 
-    cachedProducts = allProducts;
-    cacheTime = Date.now();
-  } finally {
-    refreshing = false;
+    if (items.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
   }
+
+  return allProducts;
 }
 
-export async function getProductCatalog() {
-  const expired = Date.now() - cacheTime > CACHE_TTL;
-
-  // Stale cache: serve it but refresh in background
-  if (cachedProducts.length > 0 && expired) {
-    refreshCatalog();
-    return cachedProducts;
-  }
-
-  // Fresh cache: serve directly
-  if (cachedProducts.length > 0) {
-    return cachedProducts;
-  }
-
-  // Cold start: must wait
-  await refreshCatalog();
-  return cachedProducts;
-}
+export const getProductCatalog = unstable_cache(
+  fetchFullCatalog,
+  ["product-catalog"],
+  { revalidate: 600, tags: ["product-catalog"] }
+);
 
 export async function searchProducts(
   query: string
