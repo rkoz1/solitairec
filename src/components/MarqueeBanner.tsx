@@ -1,32 +1,37 @@
+import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
-async function getBannerContent() {
-  try {
-    const wix = getServerWixClient();
-    const result = await wix.dataItems
-      .query("WebsiteContent")
-      .eq("id", 1)
-      .find();
+const getBannerContent = unstable_cache(
+  async () => {
+    try {
+      const wix = getServerWixClient();
+      const result = await wix.dataItems
+        .query("WebsiteContent")
+        .eq("id", 1)
+        .find();
 
-    const item = result.items[0];
-    if (!item || item._publishStatus !== "PUBLISHED") return null;
+      const item = result.items[0];
+      if (!item || item._publishStatus !== "PUBLISHED") return null;
 
-    const title = item.title_fld as string | undefined;
-    const description = item.description_fld as string | undefined;
-    if (!title && !description) return null;
+      const title = item.title_fld as string | undefined;
+      const description = item.description_fld as string | undefined;
+      if (!title && !description) return null;
 
-    return {
-      title: title ?? "",
-      description: description ? stripHtml(description) : "",
-    };
-  } catch {
-    return null;
-  }
-}
+      return {
+        title: title ?? "",
+        description: description ? stripHtml(description) : "",
+      };
+    } catch {
+      return null;
+    }
+  },
+  ["banner-content"],
+  { revalidate: 600, tags: ["banner-content"] }
+);
 
 export default async function MarqueeBanner() {
   const content = await getBannerContent();

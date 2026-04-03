@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
 import ProductCard from "@/components/ProductCard";
 import { CATEGORY_HIERARCHY } from "@/lib/collections";
@@ -26,7 +27,7 @@ export default async function CompleteTheLook({
 }: CompleteTheLookProps) {
   try {
     const { products, heading } =
-      await getRecommendedProducts(currentProductId);
+      await getCachedRecommendedProducts(currentProductId);
     if (products.length < MIN_ITEMS) return null;
 
     return (
@@ -112,6 +113,16 @@ function filterOutSameCategory(
     return categoryNames.some((name) => !sameCategoryNames.has(name));
   });
 }
+
+const getCachedRecommendedProducts = unstable_cache(
+  async (
+    currentProductId: string,
+  ): Promise<{ products: Product[]; heading: string }> => {
+    return getRecommendedProducts(currentProductId);
+  },
+  ["recommended-products"],
+  { revalidate: 1800, tags: ["recommendations"] }
+);
 
 async function getRecommendedProducts(
   currentProductId: string,

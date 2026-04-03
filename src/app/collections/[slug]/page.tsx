@@ -1,25 +1,15 @@
 import type { Metadata } from "next";
-import { getServerWixClient } from "@/lib/wix-server-client";
 import { displayName } from "@/lib/collections";
+import { getCollectionBySlug } from "@/lib/collections";
 import CollectionClient from "./CollectionClient";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-async function getCollection(slug: string) {
-  try {
-    const wix = getServerWixClient();
-    const result = await wix.collections.getCollectionBySlug(slug);
-    return result.collection ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const collection = await getCollection(slug);
+  const collection = await getCollectionBySlug(slug);
   if (!collection) return {};
 
   const name = displayName(collection.name ?? slug);

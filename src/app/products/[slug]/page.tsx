@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -41,17 +42,21 @@ function fixWixHtml(html: string): string {
     .replace(/:([^\s/<])/g, ": $1");
 }
 
-async function getFittingDefaults(): Promise<Map<string, string>> {
-  const wix = getServerWixClient();
-  const result = await wix.dataItems.query("Fitting").find();
-  const map = new Map<string, string>();
-  for (const item of result.items) {
-    const title = (item.title ?? item.title_fld) as string | undefined;
-    const desc = (item.description ?? item.description_fld) as string | undefined;
-    if (title && desc) map.set(title, desc);
-  }
-  return map;
-}
+const getFittingDefaults = unstable_cache(
+  async (): Promise<Record<string, string>> => {
+    const wix = getServerWixClient();
+    const result = await wix.dataItems.query("Fitting").find();
+    const map: Record<string, string> = {};
+    for (const item of result.items) {
+      const title = (item.title ?? item.title_fld) as string | undefined;
+      const desc = (item.description ?? item.description_fld) as string | undefined;
+      if (title && desc) map[title] = desc;
+    }
+    return map;
+  },
+  ["fitting-defaults"],
+  { revalidate: 86400, tags: ["fitting"] }
+);
 
 async function getProductCategory(collectionIds: string[]): Promise<string | null> {
   const allCollections = await getAllCollections();
@@ -132,7 +137,7 @@ export default async function ProductPage({ params }: Props) {
       getProductCategory(product.collectionIds ?? []),
     ]);
     if (category) {
-      const fallbackDesc = fittingDefaults.get(category);
+      const fallbackDesc = fittingDefaults[category];
       if (fallbackDesc) {
         product.additionalInfoSections = [
           ...(product.additionalInfoSections ?? []),
