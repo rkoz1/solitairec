@@ -115,6 +115,7 @@ body {
   width: 100%;
   table-layout: auto;
   border-collapse: collapse;
+  margin-top: 1rem;
 }
 
 .wix-rich-content th,

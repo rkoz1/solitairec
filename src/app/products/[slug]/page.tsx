@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
-import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -42,23 +41,52 @@ function fixWixHtml(html: string): string {
     .replace(/:([^\s/<])/g, ": $1");
 }
 
-const getFittingDefaults = unstable_cache(
-  async (): Promise<Record<string, string>> => {
-    const wix = getServerWixClient();
-    const result = await wix.dataItems.query("Fitting").find();
-    const map: Record<string, string> = {};
-    for (const item of result.items) {
-      const title = (item.title ?? item.title_fld) as string | undefined;
-      const desc = (item.description ?? item.description_fld) as string | undefined;
-      if (title && desc) map[title] = desc;
-    }
-    return map;
-  },
-  ["fitting-defaults"],
-  { revalidate: 86400, tags: ["fitting"] }
-);
+interface RichContentNode {
+  type: string;
+  nodes?: RichContentNode[];
+  textData?: { text?: string; decorations?: { type: string }[] };
+  paragraphData?: Record<string, unknown>;
+  tableCellData?: Record<string, unknown>;
+  tableData?: { dimensions?: { colsWidthRatio?: number[] } };
+}
 
-async function getProductCategory(collectionIds: string[]): Promise<string | null> {
+function richContentToHtml(nodes: RichContentNode[]): string {
+  return nodes.map((node) => {
+    const children = node.nodes ? richContentToHtml(node.nodes) : "";
+    switch (node.type) {
+      case "TEXT":
+        return node.textData?.text ?? "";
+      case "PARAGRAPH":
+        return `<p>${children}</p>`;
+      case "TABLE":
+        return `<table>${children}</table>`;
+      case "TABLE_ROW":
+        return `<tr>${children}</tr>`;
+      case "TABLE_CELL":
+        return `<td>${children}</td>`;
+      default:
+        return children;
+    }
+  }).join("");
+}
+
+async function getFittingDefaults(): Promise<Record<string, string>> {
+  const wix = getServerWixClient();
+  const result = await wix.dataItems.query("Fitting").find();
+  const map: Record<string, string> = {};
+  for (const item of result.items) {
+    const title = (item.title ?? item.title_fld) as string | undefined;
+    // Prefer rich content field (output), fall back to description_fld
+    const richContent = item.output as { nodes?: RichContentNode[] } | undefined;
+    const html = richContent?.nodes
+      ? richContentToHtml(richContent.nodes)
+      : (item.description ?? item.description_fld) as string | undefined;
+    if (title && html) map[title] = html;
+  }
+  return map;
+}
+
+async function getProductCategories(collectionIds: string[]): Promise<string[]> {
   const allCollections = await getAllCollections();
   const collectionMap = new Map(allCollections.map((c) => [c._id, c]));
   const productCollections = collectionIds
@@ -66,12 +94,18 @@ async function getProductCategory(collectionIds: string[]): Promise<string | nul
     .filter(Boolean) as { name: string; slug: string; _id: string }[];
 
   for (const cat of CATEGORY_HIERARCHY) {
-    if (productCollections.some((c) => c.name === cat.name)) return displayName(cat.name);
-    if (cat.children?.some((child) => productCollections.some((c) => c.name === child))) {
-      return displayName(cat.name);
+    const matchedChild = cat.children?.find((child) =>
+      productCollections.some((c) => c.name === child)
+    );
+    if (matchedChild) {
+      // Return child first (specific), then parent (general) as fallback
+      return [displayName(matchedChild), displayName(cat.name)];
+    }
+    if (productCollections.some((c) => c.name === cat.name)) {
+      return [displayName(cat.name)];
     }
   }
-  return null;
+  return [];
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -132,18 +166,20 @@ export default async function ProductPage({ params }: Props) {
     (s) => s.title?.toLowerCase() === "fitting"
   );
   if (!hasFitting) {
-    const [fittingDefaults, category] = await Promise.all([
+    const [fittingDefaults, categories] = await Promise.all([
       getFittingDefaults(),
-      getProductCategory(product.collectionIds ?? []),
+      getProductCategories(product.collectionIds ?? []),
     ]);
-    if (category) {
-      const fallbackDesc = fittingDefaults[category];
-      if (fallbackDesc) {
-        product.additionalInfoSections = [
-          ...(product.additionalInfoSections ?? []),
-          { title: "Fitting", description: fallbackDesc },
-        ];
-      }
+    // Try most specific category first (e.g. "Skirts"), then parent (e.g. "Dresses")
+    const fallbackDesc = categories.reduce<string | undefined>(
+      (found, cat) => found ?? fittingDefaults[cat],
+      undefined
+    );
+    if (fallbackDesc) {
+      product.additionalInfoSections = [
+        ...(product.additionalInfoSections ?? []),
+        { title: "Fitting", description: fallbackDesc },
+      ];
     }
   }
 
