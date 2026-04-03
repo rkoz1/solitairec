@@ -1,19 +1,80 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
+import { getBrowserWixClient } from "@/lib/wix-browser-client";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
 export default function MetaPixel() {
   const pathname = usePathname();
+  const [userDataReady, setUserDataReady] = useState(false);
+
+  // Fetch member data for Advanced Matching on mount
+  useEffect(() => {
+    if (!PIXEL_ID || typeof window === "undefined") return;
+
+    async function loadUserData() {
+      try {
+        const wix = getBrowserWixClient();
+        const tokens = wix.auth.getTokens();
+        if (!tokens.accessToken?.value) {
+          setUserDataReady(true);
+          return;
+        }
+
+        const response = await wix.members
+          .getCurrentMember({ fieldsets: ["FULL"] })
+          .catch(() => null);
+        const res = response as {
+          member?: {
+            loginEmail?: string;
+            contact?: {
+              firstName?: string;
+              lastName?: string;
+              emails?: string[];
+              phones?: string[];
+            };
+          };
+        } | null;
+
+        const member = res?.member;
+        if (member && window.fbq) {
+          const advancedData: Record<string, string> = {};
+          const email =
+            member.loginEmail ?? member.contact?.emails?.[0];
+          if (email) advancedData.em = email;
+          const phone = member.contact?.phones?.[0];
+          if (phone) advancedData.ph = phone.replace(/\D/g, "");
+          if (member.contact?.firstName)
+            advancedData.fn = member.contact.firstName;
+          if (member.contact?.lastName)
+            advancedData.ln = member.contact.lastName;
+
+          if (Object.keys(advancedData).length > 0) {
+            window.fbq("init", PIXEL_ID, advancedData);
+          }
+        }
+      } catch {
+        // Not logged in or API unavailable — pixel works without advanced matching
+      }
+      setUserDataReady(true);
+    }
+
+    loadUserData();
+
+    // Re-check on auth changes
+    const handler = () => loadUserData();
+    window.addEventListener("auth-changed", handler);
+    return () => window.removeEventListener("auth-changed", handler);
+  }, []);
 
   // Fire PageView on route changes
   useEffect(() => {
-    if (!PIXEL_ID || typeof window === "undefined" || !window.fbq) return;
+    if (!PIXEL_ID || !userDataReady || typeof window === "undefined" || !window.fbq) return;
     window.fbq("track", "PageView");
-  }, [pathname]);
+  }, [pathname, userDataReady]);
 
   if (!PIXEL_ID) return null;
 
