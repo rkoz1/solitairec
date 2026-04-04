@@ -54,22 +54,34 @@ export default function OrderConfirmationPage() {
       return;
     }
 
-    if (!orderId) {
-      setLoading(false);
-      return;
-    }
-
     async function fetchOrder() {
       try {
         const wix = getBrowserWixClient();
         await ensureVisitorTokens(wix);
 
-        // Search for the order by ID (cart checkout orders tied to visitor session)
-        const result = await wix.orders.searchOrders({
-          search: { filter: { "id": { "$eq": orderId } } },
-        });
+        let found;
 
-        const found = result.orders?.[0];
+        if (orderId) {
+          // Fetch by specific order ID
+          const result = await wix.orders.searchOrders({
+            search: { filter: { "id": { "$eq": orderId } } },
+          });
+          found = result.orders?.[0];
+        } else {
+          // Cart checkout redirect — no orderId param. Fetch the most recent order.
+          const result = await wix.orders.searchOrders({
+            search: {
+              filter: {},
+              cursorPaging: { limit: 1 },
+            },
+          });
+          found = result.orders?.[0];
+          // Only use if created in the last 5 minutes (to avoid showing an old order)
+          if (found?._createdDate) {
+            const ageMs = Date.now() - new Date(found._createdDate).getTime();
+            if (ageMs > 5 * 60 * 1000) found = undefined;
+          }
+        }
         if (found) {
           setOrder({
             orderNumber: found.number?.toString() ?? orderId ?? "",
@@ -111,6 +123,7 @@ export default function OrderConfirmationPage() {
       }
     }
     fetchOrder();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, source]);
 
   // Clear cart badge since order is placed

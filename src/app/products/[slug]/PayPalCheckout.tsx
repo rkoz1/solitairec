@@ -5,6 +5,7 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics } from "@/lib/analytics";
+import { showToast } from "@/lib/toast";
 
 interface PayPalCheckoutProps {
   productId: string;
@@ -110,8 +111,10 @@ function PayPalButtonsInner({
       sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
       window.location.href = `/order-confirmation?source=express`;
     } else {
-      // Payment captured but Wix order failed — still redirect
-      window.location.href = `/order-confirmation?paypalOrder=${data.orderID}`;
+      // Payment captured but Wix order failed
+      const errData = await res.json().catch(() => ({}));
+      console.error("PayPal order creation failed:", errData);
+      showToast("Your payment was processed but we had trouble creating your order. Please contact us and we'll sort it out.", "error");
     }
   }, []);
 
@@ -131,6 +134,7 @@ function PayPalButtonsInner({
         onApprove={onApprove}
         onError={(err) => {
           console.error("PayPal error:", err);
+          showToast("PayPal payment failed. Please try again or use another payment method.", "error");
         }}
       />
     </div>

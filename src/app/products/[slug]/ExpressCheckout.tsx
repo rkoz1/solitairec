@@ -18,6 +18,7 @@ import { getStripe } from "@/lib/stripe-client";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics } from "@/lib/analytics";
+import { showToast } from "@/lib/toast";
 
 interface ExpressCheckoutProps {
   productId: string;
@@ -214,6 +215,7 @@ function ExpressCheckoutInner({
 
         if (confirmError) {
           console.error("Payment failed:", confirmError.message);
+          showToast(confirmError.message ?? "Payment failed. Please try again.", "error");
           setProcessing(false);
           return;
         }
@@ -260,11 +262,14 @@ function ExpressCheckoutInner({
           sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
           window.location.href = `/order-confirmation?source=express`;
         } else {
-          // Payment succeeded but order creation failed — still show confirmation
-          window.location.href = `/order-confirmation?stripePayment=${paymentIntentId}`;
+          // Payment succeeded but order creation failed
+          const errData = await orderRes.json().catch(() => ({}));
+          console.error("Order creation failed:", errData);
+          showToast("Your payment was processed but we had trouble creating your order. Please contact us and we'll sort it out.", "error");
         }
       } catch (err) {
         console.error("Express checkout error:", err);
+        showToast("Something went wrong during checkout. Please try again.", "error");
       } finally {
         setProcessing(false);
       }

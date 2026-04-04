@@ -87,7 +87,8 @@
       "Bash(grep -r \"wix\\\\\\\\.inbox\\\\|wix\\\\\\\\.conversations\\\\|wix\\\\\\\\.messages\" /c/dev/solitairec/src --include=\"*.ts\" --include=\"*.tsx\")",
       "Bash(find . -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"memberId\\\\|visitorId\" {} \\\\;)",
       "Bash(find ./src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"memberId\\\\|visitorId\" {} \\\\;)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(grep:*)"
     ]
   }
 }

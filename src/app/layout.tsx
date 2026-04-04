@@ -14,6 +14,7 @@ import DesktopNav from "@/components/DesktopNav";
 import Footer from "@/components/Footer";
 import MetaPixel from "@/components/MetaPixel";
 import Clarity from "@/components/Clarity";
+import CookieConsent from "@/components/CookieConsent";
 import { Analytics } from "@vercel/analytics/react";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -155,10 +156,13 @@ export default async function RootLayout({
         {/* Chat widget */}
         <WixChat />
 
-        {/* Analytics */}
+        {/* Analytics — Vercel Analytics is privacy-friendly (ungated) */}
         <Analytics />
-        <Clarity />
-        <MetaPixel />
+        {/* Tracking scripts gated behind cookie consent */}
+        <CookieConsent>
+          <Clarity />
+          <MetaPixel />
+        </CookieConsent>
 
         {/* Fixed bottom navigation — mobile only */}
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-surface-container-high/40 lg:hidden">
