@@ -13,6 +13,7 @@ import RegionSelector from "@/components/RegionSelector";
 import DesktopNav from "@/components/DesktopNav";
 import Footer from "@/components/Footer";
 import MetaPixel from "@/components/MetaPixel";
+import Clarity from "@/components/Clarity";
 import { Analytics } from "@vercel/analytics/react";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -156,6 +157,7 @@ export default async function RootLayout({
 
         {/* Analytics */}
         <Analytics />
+        <Clarity />
         <MetaPixel />
 
         {/* Fixed bottom navigation — mobile only */}
