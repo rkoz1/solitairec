@@ -18,6 +18,7 @@ async function identifyUser() {
   const { user_id, user_type } = getUserIdentity();
   if (!user_id) return;
 
+  let clarityId = user_id;
   let friendlyName: string | undefined;
 
   if (user_type === "member") {
@@ -26,10 +27,17 @@ async function identifyUser() {
       const response = await wix.members.getCurrentMember({ fieldsets: ["FULL"] }).catch(() => null);
       const res = response as {
         member?: {
+          _id?: string;
           contact?: { firstName?: string; lastName?: string };
           loginEmail?: string;
         };
       } | null;
+
+      // Use the actual Wix member ID for Clarity so it can be reconciled in Wix dashboard
+      if (res?.member?._id) {
+        clarityId = res.member._id;
+      }
+
       const contact = res?.member?.contact;
       if (contact?.firstName) {
         friendlyName = [contact.firstName, contact.lastName].filter(Boolean).join(" ");
@@ -39,8 +47,11 @@ async function identifyUser() {
     } catch { /* fall through without name */ }
   }
 
-  window.clarity("identify", user_id, undefined, undefined, friendlyName ?? (user_type === "visitor" ? "Visitor" : undefined));
+  window.clarity("identify", clarityId, undefined, undefined, friendlyName ?? (user_type === "visitor" ? "Visitor" : undefined));
   window.clarity("set", "user_type", user_type ?? "visitor");
+  if (user_type === "member") {
+    window.clarity("set", "member_id", clarityId);
+  }
 }
 
 export default function Clarity() {

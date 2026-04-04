@@ -25,21 +25,21 @@ export function getUserIdentity(): {
     const wix = getBrowserWixClient();
     const tokens = wix.auth.getTokens();
     const raw = tokens as {
-      memberId?: string;
       accessToken?: { value?: string };
+      refreshToken?: { role?: string };
     };
 
-    if (raw.memberId) {
-      cachedUserId = raw.memberId;
-      cachedUserType = "member";
-    } else if (raw.accessToken?.value) {
+    // Detect member vs visitor from refreshToken.role (memberId doesn't exist on Tokens)
+    const isMember = raw.refreshToken?.role === "member";
+
+    if (raw.accessToken?.value) {
       try {
         const payload = JSON.parse(
           atob(raw.accessToken.value.split(".")[1])
         );
         if (payload.sub) {
           cachedUserId = payload.sub;
-          cachedUserType = "visitor";
+          cachedUserType = isMember ? "member" : "visitor";
         }
       } catch {
         /* malformed token */
