@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { submitContactForm } from "./actions";
+import { trackAnalytics } from "@/lib/analytics";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -26,6 +27,7 @@ export default function ContactForm() {
 
     if (result.success) {
       setStatus("success");
+      trackAnalytics("contact_form_submit", { subject: data.get("subject") as string });
       form.reset();
     } else {
       setStatus("error");

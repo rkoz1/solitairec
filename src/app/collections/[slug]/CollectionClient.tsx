@@ -13,6 +13,7 @@ import CollectionFilters, {
   type FilterState,
 } from "@/components/CollectionFilters";
 import LoadingIndicator from "@/components/LoadingIndicator";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface Props {
   slug: string;
@@ -31,6 +32,13 @@ export default function CollectionClient({ slug }: Props) {
       .then((result) => {
         setData(result);
         setLoading(false);
+        if (result) {
+          trackAnalytics("collection_view", {
+            collection_slug: slug,
+            collection_name: result.name,
+            product_count: result.products.length,
+          });
+        }
       });
   }, [slug, sort]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -83,9 +91,24 @@ export default function CollectionClient({ slug }: Props) {
         availableColors={data.availableColors}
         priceRange={data.priceRange}
         filters={filters}
-        onChange={setFilters}
+        onChange={(f) => {
+          setFilters(f);
+          // Determine which filter changed
+          const changed = (["sizes", "colors"] as const).find(
+            (k) => JSON.stringify(f[k]) !== JSON.stringify(filters[k])
+          ) ?? (f.minPrice !== filters.minPrice || f.maxPrice !== filters.maxPrice ? "price" : null);
+          if (changed) {
+            trackAnalytics("filter_apply", {
+              collection_slug: slug,
+              filter_type: changed,
+            });
+          }
+        }}
         sort={sort}
-        onSortChange={setSort}
+        onSortChange={(s) => {
+          setSort(s);
+          trackAnalytics("sort_change", { collection_slug: slug, sort_by: s });
+        }}
         resultCount={filtered.length}
       />
 

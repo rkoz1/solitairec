@@ -9,6 +9,7 @@ import {
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface ProductOption {
   name: string;
@@ -59,6 +60,10 @@ export default memo(function ProductCardActions({
     e.stopPropagation();
     const nowIn = toggleWishlist(productId);
     setInWishlist(nowIn);
+    trackAnalytics(nowIn ? "wishlist_add" : "wishlist_remove", {
+      product_id: productId,
+      source: "product_card",
+    });
   }
 
   function handleBag(e: React.MouseEvent) {
@@ -147,6 +152,11 @@ export default memo(function ProductCardActions({
       }
 
       window.dispatchEvent(new Event("cart-updated"));
+      trackAnalytics("quick_add_to_cart", {
+        product_id: productId,
+        product_name: productName ?? "",
+        source: "product_card",
+      });
 
       // Fly-to-cart animation
       const cardEl = document.querySelector(`[data-product-id="${productId}"]`);

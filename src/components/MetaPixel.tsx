@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { resetUserIdentity } from "@/lib/analytics";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
@@ -40,17 +41,36 @@ export default function MetaPixel() {
         } | null;
 
         const member = res?.member;
-        if (member && window.fbq) {
+        if (window.fbq) {
           const advancedData: Record<string, string> = {};
-          const email =
-            member.loginEmail ?? member.contact?.emails?.[0];
-          if (email) advancedData.em = email;
-          const phone = member.contact?.phones?.[0];
-          if (phone) advancedData.ph = phone.replace(/\D/g, "");
-          if (member.contact?.firstName)
-            advancedData.fn = member.contact.firstName;
-          if (member.contact?.lastName)
-            advancedData.ln = member.contact.lastName;
+
+          // Attach external_id for cross-device matching
+          const rawTokens = tokens as {
+            memberId?: string;
+            accessToken?: { value?: string };
+          };
+          if (rawTokens.memberId) {
+            advancedData.external_id = rawTokens.memberId;
+          } else if (rawTokens.accessToken?.value) {
+            try {
+              const payload = JSON.parse(
+                atob(rawTokens.accessToken.value.split(".")[1])
+              );
+              if (payload.sub) advancedData.external_id = payload.sub;
+            } catch { /* ignore */ }
+          }
+
+          if (member) {
+            const email =
+              member.loginEmail ?? member.contact?.emails?.[0];
+            if (email) advancedData.em = email;
+            const phone = member.contact?.phones?.[0];
+            if (phone) advancedData.ph = phone.replace(/\D/g, "");
+            if (member.contact?.firstName)
+              advancedData.fn = member.contact.firstName;
+            if (member.contact?.lastName)
+              advancedData.ln = member.contact.lastName;
+          }
 
           if (Object.keys(advancedData).length > 0) {
             window.fbq("init", PIXEL_ID, advancedData);
@@ -64,8 +84,11 @@ export default function MetaPixel() {
 
     loadUserData();
 
-    // Re-check on auth changes
-    const handler = () => loadUserData();
+    // Re-check on auth changes (also reset analytics identity cache)
+    const handler = () => {
+      resetUserIdentity();
+      loadUserData();
+    };
     window.addEventListener("auth-changed", handler);
     return () => window.removeEventListener("auth-changed", handler);
   }, []);

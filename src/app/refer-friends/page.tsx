@@ -5,6 +5,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
+import { trackAnalytics } from "@/lib/analytics";
 
 export default function ReferFriendsPage() {
   const [referralCode, setReferralCode] = useState<string | null>(null);
@@ -37,6 +38,7 @@ export default function ReferFriendsPage() {
     if (!referralUrl) return;
     navigator.clipboard.writeText(referralUrl).then(() => {
       setCopied(true);
+      trackAnalytics("referral_copy_link");
       setTimeout(() => setCopied(false), 2000);
     });
   }

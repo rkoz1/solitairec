@@ -17,6 +17,7 @@ import type {
 import { getStripe } from "@/lib/stripe-client";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface ExpressCheckoutProps {
   productId: string;
@@ -122,6 +123,9 @@ function ExpressCheckoutInner({
   const onClick = useCallback(
     (event: StripeExpressCheckoutElementClickEvent) => {
       trackEvent("InitiateCheckout", { currency: "HKD" });
+      trackAnalytics("express_checkout_click", {
+        payment_method: "wallet",
+      });
       event.resolve({
         emailRequired: true,
         shippingAddressRequired: true,

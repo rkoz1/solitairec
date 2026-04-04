@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { searchProducts, type SearchResult } from "@/app/search/actions";
+import { trackAnalytics } from "@/lib/analytics";
 
 export default function SearchOverlay() {
   const [open, setOpen] = useState(false);
@@ -51,6 +52,7 @@ export default function SearchOverlay() {
       const data = await searchProducts(q);
       setResults(data);
       setSearched(true);
+      trackAnalytics("search_query", { query: q, result_count: data.length });
     } catch (err) {
       console.error("Search failed:", err);
     } finally {
@@ -64,7 +66,14 @@ export default function SearchOverlay() {
     debounceRef.current = setTimeout(() => doSearch(value), 300);
   }
 
-  function handleResultClick() {
+  function handleResultClick(productSlug?: string, position?: number) {
+    if (productSlug !== undefined) {
+      trackAnalytics("search_result_click", {
+        query,
+        product_slug: productSlug,
+        position: position ?? 0,
+      });
+    }
     setOpen(false);
   }
 
@@ -167,11 +176,11 @@ export default function SearchOverlay() {
               <p className="text-[10px] tracking-[0.2em] uppercase font-medium text-secondary mb-4">
                 Top results
               </p>
-              {results.map((product) => (
+              {results.map((product, index) => (
                 <Link
                   key={product._id}
                   href={`/products/${product.slug}`}
-                  onClick={handleResultClick}
+                  onClick={() => handleResultClick(product.slug, index)}
                   className="flex gap-4 py-3 group"
                 >
                   <div className="shrink-0 w-16 h-[85px] bg-surface-container-low relative">
@@ -202,7 +211,10 @@ export default function SearchOverlay() {
           <div className="shrink-0 border-t border-outline-variant/20 px-6">
             <Link
               href={`/search?q=${encodeURIComponent(query)}`}
-              onClick={handleResultClick}
+              onClick={() => {
+                trackAnalytics("search_view_all", { query, result_count: results.length });
+                handleResultClick();
+              }}
               className="flex items-center justify-center gap-2 py-4 text-xs tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors"
             >
               View all results
@@ -224,6 +236,7 @@ export default function SearchOverlay() {
         className="flex items-center justify-center w-10 h-10"
         onClick={() => {
           setOpen(true);
+          trackAnalytics("search_open");
           window.dispatchEvent(new Event("overlay-opened"));
         }}
       >

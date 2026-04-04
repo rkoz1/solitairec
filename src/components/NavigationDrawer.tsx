@@ -6,6 +6,7 @@ import Link from "next/link";
 import { fetchNavCategories } from "@/app/collections/actions";
 import { displayName } from "@/lib/collections";
 import type { NavCategory } from "@/lib/collections";
+import { trackAnalytics } from "@/lib/analytics";
 
 const INSTAGRAM_SVG = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -84,7 +85,10 @@ export default function NavigationDrawer() {
                 <div className="flex items-center justify-between">
                   <Link
                     href={`/collections/${cat.slug}`}
-                    onClick={close}
+                    onClick={() => {
+                      trackAnalytics("nav_category_click", { category: displayName(cat.name), source: "mobile" });
+                      close();
+                    }}
                     className="flex-1 py-4 font-serif text-lg tracking-tight text-on-surface"
                   >
                     {displayName(cat.name)}

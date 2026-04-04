@@ -7,6 +7,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
+import { trackAnalytics } from "@/lib/analytics";
 
 const UNSUB_KEY = "solitairec_newsletter_unsub";
 
@@ -78,6 +79,7 @@ export default function NewsletterSignup({ alwaysShow = false }: { alwaysShow?: 
     } else if (result.success) {
       setStatus("success");
       setEmail("");
+      trackAnalytics("newsletter_subscribe", { source: alwaysShow ? "newsletter_page" : "footer" });
       setTimeout(() => setStatus("already"), 4000);
     } else {
       setStatus("error");

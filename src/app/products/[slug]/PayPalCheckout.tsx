@@ -4,6 +4,7 @@ import { useRef, useCallback } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface PayPalCheckoutProps {
   productId: string;
@@ -45,6 +46,9 @@ function PayPalButtonsInner({
     const { productId, selectedOptions, variantId } = propsRef.current;
 
     trackEvent("InitiateCheckout", { currency: "HKD" });
+    trackAnalytics("paypal_checkout_click", {
+      product_id: productId,
+    });
 
     const res = await fetch("/api/paypal/create-order", {
       method: "POST",
