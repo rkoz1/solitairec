@@ -8,6 +8,7 @@ import {
 import { showToast } from "@/lib/toast";
 import { addItemToCart } from "@/lib/cart";
 import { trackEvent } from "@/lib/meta-pixel";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -56,6 +57,12 @@ export default function AddToCartButton({
         content_name: productName,
         content_type: "product",
         currency: "HKD",
+      });
+      trackAnalytics("add_to_cart", {
+        product_id: productId,
+        product_name: productName ?? "",
+        variant_id: variantId ?? null,
+        source: "product_page",
       });
 
       // Fly-to-cart animation

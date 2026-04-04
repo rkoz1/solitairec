@@ -8,6 +8,7 @@ import {
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface OrderSummary {
   orderNumber: string;
@@ -37,6 +38,12 @@ export default function OrderConfirmationPage() {
             itemCount: data.itemCount ?? 1,
             status: data.status ?? "APPROVED",
             date: data.date ?? "",
+          });
+          trackAnalytics("purchase", {
+            order_number: String(data.orderNumber ?? ""),
+            total: data.total ?? "",
+            item_count: data.itemCount ?? 1,
+            source: "express",
           });
           sessionStorage.removeItem("expressOrder");
         }
@@ -89,6 +96,12 @@ export default function OrderConfirmationPage() {
               order_id: found.number?.toString(),
               num_items: found.lineItems?.length ?? 0,
             }, generateEventId());
+            trackAnalytics("purchase", {
+              order_number: found.number?.toString() ?? "",
+              total: totalAmount,
+              item_count: found.lineItems?.length ?? 0,
+              source: "cart",
+            });
           }
         }
       } catch (err) {

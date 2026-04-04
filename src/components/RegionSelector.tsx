@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ShippingRegion, ShippingRegionData } from "@/lib/shipping-regions";
 import { COUNTRY_LIST, COUNTRY_CURRENCY, getRegionForCountry } from "@/lib/shipping-regions";
+import { trackAnalytics } from "@/lib/analytics";
 
 const STORAGE_KEY_REGION = "shipping_region";
 const STORAGE_KEY_COUNTRY = "shipping_country";
@@ -127,6 +128,7 @@ export default function RegionSelector({ detectedCountry }: RegionSelectorProps)
     await fetchAndSaveRate(selectedCurrency);
 
     setModalOpen(false);
+    trackAnalytics("region_change", { country: selectedCountry, currency: selectedCurrency });
     window.dispatchEvent(new Event("region-changed"));
   }
 

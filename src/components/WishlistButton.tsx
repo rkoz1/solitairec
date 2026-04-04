@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { isInWishlist, toggleWishlist } from "@/lib/wishlist";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface WishlistButtonProps {
   productId: string;
@@ -23,6 +24,10 @@ export default function WishlistButton({ productId }: WishlistButtonProps) {
   function handleToggle() {
     const nowIn = toggleWishlist(productId);
     setInWishlist(nowIn);
+    trackAnalytics(nowIn ? "wishlist_add" : "wishlist_remove", {
+      product_id: productId,
+      source: "product_page",
+    });
   }
 
   return (

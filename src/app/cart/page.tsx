@@ -22,6 +22,7 @@ import { showToast } from "@/lib/toast";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { useDisplayCurrency } from "@/components/Price";
 import { trackEvent } from "@/lib/meta-pixel";
+import { trackAnalytics } from "@/lib/analytics";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -42,7 +43,7 @@ export default function CartPage() {
       {/* Tabs */}
       <div className="mt-8 flex gap-8">
         <button
-          onClick={() => setActiveTab("bag")}
+          onClick={() => { setActiveTab("bag"); trackAnalytics("cart_tab_switch", { tab: "bag" }); }}
           className={`pb-2 text-[10px] tracking-[0.25em] uppercase font-medium transition-colors ${
             activeTab === "bag"
               ? "text-on-surface border-b-2 border-on-surface"
@@ -52,7 +53,7 @@ export default function CartPage() {
           Bag
         </button>
         <button
-          onClick={() => setActiveTab("wishlist")}
+          onClick={() => { setActiveTab("wishlist"); trackAnalytics("cart_tab_switch", { tab: "wishlist" }); }}
           className={`pb-2 text-[10px] tracking-[0.25em] uppercase font-medium transition-colors ${
             activeTab === "wishlist"
               ? "text-on-surface border-b-2 border-on-surface"
@@ -62,7 +63,7 @@ export default function CartPage() {
           Wishlist
         </button>
         <button
-          onClick={() => setActiveTab("recent")}
+          onClick={() => { setActiveTab("recent"); trackAnalytics("cart_tab_switch", { tab: "recent" }); }}
           className={`pb-2 text-[10px] tracking-[0.25em] uppercase font-medium transition-colors ${
             activeTab === "recent"
               ? "text-on-surface border-b-2 border-on-surface"
@@ -105,6 +106,12 @@ function BagTab() {
       await ensureVisitorTokens(wix);
       const current = await wix.currentCart.getCurrentCart();
       setCartData(current);
+      const cartItems = current?.lineItems ?? [];
+      if (cartItems.length > 0) {
+        trackAnalytics("cart_view", {
+          item_count: cartItems.length,
+        });
+      }
 
       // Estimate totals for the summary
       try {
@@ -204,6 +211,11 @@ function BagTab() {
 
   async function removeItem(lineItemId: string) {
     setRemovingId(lineItemId);
+    const item = cartData?.lineItems?.find((i) => i._id === lineItemId);
+    trackAnalytics("cart_remove_item", {
+      product_name: item?.productName?.original ?? "",
+      quantity: item?.quantity ?? 1,
+    });
     try {
       const wix = getBrowserWixClient();
       await wix.currentCart.removeLineItemsFromCurrentCart([lineItemId]);
@@ -223,6 +235,12 @@ function BagTab() {
     }
     setUpdatingQtyId(lineItemId);
     setStockMessage(null);
+    const qtyItem = cartData?.lineItems?.find((i) => i._id === lineItemId);
+    trackAnalytics("cart_update_quantity", {
+      product_name: qtyItem?.productName?.original ?? "",
+      new_quantity: newQuantity,
+      direction: newQuantity > (qtyItem?.quantity ?? 1) ? "increase" : "decrease",
+    });
     try {
       const wix = getBrowserWixClient();
       const result = await wix.currentCart.updateCurrentCartLineItemQuantity([
@@ -256,6 +274,10 @@ function BagTab() {
   async function handleCheckout() {
     setCheckingOut(true);
     trackEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
+    trackAnalytics("initiate_checkout", {
+      item_count: cartData?.lineItems?.length ?? 0,
+      cart_total: subtotalNum,
+    });
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);

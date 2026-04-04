@@ -11,6 +11,7 @@ import {
 } from "@/lib/wix-browser-client";
 import { showToast } from "@/lib/toast";
 import { buildStockKey } from "@/lib/cart";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface ProductOption {
   name?: string | null;
@@ -159,12 +160,17 @@ export default function ProductInfo({
                       return (
                         <button
                           key={choice.value}
-                          onClick={() =>
+                          onClick={() => {
                             setSelectedOptions((prev) => ({
                               ...prev,
                               [option.name ?? ""]: label,
-                            }))
-                          }
+                            }));
+                            trackAnalytics("variant_select", {
+                              product_id: productId,
+                              option_name: option.name ?? "",
+                              option_value: label,
+                            });
+                          }}
                           className={`relative w-10 h-10 transition-colors ${
                             oos
                               ? isSelected
@@ -202,12 +208,17 @@ export default function ProductInfo({
                     return (
                       <button
                         key={choice.value}
-                        onClick={() =>
+                        onClick={() => {
                           setSelectedOptions((prev) => ({
                             ...prev,
                             [option.name ?? ""]: label,
-                          }))
-                        }
+                          }));
+                          trackAnalytics("variant_select", {
+                            product_id: productId,
+                            option_name: option.name ?? "",
+                            option_value: label,
+                          });
+                        }}
                         className={`h-14 text-xs tracking-[0.15em] uppercase font-medium transition-colors border border-outline-variant/20 ${
                           oos
                             ? isSelected

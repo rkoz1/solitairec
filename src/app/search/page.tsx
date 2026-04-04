@@ -13,6 +13,7 @@ import CollectionFilters, {
 } from "@/components/CollectionFilters";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { trackEvent } from "@/lib/meta-pixel";
+import { trackAnalytics } from "@/lib/analytics";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -44,8 +45,12 @@ export default function SearchPage() {
   useEffect(() => {
     if (query.trim()) {
       trackEvent("Search", { search_string: query });
+      trackAnalytics("search_page_view", {
+        query,
+        result_count: data?.products.length ?? 0,
+      });
     }
-  }, [query]);
+  }, [query, data]);
 
   const filtered = useMemo(() => {
     if (!data) return [];

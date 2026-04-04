@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import Price from "./Price";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface HeroItem {
   slug: string;
@@ -75,6 +76,7 @@ export default function HeroCarousel({
             <Link
               key={item.slug}
               href={`/products/${item.slug}`}
+              onClick={() => trackAnalytics("hero_click", { product_slug: item.slug, slide_index: i })}
               className={`absolute inset-0 transition-opacity duration-1000 ${
                 i === active ? "opacity-100 z-10" : "opacity-0 z-0"
               }`}
@@ -125,6 +127,7 @@ export default function HeroCarousel({
           {/* Main featured image — contained, not stretched */}
           <Link
             href={`/products/${items[active].slug}`}
+            onClick={() => trackAnalytics("hero_click", { product_slug: items[active].slug, slide_index: active })}
             className="group block"
           >
             <div className="relative aspect-[3/4] bg-surface-container-low overflow-hidden">

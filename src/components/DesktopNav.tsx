@@ -5,6 +5,7 @@ import Link from "next/link";
 import { fetchNavCategories } from "@/app/collections/actions";
 import { displayName } from "@/lib/collections";
 import type { NavCategory } from "@/lib/collections";
+import { trackAnalytics } from "@/lib/analytics";
 
 export default function DesktopNav() {
   const [categories, setCategories] = useState<NavCategory[]>([]);
@@ -39,6 +40,7 @@ export default function DesktopNav() {
           >
             <Link
               href={`/collections/${cat.slug}`}
+              onClick={() => trackAnalytics("nav_category_click", { category: displayName(cat.name), source: "desktop" })}
               className="text-[11px] tracking-[0.15em] uppercase font-medium text-on-surface hover:text-secondary transition-colors py-4 block"
             >
               {displayName(cat.name)}
