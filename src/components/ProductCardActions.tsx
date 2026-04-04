@@ -10,6 +10,7 @@ import {
 } from "@/lib/wix-browser-client";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { trackAnalytics } from "@/lib/analytics";
+import { clarityEvent, clarityTag } from "@/lib/clarity";
 
 interface ProductOption {
   name: string;
@@ -157,6 +158,8 @@ export default memo(function ProductCardActions({
         product_name: productName ?? "",
         source: "product_card",
       });
+      clarityEvent("add_to_cart");
+      clarityTag("last_added_product", productName ?? "");
 
       // Fly-to-cart animation
       const cardEl = document.querySelector(`[data-product-id="${productId}"]`);

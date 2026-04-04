@@ -9,6 +9,7 @@ import {
 } from "@/lib/wix-browser-client";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics } from "@/lib/analytics";
+import { clarityEvent, clarityTag } from "@/lib/clarity";
 
 interface OrderSummary {
   orderNumber: string;
@@ -45,6 +46,9 @@ export default function OrderConfirmationPage() {
             item_count: data.itemCount ?? 1,
             source: "express",
           });
+          clarityEvent("purchase");
+          clarityTag("purchased", true);
+          clarityTag("order_value", data.total ?? "");
           sessionStorage.removeItem("expressOrder");
         }
       } catch {
@@ -114,6 +118,9 @@ export default function OrderConfirmationPage() {
               item_count: found.lineItems?.length ?? 0,
               source: "cart",
             });
+            clarityEvent("purchase");
+            clarityTag("purchased", true);
+            clarityTag("order_value", totalAmount);
           }
         }
       } catch (err) {

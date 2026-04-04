@@ -14,6 +14,7 @@ import CollectionFilters, {
 } from "@/components/CollectionFilters";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { trackAnalytics } from "@/lib/analytics";
+import { clarityTag } from "@/lib/clarity";
 
 interface Props {
   slug: string;
@@ -35,6 +36,7 @@ export default function CollectionClient({ slug, initialData }: Props) {
         collection_name: data.name,
         product_count: data.products.length,
       });
+      clarityTag("collection_viewed", data.name);
       setTracked(true);
     }
   }, [data, tracked, slug]);
