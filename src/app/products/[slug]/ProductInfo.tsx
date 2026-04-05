@@ -9,6 +9,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
 import { showToast } from "@/lib/toast";
 import { buildStockKey } from "@/lib/cart";
 import { trackAnalytics } from "@/lib/analytics";
@@ -257,6 +258,7 @@ export default function ProductInfo({
             <AddToCartButton
               productId={productId}
               productName={productName}
+              productPrice={productPrice}
               manageVariants={manageVariants}
               selectedOptions={selectedOptions}
               variantId={selectedVariantId}
@@ -290,22 +292,17 @@ export default function ProductInfo({
 const WIX_STORES_V1_APP_ID = "1380b703-ce81-ff05-f115-39571d94dfcd";
 
 function NotifyMeForm({ productId, productName, productPrice }: { productId: string; productName: string; productPrice: string }) {
+  const { member } = useMember();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Prepopulate email from logged-in member
+  // Prepopulate email from logged-in member via context
   const [emailLoaded, setEmailLoaded] = useState(false);
-  if (!emailLoaded) {
+  if (!emailLoaded && member) {
     setEmailLoaded(true);
-    getBrowserWixClient().members.getCurrentMember({ fieldsets: ["FULL"] })
-      .then((response: unknown) => {
-        const res = response as { member?: Record<string, unknown> } & Record<string, unknown>;
-        const member = (res.member ?? res) as { loginEmail?: string; contact?: { emails?: string[] } };
-        const memberEmail = member.loginEmail ?? member.contact?.emails?.[0];
-        if (memberEmail) setEmail(memberEmail);
-      })
-      .catch(() => {});
+    const memberEmail = member.loginEmail ?? member.contact?.emails?.[0];
+    if (memberEmail) setEmail(memberEmail);
   }
 
   async function handleSubmit(e: React.FormEvent) {

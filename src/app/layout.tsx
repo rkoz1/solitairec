@@ -14,6 +14,9 @@ import DesktopNav from "@/components/DesktopNav";
 import Footer from "@/components/Footer";
 import MetaPixel from "@/components/MetaPixel";
 import Clarity from "@/components/Clarity";
+import CookieConsent from "@/components/CookieConsent";
+import MaterialSymbols from "@/components/MaterialSymbols";
+import { MemberProvider } from "@/contexts/MemberContext";
 import { Analytics } from "@vercel/analytics/react";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -71,9 +74,17 @@ export default async function RootLayout({
       className={`${notoSerif.variable} ${inter.variable} h-full antialiased`}
     >
       <head>
+        <link rel="alternate" hrefLang="en-HK" href={SITE_URL} />
+        <link rel="alternate" hrefLang="en" href={SITE_URL} />
+        <link rel="alternate" hrefLang="x-default" href={SITE_URL} />
         <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+        />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
         />
         <script
           type="application/ld+json"
@@ -92,6 +103,8 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface font-sans">
+        <MemberProvider>
+        <MaterialSymbols />
         <NavigationLoader />
         {/* Sticky header — marquee + nav + region bar flow naturally */}
         <header className="sticky top-0 z-50">
@@ -155,10 +168,13 @@ export default async function RootLayout({
         {/* Chat widget */}
         <WixChat />
 
-        {/* Analytics */}
+        {/* Analytics — Vercel Analytics is privacy-friendly (ungated) */}
         <Analytics />
-        <Clarity />
-        <MetaPixel />
+        {/* Tracking scripts gated behind cookie consent */}
+        <CookieConsent>
+          <Clarity />
+          <MetaPixel />
+        </CookieConsent>
 
         {/* Fixed bottom navigation — mobile only */}
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-surface-container-high/40 lg:hidden">
@@ -188,6 +204,7 @@ export default async function RootLayout({
             </Link>
           </div>
         </nav>
+        </MemberProvider>
       </body>
     </html>
   );

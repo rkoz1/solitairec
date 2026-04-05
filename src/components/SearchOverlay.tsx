@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { searchProducts, type SearchResult } from "@/app/search/actions";
 import { trackAnalytics } from "@/lib/analytics";
+import { clarityTag } from "@/lib/clarity";
 
 export default function SearchOverlay() {
   const [open, setOpen] = useState(false);
@@ -53,6 +54,7 @@ export default function SearchOverlay() {
       setResults(data);
       setSearched(true);
       trackAnalytics("search_query", { query: q, result_count: data.length });
+      clarityTag("search_query", q);
     } catch (err) {
       console.error("Search failed:", err);
     } finally {

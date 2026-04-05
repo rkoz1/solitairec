@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { startLogin, startLogout, isLoggedIn } from "@/lib/wix-auth";
+import { startLogin, startLogout } from "@/lib/wix-auth";
 import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { showToast } from "@/lib/toast";
 import type { orders as ordersType } from "@wix/ecom";
@@ -726,6 +727,7 @@ interface AddressData {
 }
 
 function AddressesTab() {
+  const { member: ctxMember, loading: memberLoading } = useMember();
   const [addresses, setAddresses] = useState<AddressData[]>([]);
   const [memberId, setMemberId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -733,9 +735,15 @@ function AddressesTab() {
   const [form, setForm] = useState<AddressData>({});
   const [saving, setSaving] = useState(false);
 
+  // Initial load from context
   useEffect(() => {
-    fetchAddresses();
-  }, []);
+    if (memberLoading) return;
+    if (ctxMember) {
+      setMemberId(ctxMember._id ?? null);
+      setAddresses((ctxMember.contact?.addresses as AddressData[]) ?? []);
+    }
+    setLoading(false);
+  }, [ctxMember, memberLoading]);
 
   async function fetchAddresses() {
     try {
@@ -976,49 +984,15 @@ function SettingsTab() {
 /* ------------------------------------------------------------------ */
 
 export default function AccountPage() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { member: ctxMember, isLoggedIn: ctxLoggedIn, loading: memberLoading } = useMember();
   const [activeTab, setActiveTab] = useState<Tab>("orders");
-  const [memberName, setMemberName] = useState("");
-  const [memberEmail, setMemberEmail] = useState("");
 
-  const checkAuth = useCallback(() => {
-    setLoggedIn(isLoggedIn());
-    setLoading(false);
-  }, []);
+  const memberName = ctxMember?.contact?.firstName ?? ctxMember?.profile?.nickname ?? "";
+  const memberEmail = ctxMember?.loginEmail ?? ctxMember?.contact?.emails?.[0] ?? "";
 
-  useEffect(() => {
-    checkAuth();
-    window.addEventListener("auth-changed", checkAuth);
-    return () => window.removeEventListener("auth-changed", checkAuth);
-  }, [checkAuth]);
+  if (memberLoading) return null;
 
-  // Fetch member profile for greeting + newsletter
-  useEffect(() => {
-    if (!loggedIn) return;
-    async function fetchMember() {
-      try {
-        const wix = getBrowserWixClient();
-        await ensureVisitorTokens(wix);
-        const response = await wix.members.getCurrentMember({
-          fieldsets: ["FULL"],
-        });
-        const member = (response as unknown as { member?: Record<string, unknown> }).member ?? response;
-        const m = member as Record<string, unknown>;
-        const contact = m.contact as Record<string, unknown> | undefined;
-        const profile = m.profile as Record<string, unknown> | undefined;
-        setMemberName((contact?.firstName as string) ?? (profile?.nickname as string) ?? "");
-        setMemberEmail((m.loginEmail as string) ?? ((contact?.emails as string[])?.[0]) ?? "");
-      } catch {
-        // ignore
-      }
-    }
-    fetchMember();
-  }, [loggedIn]);
-
-  if (loading) return null;
-
-  if (!loggedIn) {
+  if (!ctxLoggedIn) {
     return (
       <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
         <SectionHeading title="Account" />

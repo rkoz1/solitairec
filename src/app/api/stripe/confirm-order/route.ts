@@ -10,10 +10,13 @@ import { sendCapiEvent } from "@/lib/meta-capi";
 
 export async function POST(request: Request) {
   try {
-    const { paymentIntentId, wixVisitorId, wixMemberId, metaEventId } = await request.json();
+    const { paymentIntentId, wixVisitorId, wixMemberId, metaEventId, eventSourceUrl } = await request.json();
     const userAgent = request.headers.get("user-agent") ?? "";
     const forwardedFor = request.headers.get("x-forwarded-for");
     const userIp = forwardedFor?.split(",")[0]?.trim() ?? "";
+    const cookieHeader = request.headers.get("cookie") ?? "";
+    const fbc = cookieHeader.match(/(?:^|;\s*)_fbc=([^;]*)/)?.[1];
+    const fbp = cookieHeader.match(/(?:^|;\s*)_fbp=([^;]*)/)?.[1];
 
     if (!paymentIntentId) {
       return NextResponse.json(
@@ -233,7 +236,15 @@ export async function POST(request: Request) {
           orderId: String(orderNumber),
           numItems: quantity,
         },
-        { email: billingDetails?.email ?? undefined, ip: userIp, userAgent }
+        {
+          email: billingDetails?.email ?? undefined,
+          externalId: wixMemberId ?? wixVisitorId,
+          ip: userIp,
+          userAgent,
+          fbc,
+          fbp,
+        },
+        eventSourceUrl
       ).catch(() => {});
     }
 

@@ -15,9 +15,12 @@ import type {
   StripeExpressCheckoutElementShippingRateChangeEvent,
 } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
-import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
-import { trackAnalytics } from "@/lib/analytics";
+import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
+import { showToast } from "@/lib/toast";
 
 interface ExpressCheckoutProps {
   productId: string;
@@ -116,13 +119,14 @@ function ExpressCheckoutInner({
 }) {
   const stripe = useStripe();
   const elements = useElements();
+  const { member: ctxMember } = useMember();
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
 
 
   const onClick = useCallback(
     (event: StripeExpressCheckoutElementClickEvent) => {
-      trackEvent("InitiateCheckout", { currency: "HKD" });
+      trackMetaEvent("InitiateCheckout", { currency: "HKD" });
       trackAnalytics("express_checkout_click", {
         payment_method: "wallet",
       });
@@ -214,6 +218,7 @@ function ExpressCheckoutInner({
 
         if (confirmError) {
           console.error("Payment failed:", confirmError.message);
+          showToast(confirmError.message ?? "Payment failed. Please try again.", "error");
           setProcessing(false);
           return;
         }
@@ -222,22 +227,15 @@ function ExpressCheckoutInner({
         let wixVisitorId: string | undefined;
         let wixMemberId: string | undefined;
         try {
-          const wixClient = getBrowserWixClient();
-          await ensureVisitorTokens(wixClient);
-          const member = await wixClient.members.getCurrentMember({ fieldsets: ["FULL"] }).catch(() => null);
-          const memberData = member as { member?: { _id?: string } } | null;
-          if (memberData?.member?._id) {
-            wixMemberId = memberData.member._id;
+          if (ctxMember?._id) {
+            wixMemberId = ctxMember._id;
           } else {
-            // Extract visitor ID from tokens
+            const wixClient = getBrowserWixClient();
             const tokens = wixClient.auth.getTokens();
-            const accessToken = tokens.accessToken?.value;
-            if (accessToken) {
-              try {
-                const payload = JSON.parse(atob(accessToken.split(".")[1]));
-                wixVisitorId = payload.sub;
-              } catch { /* ignore */ }
-            }
+            const uid = tokens.accessToken?.value
+              ? parseWixTokenUid(tokens.accessToken.value)
+              : null;
+            if (uid) wixVisitorId = uid;
           }
         } catch { /* ignore - order will still be created */ }
 
@@ -246,7 +244,7 @@ function ExpressCheckoutInner({
         const orderRes = await fetch("/api/stripe/confirm-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentIntentId, wixVisitorId, wixMemberId, metaEventId: eventId }),
+          body: JSON.stringify({ paymentIntentId, wixVisitorId, wixMemberId, metaEventId: eventId, eventSourceUrl: window.location.href }),
         });
 
         if (orderRes.ok) {
@@ -260,11 +258,14 @@ function ExpressCheckoutInner({
           sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
           window.location.href = `/order-confirmation?source=express`;
         } else {
-          // Payment succeeded but order creation failed — still show confirmation
-          window.location.href = `/order-confirmation?stripePayment=${paymentIntentId}`;
+          // Payment succeeded but order creation failed
+          const errData = await orderRes.json().catch(() => ({}));
+          console.error("Order creation failed:", errData);
+          showToast("Your payment was processed but we had trouble creating your order. Please contact us and we'll sort it out.", "error");
         }
       } catch (err) {
         console.error("Express checkout error:", err);
+        showToast("Something went wrong during checkout. Please try again.", "error");
       } finally {
         setProcessing(false);
       }

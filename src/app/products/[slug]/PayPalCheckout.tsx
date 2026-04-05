@@ -2,9 +2,12 @@
 
 import { useRef, useCallback } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
-import { trackAnalytics } from "@/lib/analytics";
+import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
+import { showToast } from "@/lib/toast";
 
 interface PayPalCheckoutProps {
   productId: string;
@@ -38,6 +41,10 @@ function PayPalButtonsInner({
   selectedOptions,
   variantId,
 }: PayPalCheckoutProps) {
+  const { member: ctxMember } = useMember();
+  const memberRef = useRef(ctxMember);
+  memberRef.current = ctxMember;
+
   // Use refs so the PayPal callbacks always see the latest values
   const propsRef = useRef({ productId, selectedOptions, variantId });
   propsRef.current = { productId, selectedOptions, variantId };
@@ -45,7 +52,7 @@ function PayPalButtonsInner({
   const createOrder = useCallback(async (): Promise<string> => {
     const { productId, selectedOptions, variantId } = propsRef.current;
 
-    trackEvent("InitiateCheckout", { currency: "HKD" });
+    trackMetaEvent("InitiateCheckout", { currency: "HKD" });
     trackAnalytics("paypal_checkout_click", {
       product_id: productId,
     });
@@ -75,21 +82,16 @@ function PayPalButtonsInner({
     let wixVisitorId: string | undefined;
     let wixMemberId: string | undefined;
     try {
-      const wixClient = getBrowserWixClient();
-      await ensureVisitorTokens(wixClient);
-      const member = await wixClient.members.getCurrentMember({ fieldsets: ["FULL"] }).catch(() => null);
-      const memberData = member as { member?: { _id?: string } } | null;
-      if (memberData?.member?._id) {
-        wixMemberId = memberData.member._id;
+      const currentMember = memberRef.current;
+      if (currentMember?._id) {
+        wixMemberId = currentMember._id;
       } else {
+        const wixClient = getBrowserWixClient();
         const tokens = wixClient.auth.getTokens();
-        const accessToken = tokens.accessToken?.value;
-        if (accessToken) {
-          try {
-            const payload = JSON.parse(atob(accessToken.split(".")[1]));
-            wixVisitorId = payload.sub;
-          } catch { /* ignore */ }
-        }
+        const uid = tokens.accessToken?.value
+          ? parseWixTokenUid(tokens.accessToken.value)
+          : null;
+        if (uid) wixVisitorId = uid;
       }
     } catch { /* ignore */ }
 
@@ -97,7 +99,7 @@ function PayPalButtonsInner({
     const res = await fetch("/api/paypal/capture-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderID: data.orderID, wixVisitorId, wixMemberId, metaEventId: eventId }),
+      body: JSON.stringify({ orderID: data.orderID, wixVisitorId, wixMemberId, metaEventId: eventId, eventSourceUrl: window.location.href }),
     });
 
     if (res.ok) {
@@ -110,8 +112,10 @@ function PayPalButtonsInner({
       sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
       window.location.href = `/order-confirmation?source=express`;
     } else {
-      // Payment captured but Wix order failed — still redirect
-      window.location.href = `/order-confirmation?paypalOrder=${data.orderID}`;
+      // Payment captured but Wix order failed
+      const errData = await res.json().catch(() => ({}));
+      console.error("PayPal order creation failed:", errData);
+      showToast("Your payment was processed but we had trouble creating your order. Please contact us and we'll sort it out.", "error");
     }
   }, []);
 
@@ -131,6 +135,7 @@ function PayPalButtonsInner({
         onApprove={onApprove}
         onError={(err) => {
           console.error("PayPal error:", err);
+          showToast("PayPal payment failed. Please try again or use another payment method.", "error");
         }}
       />
     </div>

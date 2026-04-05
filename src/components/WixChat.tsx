@@ -11,11 +11,7 @@ import {
   type ChatMessage,
   type BusinessInfo,
 } from "@/app/chat/actions";
-import { isLoggedIn } from "@/lib/wix-auth";
-import {
-  getBrowserWixClient,
-  ensureVisitorTokens,
-} from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
 
 const CONV_KEY_PREFIX = "solitairec_chat_conv_";
 
@@ -44,6 +40,7 @@ function getConvKey(): string {
 }
 
 export default function WixChat() {
+  const { member: ctxMember, isLoggedIn: memberLoggedIn } = useMember();
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const pathname = usePathname();
@@ -99,20 +96,11 @@ export default function WixChat() {
         return;
       }
 
-      if (isLoggedIn()) {
+      if (memberLoggedIn && ctxMember) {
         setLoading(true);
         try {
-          const wix = getBrowserWixClient();
-          await ensureVisitorTokens(wix);
-          const memberResponse = await wix.members.getCurrentMember({
-            fieldsets: ["FULL"],
-          });
-          const member = (memberResponse as unknown as { member?: Record<string, unknown> }).member ?? memberResponse;
-          const m = member as Record<string, unknown>;
-          const contact = m.contact as Record<string, unknown> | undefined;
-          const profile = m.profile as Record<string, unknown> | undefined;
-          const name = (contact?.firstName as string) ?? (profile?.nickname as string) ?? "";
-          const email = (m.loginEmail as string) ?? ((contact?.emails as string[])?.[0]) ?? "";
+          const name = ctxMember.contact?.firstName ?? ctxMember.profile?.nickname ?? "";
+          const email = ctxMember.loginEmail ?? ctxMember.contact?.emails?.[0] ?? "";
 
           if (name && email) {
             const result = await initChat({ name, email });

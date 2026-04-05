@@ -14,31 +14,41 @@ import CollectionFilters, {
 } from "@/components/CollectionFilters";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { trackAnalytics } from "@/lib/analytics";
+import { clarityTag } from "@/lib/clarity";
 
 interface Props {
   slug: string;
+  initialData?: CollectionData | null;
 }
 
-export default function CollectionClient({ slug }: Props) {
-  const [data, setData] = useState<CollectionData | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function CollectionClient({ slug, initialData }: Props) {
+  const [data, setData] = useState<CollectionData | null>(initialData ?? null);
+  const [loading, setLoading] = useState(!initialData);
   const [sort, setSort] = useState<string>("newest");
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+  const [tracked, setTracked] = useState(false);
 
+  // Track initial view
   useEffect(() => {
-    // Only show full loading indicator on initial load, not on sort change
-    if (!data) setLoading(true);
+    if (data && !tracked) {
+      trackAnalytics("collection_view", {
+        collection_slug: slug,
+        collection_name: data.name,
+        product_count: data.products.length,
+      });
+      clarityTag("collection_viewed", data.name);
+      setTracked(true);
+    }
+  }, [data, tracked, slug]);
+
+  // Re-fetch on sort change (skip initial load if we have server data)
+  useEffect(() => {
+    if (sort === "newest" && initialData) return;
+    if (!data && !initialData) setLoading(true);
     fetchCollectionProducts(slug, sort as "newest" | "price_asc" | "price_desc")
       .then((result) => {
         setData(result);
         setLoading(false);
-        if (result) {
-          trackAnalytics("collection_view", {
-            collection_slug: slug,
-            collection_name: result.name,
-            product_count: result.products.length,
-          });
-        }
       });
   }, [slug, sort]); // eslint-disable-line react-hooks/exhaustive-deps
 

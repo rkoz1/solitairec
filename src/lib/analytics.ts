@@ -12,6 +12,26 @@ type AnalyticsProperties = Record<string, string | number | boolean | null>;
 let cachedUserId: string | null = null;
 let cachedUserType: "member" | "visitor" | null = null;
 
+/** Parse a Wix access token and extract the user ID (uid/siteMemberId).
+ *  Wix tokens have format: OauthNG.JWS.<header>.<payload>.<sig>
+ *  The payload contains { data: "{\"instance\":{\"uid\":\"...\"}}" } */
+export function parseWixTokenUid(tokenValue: string): string | null {
+  try {
+    const parts = tokenValue.split(".");
+    const payloadB64 = parts.length >= 5 ? parts[3] : parts[1];
+    const base64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64));
+
+    if (payload.data && typeof payload.data === "string") {
+      const data = JSON.parse(payload.data);
+      return data.instance?.uid ?? data.instance?.siteMemberId ?? null;
+    }
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Extract current user identity from Wix tokens (cached per session). */
 export function getUserIdentity(): {
   user_id: string | null;
@@ -25,24 +45,18 @@ export function getUserIdentity(): {
     const wix = getBrowserWixClient();
     const tokens = wix.auth.getTokens();
     const raw = tokens as {
-      memberId?: string;
       accessToken?: { value?: string };
+      refreshToken?: { role?: string };
     };
 
-    if (raw.memberId) {
-      cachedUserId = raw.memberId;
-      cachedUserType = "member";
-    } else if (raw.accessToken?.value) {
-      try {
-        const payload = JSON.parse(
-          atob(raw.accessToken.value.split(".")[1])
-        );
-        if (payload.sub) {
-          cachedUserId = payload.sub;
-          cachedUserType = "visitor";
-        }
-      } catch {
-        /* malformed token */
+    // Detect member vs visitor from refreshToken.role
+    const isMember = raw.refreshToken?.role === "member";
+
+    if (raw.accessToken?.value) {
+      const uid = parseWixTokenUid(raw.accessToken.value);
+      if (uid) {
+        cachedUserId = uid;
+        cachedUserType = isMember ? "member" : "visitor";
       }
     }
   } catch {

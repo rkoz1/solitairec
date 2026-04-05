@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { addRecentlyViewed } from "@/lib/recently-viewed";
-import { trackEvent } from "@/lib/meta-pixel";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
+import { clarityTag } from "@/lib/clarity";
 
 interface TrackViewProps {
   productId: string;
@@ -20,7 +21,7 @@ export default function TrackView({
 }: TrackViewProps) {
   useEffect(() => {
     addRecentlyViewed(productId);
-    trackEvent("ViewContent", {
+    trackMetaEvent("ViewContent", {
       content_ids: [productId],
       content_name: productName,
       content_type: "product",
@@ -33,6 +34,8 @@ export default function TrackView({
       price,
       currency,
     });
+    clarityTag("last_product_viewed", productName);
+    clarityTag("last_product_price", price);
   }, [productId, productName, price, currency]);
 
   return null;

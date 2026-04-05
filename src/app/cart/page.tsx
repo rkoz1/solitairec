@@ -21,8 +21,9 @@ import FreeShippingBar from "@/components/FreeShippingBar";
 import { showToast } from "@/lib/toast";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { useDisplayCurrency } from "@/components/Price";
-import { trackEvent } from "@/lib/meta-pixel";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
+import { clarityEvent, clarityTag } from "@/lib/clarity";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -111,6 +112,7 @@ function BagTab() {
         trackAnalytics("cart_view", {
           item_count: cartItems.length,
         });
+        clarityTag("items_in_cart", cartItems.length);
       }
 
       // Estimate totals for the summary
@@ -152,6 +154,7 @@ function BagTab() {
         // Compute discounted total if API total doesn't reflect discounts
         const parsedSubtotal = parseFloat(ps?.subtotal?.amount ?? "0");
         setSubtotalNum(parsedSubtotal);
+        clarityTag("cart_value", parsedSubtotal);
         const subtotalNum = parsedSubtotal;
         const totalDiscountNum = [...discountTotals.values()].reduce((a, b) => a + b, 0);
         const apiTotal = parseFloat(ps?.total?.amount ?? "0");
@@ -273,11 +276,13 @@ function BagTab() {
 
   async function handleCheckout() {
     setCheckingOut(true);
-    trackEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
+    trackMetaEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
     trackAnalytics("initiate_checkout", {
       item_count: cartData?.lineItems?.length ?? 0,
       cart_total: subtotalNum,
     });
+    clarityEvent("initiate_checkout");
+    clarityTag("checkout_value", subtotalNum);
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);

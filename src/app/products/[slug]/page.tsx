@@ -201,6 +201,46 @@ export default async function ProductPage({ params }: Props) {
     }
   }
 
+  // Build BreadcrumbList schema
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+  const breadcrumbItems: { name: string; url: string }[] = [
+    { name: "Home", url: siteUrl },
+  ];
+  {
+    const allCols = await getAllCollections();
+    const colMap = new Map(allCols.map((c) => [c._id, c]));
+    const prodCols = (product.collectionIds ?? [])
+      .map((id) => colMap.get(id))
+      .filter((c) => c && !SKIP_COLLECTIONS.has(c.name)) as { name: string; slug: string }[];
+
+    for (const cat of CATEGORY_HIERARCHY) {
+      const childCol = prodCols.find((c) => cat.children?.includes(c.name));
+      if (childCol) {
+        const parentSlug = allCols.find((c) => c.name === cat.name)?.slug;
+        if (parentSlug) breadcrumbItems.push({ name: displayName(cat.name), url: `${siteUrl}/collections/${parentSlug}` });
+        breadcrumbItems.push({ name: displayName(childCol.name), url: `${siteUrl}/collections/${childCol.slug}` });
+        break;
+      }
+      const parentCol = prodCols.find((c) => c.name === cat.name);
+      if (parentCol) {
+        breadcrumbItems.push({ name: displayName(parentCol.name), url: `${siteUrl}/collections/${parentCol.slug}` });
+        break;
+      }
+    }
+  }
+  breadcrumbItems.push({ name: product.name ?? "", url: `${siteUrl}/products/${product.slug}` });
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: breadcrumbItems.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+
   const stockStatus = (product.stock as { inventoryStatus?: string } | undefined)?.inventoryStatus;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -208,6 +248,8 @@ export default async function ProductPage({ params }: Props) {
     name: product.name,
     description: product.description ? stripHtml(product.description).slice(0, 500) : undefined,
     image: mainImage,
+    sku: product.sku || product._id,
+    url: `${siteUrl}/products/${product.slug}`,
     brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
     offers: {
       "@type": "Offer",
@@ -217,7 +259,9 @@ export default async function ProductPage({ params }: Props) {
         stockStatus === "OUT_OF_STOCK"
           ? "https://schema.org/OutOfStock"
           : "https://schema.org/InStock",
-      url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com"}/products/${product.slug}`,
+      url: `${siteUrl}/products/${product.slug}`,
+      itemCondition: "https://schema.org/NewCondition",
+      seller: { "@type": "Organization", name: "SOLITAIREC" },
     },
   };
 
@@ -232,6 +276,10 @@ export default async function ProductPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
       <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:max-w-6xl lg:mx-auto lg:px-8 lg:pt-8">
         {/* Image gallery */}

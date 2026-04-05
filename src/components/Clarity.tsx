@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { getUserIdentity, resetUserIdentity } from "@/lib/analytics";
-import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
 
 declare global {
   interface Window {
@@ -13,54 +14,66 @@ declare global {
 
 const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID;
 
-async function identifyUser() {
-  if (!window.clarity) return;
+interface MemberLike {
+  _id?: string;
+  loginEmail?: string;
+  contact?: { firstName?: string; lastName?: string };
+}
+
+function identifyWithClarity(member: MemberLike | null) {
+  if (!window.clarity) {
+    if (process.env.NODE_ENV === "development") console.debug("[Clarity] window.clarity not available");
+    return;
+  }
   const { user_id, user_type } = getUserIdentity();
-  if (!user_id) return;
-
-  let friendlyName: string | undefined;
-
-  if (user_type === "member") {
-    try {
-      const wix = getBrowserWixClient();
-      const response = await wix.members.getCurrentMember({ fieldsets: ["FULL"] }).catch(() => null);
-      const res = response as {
-        member?: {
-          contact?: { firstName?: string; lastName?: string };
-          loginEmail?: string;
-        };
-      } | null;
-      const contact = res?.member?.contact;
-      if (contact?.firstName) {
-        friendlyName = [contact.firstName, contact.lastName].filter(Boolean).join(" ");
-      } else {
-        friendlyName = res?.member?.loginEmail ?? undefined;
-      }
-    } catch { /* fall through without name */ }
+  if (!user_id) {
+    if (process.env.NODE_ENV === "development") console.debug("[Clarity] getUserIdentity returned null:", { user_id, user_type });
+    return;
   }
 
-  window.clarity("identify", user_id, undefined, undefined, friendlyName ?? (user_type === "visitor" ? "Visitor" : undefined));
+  let clarityId = user_id;
+  let friendlyName: string | undefined;
+
+  if (user_type === "member" && member) {
+    if (member._id) clarityId = member._id;
+
+    if (member.contact?.firstName) {
+      friendlyName = [member.contact.firstName, member.contact.lastName].filter(Boolean).join(" ");
+    } else {
+      friendlyName = member.loginEmail ?? undefined;
+    }
+  }
+
+  const resolvedName = friendlyName ?? (user_type === "member" ? "Member" : "Visitor");
+
+  if (process.env.NODE_ENV === "development") {
+    console.debug("[Clarity] identify:", { clarityId, friendlyName: resolvedName, user_type });
+  }
+
+  window.clarity("identify", clarityId, undefined, undefined, resolvedName);
   window.clarity("set", "user_type", user_type ?? "visitor");
+  if (user_type === "member") {
+    window.clarity("set", "member_id", clarityId);
+  }
 }
 
 export default function Clarity() {
+  const pathname = usePathname();
+  const { member, loading } = useMember();
+
+  // Identify on every route change + when member data arrives
+  useEffect(() => {
+    if (!CLARITY_ID || loading) return;
+    const timer = setTimeout(() => identifyWithClarity(member), 600);
+    return () => clearTimeout(timer);
+  }, [pathname, member, loading]);
+
+  // Re-identify on login/logout
   useEffect(() => {
     if (!CLARITY_ID) return;
-
-    // Identify once Clarity is ready
-    const timer = setTimeout(identifyUser, 1000);
-
-    // Re-identify on login/logout
-    const handler = () => {
-      resetUserIdentity();
-      setTimeout(identifyUser, 500);
-    };
+    const handler = () => resetUserIdentity();
     window.addEventListener("auth-changed", handler);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("auth-changed", handler);
-    };
+    return () => window.removeEventListener("auth-changed", handler);
   }, []);
 
   if (!CLARITY_ID) return null;

@@ -26,6 +26,10 @@ interface CapiEventData {
 
 interface UserData {
   email?: string;
+  phone?: string;
+  firstName?: string;
+  lastName?: string;
+  externalId?: string;
   ip?: string;
   userAgent?: string;
   fbc?: string;
@@ -36,7 +40,8 @@ export async function sendCapiEvent(
   eventName: string,
   eventId: string,
   eventData: CapiEventData,
-  userData: UserData
+  userData: UserData,
+  eventSourceUrl?: string
 ): Promise<void> {
   if (!PIXEL_ID || !ACCESS_TOKEN) return;
 
@@ -45,8 +50,13 @@ export async function sendCapiEvent(
     event_time: Math.floor(Date.now() / 1000),
     event_id: eventId,
     action_source: "website",
+    ...(eventSourceUrl ? { event_source_url: eventSourceUrl } : {}),
     user_data: {
       ...(userData.email ? { em: [hashSha256(userData.email)] } : {}),
+      ...(userData.phone ? { ph: [hashSha256(userData.phone.replace(/\D/g, ""))] } : {}),
+      ...(userData.firstName ? { fn: [hashSha256(userData.firstName)] } : {}),
+      ...(userData.lastName ? { ln: [hashSha256(userData.lastName)] } : {}),
+      ...(userData.externalId ? { external_id: [hashSha256(userData.externalId)] } : {}),
       ...(userData.ip ? { client_ip_address: userData.ip } : {}),
       ...(userData.userAgent
         ? { client_user_agent: userData.userAgent }

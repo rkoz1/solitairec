@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { ShippingRegion, ShippingRegionData } from "@/lib/shipping-regions";
 import { COUNTRY_LIST, COUNTRY_CURRENCY, getRegionForCountry } from "@/lib/shipping-regions";
 import { trackAnalytics } from "@/lib/analytics";
+import { clarityTag } from "@/lib/clarity";
 
 const STORAGE_KEY_REGION = "shipping_region";
 const STORAGE_KEY_COUNTRY = "shipping_country";
@@ -52,6 +53,8 @@ export default function RegionSelector({ detectedCountry }: RegionSelectorProps)
 
         const region = getRegionForCountry(country, data);
         setCurrentRegion(region);
+        clarityTag("country", country);
+        clarityTag("currency", currency);
 
         if (!savedCountry) {
           localStorage.setItem(STORAGE_KEY_COUNTRY, country);
@@ -129,6 +132,8 @@ export default function RegionSelector({ detectedCountry }: RegionSelectorProps)
 
     setModalOpen(false);
     trackAnalytics("region_change", { country: selectedCountry, currency: selectedCurrency });
+    clarityTag("country", selectedCountry);
+    clarityTag("currency", selectedCurrency);
     window.dispatchEvent(new Event("region-changed"));
   }
 
