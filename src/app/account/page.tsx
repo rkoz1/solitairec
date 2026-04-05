@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { startLogin, startLogout, isLoggedIn } from "@/lib/wix-auth";
+import { startLogin, startLogout } from "@/lib/wix-auth";
 import {
   getBrowserWixClient,
   ensureVisitorTokens,
@@ -984,28 +984,15 @@ function SettingsTab() {
 /* ------------------------------------------------------------------ */
 
 export default function AccountPage() {
-  const { member: ctxMember, isLoggedIn: ctxLoggedIn } = useMember();
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { member: ctxMember, isLoggedIn: ctxLoggedIn, loading: memberLoading } = useMember();
   const [activeTab, setActiveTab] = useState<Tab>("orders");
 
   const memberName = ctxMember?.contact?.firstName ?? ctxMember?.profile?.nickname ?? "";
   const memberEmail = ctxMember?.loginEmail ?? ctxMember?.contact?.emails?.[0] ?? "";
 
-  const checkAuth = useCallback(() => {
-    setLoggedIn(isLoggedIn());
-    setLoading(false);
-  }, []);
+  if (memberLoading) return null;
 
-  useEffect(() => {
-    checkAuth();
-    window.addEventListener("auth-changed", checkAuth);
-    return () => window.removeEventListener("auth-changed", checkAuth);
-  }, [checkAuth]);
-
-  if (loading) return null;
-
-  if (!loggedIn) {
+  if (!ctxLoggedIn) {
     return (
       <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
         <SectionHeading title="Account" />
