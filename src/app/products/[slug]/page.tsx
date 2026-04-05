@@ -191,18 +191,6 @@ export default async function ProductPage({ params }: Props) {
       getFittingDefaults(),
       getProductCategories(product.collectionIds ?? []),
     ]);
-    if (process.env.NODE_ENV === "development") {
-      const allCols = await getAllCollections();
-      const colMap = new Map(allCols.map((c) => [c._id, c]));
-      const resolvedCols = (product.collectionIds ?? []).map((id) => {
-        const col = colMap.get(id);
-        return col ? `${col.name} (${id})` : `UNKNOWN (${id})`;
-      });
-      console.debug("[Fitting] product:", product.name);
-      console.debug("[Fitting] collectionIds resolved:", resolvedCols);
-      console.debug("[Fitting] categories for fitting:", categories);
-      console.debug("[Fitting] CMS keys:", Object.keys(fittingDefaults));
-    }
     // Try most specific category first (e.g. "Skirts"), then parent (e.g. "Dresses")
     const fallbackDesc = categories.reduce<string | undefined>(
       (found, cat) => found ?? fittingDefaults[cat],

@@ -3,6 +3,7 @@ import { Noto_Serif, Inter } from "next/font/google";
 import Link from "next/link";
 import NavigationDrawer from "@/components/NavigationDrawer";
 import CartBadge from "@/components/CartBadge";
+import BottomNav from "@/components/BottomNav";
 import SearchOverlay from "@/components/SearchOverlay";
 import NavigationLoader from "@/components/NavigationLoader";
 import WixChat from "@/components/WixChat";
@@ -134,6 +135,7 @@ export default async function RootLayout({
                   href="/gift-cards"
                   className="flex items-center justify-center w-10 h-10 text-on-surface hover:text-secondary transition-colors"
                   aria-label="Gift Cards"
+                  title="Gift Cards"
                 >
                   <span className="material-symbols-outlined text-[22px]">redeem</span>
                 </Link>
@@ -143,6 +145,7 @@ export default async function RootLayout({
                   href="/account"
                   className="flex items-center justify-center w-10 h-10 text-on-surface hover:text-secondary transition-colors"
                   aria-label="Account"
+                  title="Account"
                 >
                   <span className="material-symbols-outlined text-[22px]">person</span>
                 </Link>
@@ -177,33 +180,7 @@ export default async function RootLayout({
         </CookieConsent>
 
         {/* Fixed bottom navigation — mobile only */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-surface-container-high/40 lg:hidden">
-          <div className="flex items-center justify-around h-16">
-            <Link
-              href="/"
-              className="flex flex-col items-center gap-0.5 text-on-surface"
-            >
-              <span className="material-symbols-outlined text-[22px]">
-                storefront
-              </span>
-              <span className="text-[10px] tracking-[0.15em] uppercase font-medium">
-                Shop
-              </span>
-            </Link>
-            <CartBadge label="Bag" />
-            <Link
-              href="/account"
-              className="flex flex-col items-center gap-0.5 text-on-surface"
-            >
-              <span className="material-symbols-outlined text-[22px]">
-                person
-              </span>
-              <span className="text-[10px] tracking-[0.15em] uppercase font-medium">
-                Account
-              </span>
-            </Link>
-          </div>
-        </nav>
+        <BottomNav />
         </MemberProvider>
       </body>
     </html>

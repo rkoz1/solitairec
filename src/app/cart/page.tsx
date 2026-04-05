@@ -563,7 +563,7 @@ function BagTab() {
           disabled={checkingOut}
           className="w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
         >
-          {checkingOut ? "Redirecting..." : "Proceed to Checkout"}
+          {checkingOut ? "Opening Checkout…" : "Proceed to Checkout"}
         </button>
         <div className="mt-6 text-center">
           <Link

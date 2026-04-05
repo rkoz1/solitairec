@@ -18,11 +18,13 @@ interface HeroItem {
 interface HeroCarouselProps {
   items: HeroItem[];
   interval?: number;
+  children?: React.ReactNode;
 }
 
 export default function HeroCarousel({
   items,
   interval = 5000,
+  children,
 }: HeroCarouselProps) {
   const [active, setActive] = useState(0);
   const touchStartX = useRef(0);
@@ -124,14 +126,14 @@ export default function HeroCarousel({
 
       {/* Desktop: editorial split layout — image left, text right */}
       <div className="hidden lg:block">
-        <div className="grid grid-cols-2 gap-8 max-w-6xl mx-auto">
-          {/* Main featured image — contained, not stretched */}
+        <div className="grid grid-cols-2 gap-6 max-w-6xl mx-auto">
+          {/* Main featured image — aspect ratio capped to viewport */}
           <Link
             href={`/products/${items[active].slug}`}
             onClick={() => trackAnalytics("hero_click", { product_slug: items[active].slug, slide_index: active })}
             className="group block"
           >
-            <div className="relative aspect-[3/4] bg-surface-container-low overflow-hidden">
+            <div className="relative aspect-[4/5] max-h-[calc(100vh-140px)] bg-surface-container-low overflow-hidden">
               <Image
                 src={items[active].imageUrl}
                 alt={items[active].name}
@@ -144,49 +146,56 @@ export default function HeroCarousel({
             </div>
           </Link>
 
-          {/* Right side: product info + thumbnails */}
-          <div className="flex flex-col justify-center py-8">
-            <p className="text-[10px] tracking-[0.25em] uppercase font-medium text-secondary">
-              Featured
-            </p>
-            <h2 className="mt-4 font-serif italic text-4xl tracking-tight text-on-surface">
-              {items[active].name}
-            </h2>
-            <p className="mt-3 text-lg tracking-tight text-on-surface-variant">
-              {items[active].price}
-            </p>
-            <Link
-              href={`/products/${items[active].slug}`}
-              className="mt-8 inline-block text-xs tracking-[0.15em] uppercase font-medium text-on-surface underline underline-offset-4 hover:text-secondary transition-colors"
-            >
-              View Product
-            </Link>
+          {/* Right side: provenance pane + product info */}
+          <div className="relative flex flex-col justify-between bg-surface-container-low p-8 xl:p-10 overflow-hidden">
+            {/* Provenance — dominant content */}
+            <div className="flex-1 flex flex-col justify-center min-h-0">
+              {children}
+            </div>
 
-            {/* Thumbnail strip for other featured items */}
-            {items.length > 1 && (
-              <div className="mt-16 flex gap-3">
-                {items.map((item, i) => (
-                  <button
-                    key={item.slug}
-                    onClick={() => {
-                      setActive(i);
-                      startTimer();
-                    }}
-                    className={`relative w-16 h-[85px] bg-surface-container-low overflow-hidden transition-opacity ${
-                      i === active ? "opacity-100 ring-1 ring-on-surface" : "opacity-50 hover:opacity-75"
-                    }`}
-                  >
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.name}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
-                  </button>
-                ))}
+            {/* Active product info — compact, at bottom */}
+            <div className="shrink-0 pt-5 border-t border-on-surface/10">
+              <div className="flex items-start gap-4">
+                <Link
+                  href={`/products/${items[active].slug}`}
+                  onClick={() => trackAnalytics("hero_click", { product_slug: items[active].slug, slide_index: active })}
+                  className="group block flex-1 min-w-0"
+                >
+                  <h3 className="font-serif italic text-lg tracking-tight text-on-surface group-hover:text-secondary transition-colors leading-snug truncate">
+                    {items[active].name}
+                  </h3>
+                  <p className="mt-0.5 text-sm tracking-tight text-on-surface-variant">
+                    {items[active].priceAmount != null ? <Price amount={items[active].priceAmount!} /> : items[active].price}
+                  </p>
+                </Link>
               </div>
-            )}
+
+              {/* Thumbnail strip */}
+              {items.length > 1 && (
+                <div className="mt-3 flex gap-2">
+                  {items.map((item, i) => (
+                    <button
+                      key={item.slug}
+                      onClick={() => {
+                        setActive(i);
+                        startTimer();
+                      }}
+                      className={`relative w-11 h-[52px] bg-surface-container overflow-hidden transition-opacity ${
+                        i === active ? "opacity-100 ring-1 ring-on-surface" : "opacity-50 hover:opacity-75"
+                      }`}
+                    >
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.name}
+                        fill
+                        sizes="44px"
+                        className="object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -12,9 +12,10 @@ const TOKENS_KEY = "wix_tokens";
 interface CartBadgeProps {
   className?: string;
   label?: string;
+  active?: boolean;
 }
 
-export default function CartBadge({ className, label }: CartBadgeProps) {
+export default function CartBadge({ className, label, active }: CartBadgeProps) {
   const [count, setCount] = useState(0);
   const [bouncing, setBouncing] = useState(false);
 
@@ -55,8 +56,9 @@ export default function CartBadge({ className, label }: CartBadgeProps) {
   return (
     <Link
       href="/cart"
-      className={`relative flex flex-col items-center gap-0.5 text-on-surface ${className ?? ""}`}
+      className={`relative flex flex-col items-center gap-0.5 lg:flex-row lg:justify-center lg:gap-0 lg:w-10 lg:h-10 hover:text-secondary transition-colors ${active ? "text-secondary" : "text-on-surface"} ${className ?? ""}`}
       aria-label="Shopping bag"
+      title="Bag"
     >
       <span className={`relative transition-transform ${bouncing ? "animate-[badgeBounce_400ms_ease-out]" : ""}`}>
         <span className="material-symbols-outlined text-[22px]">
