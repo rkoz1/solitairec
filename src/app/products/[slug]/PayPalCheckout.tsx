@@ -3,6 +3,7 @@
 import { useRef, useCallback } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics } from "@/lib/analytics";
 import { showToast } from "@/lib/toast";
@@ -46,7 +47,7 @@ function PayPalButtonsInner({
   const createOrder = useCallback(async (): Promise<string> => {
     const { productId, selectedOptions, variantId } = propsRef.current;
 
-    trackEvent("InitiateCheckout", { currency: "HKD" });
+    trackMetaEvent("InitiateCheckout", { currency: "HKD" });
     trackAnalytics("paypal_checkout_click", {
       product_id: productId,
     });
@@ -98,7 +99,7 @@ function PayPalButtonsInner({
     const res = await fetch("/api/paypal/capture-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderID: data.orderID, wixVisitorId, wixMemberId, metaEventId: eventId }),
+      body: JSON.stringify({ orderID: data.orderID, wixVisitorId, wixMemberId, metaEventId: eventId, eventSourceUrl: window.location.href }),
     });
 
     if (res.ok) {

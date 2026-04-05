@@ -21,7 +21,7 @@ import FreeShippingBar from "@/components/FreeShippingBar";
 import { showToast } from "@/lib/toast";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { useDisplayCurrency } from "@/components/Price";
-import { trackEvent } from "@/lib/meta-pixel";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
 import { clarityEvent, clarityTag } from "@/lib/clarity";
 
@@ -276,7 +276,7 @@ function BagTab() {
 
   async function handleCheckout() {
     setCheckingOut(true);
-    trackEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
+    trackMetaEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
     trackAnalytics("initiate_checkout", {
       item_count: cartData?.lineItems?.length ?? 0,
       cart_total: subtotalNum,

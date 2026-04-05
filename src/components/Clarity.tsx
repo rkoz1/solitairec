@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { getUserIdentity, resetUserIdentity } from "@/lib/analytics";
 import { getBrowserWixClient } from "@/lib/wix-browser-client";
@@ -47,7 +48,14 @@ async function identifyUser() {
     } catch { /* fall through without name */ }
   }
 
-  window.clarity("identify", clarityId, undefined, undefined, friendlyName ?? (user_type === "visitor" ? "Visitor" : undefined));
+  // Always provide a friendlyName — "Member" as fallback for logged-in users
+  const resolvedName = friendlyName ?? (user_type === "member" ? "Member" : "Visitor");
+
+  if (process.env.NODE_ENV === "development") {
+    console.debug("[Clarity] identify:", { clarityId, friendlyName: resolvedName, user_type });
+  }
+
+  window.clarity("identify", clarityId, undefined, undefined, resolvedName);
   window.clarity("set", "user_type", user_type ?? "visitor");
   if (user_type === "member") {
     window.clarity("set", "member_id", clarityId);
@@ -55,23 +63,24 @@ async function identifyUser() {
 }
 
 export default function Clarity() {
+  const pathname = usePathname();
+
+  // Re-identify on every route change with 600ms delay to avoid Clarity's SPA restart window
   useEffect(() => {
     if (!CLARITY_ID) return;
+    const timer = setTimeout(identifyUser, 600);
+    return () => clearTimeout(timer);
+  }, [pathname]);
 
-    // Identify once Clarity is ready
-    const timer = setTimeout(identifyUser, 1000);
-
-    // Re-identify on login/logout
+  // Re-identify on login/logout
+  useEffect(() => {
+    if (!CLARITY_ID) return;
     const handler = () => {
       resetUserIdentity();
-      setTimeout(identifyUser, 500);
+      setTimeout(identifyUser, 600);
     };
     window.addEventListener("auth-changed", handler);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("auth-changed", handler);
-    };
+    return () => window.removeEventListener("auth-changed", handler);
   }, []);
 
   if (!CLARITY_ID) return null;

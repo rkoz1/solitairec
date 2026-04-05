@@ -16,6 +16,7 @@ import type {
 } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics } from "@/lib/analytics";
 import { showToast } from "@/lib/toast";
@@ -123,7 +124,7 @@ function ExpressCheckoutInner({
 
   const onClick = useCallback(
     (event: StripeExpressCheckoutElementClickEvent) => {
-      trackEvent("InitiateCheckout", { currency: "HKD" });
+      trackMetaEvent("InitiateCheckout", { currency: "HKD" });
       trackAnalytics("express_checkout_click", {
         payment_method: "wallet",
       });
@@ -248,7 +249,7 @@ function ExpressCheckoutInner({
         const orderRes = await fetch("/api/stripe/confirm-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentIntentId, wixVisitorId, wixMemberId, metaEventId: eventId }),
+          body: JSON.stringify({ paymentIntentId, wixVisitorId, wixMemberId, metaEventId: eventId, eventSourceUrl: window.location.href }),
         });
 
         if (orderRes.ok) {

@@ -12,7 +12,7 @@ import CollectionFilters, {
   type FilterState,
 } from "@/components/CollectionFilters";
 import LoadingIndicator from "@/components/LoadingIndicator";
-import { trackEvent } from "@/lib/meta-pixel";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
 
 export default function SearchClient() {
@@ -44,7 +44,7 @@ export default function SearchClient() {
 
   useEffect(() => {
     if (query.trim()) {
-      trackEvent("Search", { search_string: query });
+      trackMetaEvent("Search", { search_string: query });
       trackAnalytics("search_page_view", {
         query,
         result_count: data?.products.length ?? 0,

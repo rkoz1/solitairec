@@ -72,6 +72,9 @@ export default async function RootLayout({
       className={`${notoSerif.variable} ${inter.variable} h-full antialiased`}
     >
       <head>
+        <link rel="alternate" hrefLang="en-HK" href={SITE_URL} />
+        <link rel="alternate" hrefLang="en" href={SITE_URL} />
+        <link rel="alternate" hrefLang="x-default" href={SITE_URL} />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"

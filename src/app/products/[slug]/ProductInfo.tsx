@@ -257,6 +257,7 @@ export default function ProductInfo({
             <AddToCartButton
               productId={productId}
               productName={productName}
+              productPrice={productPrice}
               manageVariants={manageVariants}
               selectedOptions={selectedOptions}
               variantId={selectedVariantId}

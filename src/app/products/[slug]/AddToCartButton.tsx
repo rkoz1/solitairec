@@ -7,13 +7,14 @@ import {
 } from "@/lib/wix-browser-client";
 import { showToast } from "@/lib/toast";
 import { addItemToCart } from "@/lib/cart";
-import { trackEvent } from "@/lib/meta-pixel";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
 import { clarityEvent, clarityTag } from "@/lib/clarity";
 
 interface AddToCartButtonProps {
   productId: string;
   productName?: string;
+  productPrice?: string;
   manageVariants: boolean;
   selectedOptions?: Record<string, string>;
   variantId?: string;
@@ -22,6 +23,7 @@ interface AddToCartButtonProps {
 export default function AddToCartButton({
   productId,
   productName,
+  productPrice,
   manageVariants,
   selectedOptions,
   variantId,
@@ -53,10 +55,11 @@ export default function AddToCartButton({
 
       window.dispatchEvent(new Event("cart-updated"));
 
-      trackEvent("AddToCart", {
+      trackMetaEvent("AddToCart", {
         content_ids: [productId],
         content_name: productName,
         content_type: "product",
+        value: productPrice ? parseFloat(productPrice) : undefined,
         currency: "HKD",
       });
       trackAnalytics("add_to_cart", {

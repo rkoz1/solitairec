@@ -248,6 +248,8 @@ export default async function ProductPage({ params }: Props) {
     name: product.name,
     description: product.description ? stripHtml(product.description).slice(0, 500) : undefined,
     image: mainImage,
+    sku: product.sku || product._id,
+    url: `${siteUrl}/products/${product.slug}`,
     brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
     offers: {
       "@type": "Offer",
@@ -258,6 +260,8 @@ export default async function ProductPage({ params }: Props) {
           ? "https://schema.org/OutOfStock"
           : "https://schema.org/InStock",
       url: `${siteUrl}/products/${product.slug}`,
+      itemCondition: "https://schema.org/NewCondition",
+      seller: { "@type": "Organization", name: "SOLITAIREC" },
     },
   };
 
