@@ -96,6 +96,8 @@ const getFittingDefaults = unstable_cache(
   { revalidate: 3600, tags: ["product-catalog"] }
 );
 
+const SKIP_FITTING_CATEGORIES = new Set(["New Arrivals", "All Products", "Featured"]);
+
 async function getProductCategories(collectionIds: string[]): Promise<string[]> {
   const allCollections = await getAllCollections();
   const collectionMap = new Map(allCollections.map((c) => [c._id, c]));
@@ -104,15 +106,16 @@ async function getProductCategories(collectionIds: string[]): Promise<string[]> 
     .filter(Boolean) as { name: string; slug: string; _id: string }[];
 
   for (const cat of CATEGORY_HIERARCHY) {
+    if (SKIP_FITTING_CATEGORIES.has(cat.name)) continue;
     const matchedChild = cat.children?.find((child) =>
       productCollections.some((c) => c.name === child)
     );
     if (matchedChild) {
-      // Return child first (specific), then parent (general) as fallback
-      return [displayName(matchedChild), displayName(cat.name)];
+      // Return both raw Wix name and display name so fitting lookup works with either
+      return [matchedChild, displayName(matchedChild), cat.name, displayName(cat.name)];
     }
     if (productCollections.some((c) => c.name === cat.name)) {
-      return [displayName(cat.name)];
+      return [cat.name, displayName(cat.name)];
     }
   }
   return [];
@@ -188,6 +191,18 @@ export default async function ProductPage({ params }: Props) {
       getFittingDefaults(),
       getProductCategories(product.collectionIds ?? []),
     ]);
+    if (process.env.NODE_ENV === "development") {
+      const allCols = await getAllCollections();
+      const colMap = new Map(allCols.map((c) => [c._id, c]));
+      const resolvedCols = (product.collectionIds ?? []).map((id) => {
+        const col = colMap.get(id);
+        return col ? `${col.name} (${id})` : `UNKNOWN (${id})`;
+      });
+      console.debug("[Fitting] product:", product.name);
+      console.debug("[Fitting] collectionIds resolved:", resolvedCols);
+      console.debug("[Fitting] categories for fitting:", categories);
+      console.debug("[Fitting] CMS keys:", Object.keys(fittingDefaults));
+    }
     // Try most specific category first (e.g. "Skirts"), then parent (e.g. "Dresses")
     const fallbackDesc = categories.reduce<string | undefined>(
       (found, cat) => found ?? fittingDefaults[cat],
