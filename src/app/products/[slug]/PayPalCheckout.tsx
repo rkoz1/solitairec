@@ -5,7 +5,7 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
 import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
-import { trackAnalytics } from "@/lib/analytics";
+import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
 import { showToast } from "@/lib/toast";
 
 interface PayPalCheckoutProps {
@@ -85,13 +85,10 @@ function PayPalButtonsInner({
         wixMemberId = memberData.member._id;
       } else {
         const tokens = wixClient.auth.getTokens();
-        const accessToken = tokens.accessToken?.value;
-        if (accessToken) {
-          try {
-            const payload = JSON.parse(atob(accessToken.split(".")[1]));
-            wixVisitorId = payload.sub;
-          } catch { /* ignore */ }
-        }
+        const uid = tokens.accessToken?.value
+          ? parseWixTokenUid(tokens.accessToken.value)
+          : null;
+        if (uid) wixVisitorId = uid;
       }
     } catch { /* ignore */ }
 

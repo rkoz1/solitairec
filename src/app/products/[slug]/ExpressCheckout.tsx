@@ -18,7 +18,7 @@ import { getStripe } from "@/lib/stripe-client";
 import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
 import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
-import { trackAnalytics } from "@/lib/analytics";
+import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
 import { showToast } from "@/lib/toast";
 
 interface ExpressCheckoutProps {
@@ -234,13 +234,10 @@ function ExpressCheckoutInner({
           } else {
             // Extract visitor ID from tokens
             const tokens = wixClient.auth.getTokens();
-            const accessToken = tokens.accessToken?.value;
-            if (accessToken) {
-              try {
-                const payload = JSON.parse(atob(accessToken.split(".")[1]));
-                wixVisitorId = payload.sub;
-              } catch { /* ignore */ }
-            }
+            const uid = tokens.accessToken?.value
+              ? parseWixTokenUid(tokens.accessToken.value)
+              : null;
+            if (uid) wixVisitorId = uid;
           }
         } catch { /* ignore - order will still be created */ }
 

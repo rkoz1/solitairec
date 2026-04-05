@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { getBrowserWixClient } from "@/lib/wix-browser-client";
-import { resetUserIdentity } from "@/lib/analytics";
+import { resetUserIdentity, parseWixTokenUid } from "@/lib/analytics";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
@@ -45,20 +45,10 @@ export default function MetaPixel() {
           const advancedData: Record<string, string> = {};
 
           // Attach external_id for cross-device matching
-          const rawTokens = tokens as {
-            memberId?: string;
-            accessToken?: { value?: string };
-          };
-          if (rawTokens.memberId) {
-            advancedData.external_id = rawTokens.memberId;
-          } else if (rawTokens.accessToken?.value) {
-            try {
-              const payload = JSON.parse(
-                atob(rawTokens.accessToken.value.split(".")[1])
-              );
-              if (payload.sub) advancedData.external_id = payload.sub;
-            } catch { /* ignore */ }
-          }
+          const uid = tokens.accessToken?.value
+            ? parseWixTokenUid(tokens.accessToken.value)
+            : null;
+          if (uid) advancedData.external_id = uid;
 
           if (member) {
             const email =

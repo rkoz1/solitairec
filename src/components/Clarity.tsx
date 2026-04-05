@@ -15,9 +15,15 @@ declare global {
 const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID;
 
 async function identifyUser() {
-  if (!window.clarity) return;
+  if (!window.clarity) {
+    console.debug("[Clarity] window.clarity not available");
+    return;
+  }
   const { user_id, user_type } = getUserIdentity();
-  if (!user_id) return;
+  if (!user_id) {
+    console.debug("[Clarity] getUserIdentity returned null:", { user_id, user_type });
+    return;
+  }
 
   let clarityId = user_id;
   let friendlyName: string | undefined;
