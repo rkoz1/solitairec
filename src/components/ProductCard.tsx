@@ -27,6 +27,12 @@ export default function ProductCard({
 }: ProductCardProps) {
   const src = getWixImageUrl(imageUrl, 600, 800);
 
+  // Extract color swatches from product options
+  const colorOption = productOptions?.find(
+    (opt) => opt.choices[0]?.value && /^(#|rgb)/.test(opt.choices[0].value)
+  );
+  const colors = colorOption?.choices.slice(0, 5);
+
   return (
     <div className="group">
       {/* Image container — actions overlay here */}
@@ -41,6 +47,20 @@ export default function ProductCard({
             priority={priority}
           />
         </Link>
+
+        {/* Color swatches — bottom-left */}
+        {colors && colors.length > 0 && (
+          <div className="absolute bottom-2.5 left-2.5 z-20 flex gap-1">
+            {colors.map((choice) => (
+              <span
+                key={choice.value}
+                className="w-3.5 h-3.5 ring-1 ring-white/80 shadow-sm"
+                style={{ backgroundColor: choice.value }}
+                title={choice.description || choice.value}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Action icons — over image, above the link */}
         {productId && (
