@@ -97,7 +97,7 @@ export default async function HomePage() {
 
   return (
     <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
-      {/* Hero — Featured products carousel */}
+      {/* Hero — Featured products carousel + provenance */}
       {featuredProducts.length > 0 && (
         <div className="pt-4">
           <HeroCarousel
@@ -112,15 +112,49 @@ export default async function HomePage() {
                 2133
               ),
             }))}
-          />
+          >
+            {/* Desktop provenance — rendered inside the hero pane */}
+            <div className="text-center">
+              <div className="w-10 h-[2px] bg-secondary mx-auto mb-8" />
+              <p className="font-sans text-xs tracking-[0.3em] uppercase font-medium text-on-surface">
+                Korean &amp; Japanese Fashion
+              </p>
+              <p className="font-sans text-xs tracking-[0.3em] uppercase font-medium text-on-surface-variant mt-1">
+                Curated in Hong Kong
+              </p>
+              <p className="text-[11px] tracking-[0.2em] uppercase text-on-surface-variant/60 mt-5">
+                Independent designers. Personally sourced.
+              </p>
+              <a
+                href="#collections"
+                className="inline-block mt-8 text-xs tracking-[0.15em] uppercase font-medium text-on-surface underline underline-offset-4 hover:text-secondary transition-colors"
+              >
+                Explore the Collection
+              </a>
+            </div>
+          </HeroCarousel>
         </div>
       )}
+
+      {/* Provenance statement — mobile only (desktop version is inside hero pane) */}
+      <div className="text-center pt-12 pb-0 lg:hidden">
+        <div className="w-10 h-[2px] bg-secondary mx-auto mb-6" />
+        <p className="font-sans text-[11px] sm:text-xs tracking-[0.3em] uppercase font-medium text-on-surface">
+          Korean &amp; Japanese Fashion
+        </p>
+        <p className="font-sans text-[11px] sm:text-xs tracking-[0.3em] uppercase font-medium text-on-surface-variant">
+          Curated in Hong Kong
+        </p>
+        <p className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-on-surface-variant/70 mt-4">
+          Independent designers. Personally sourced.
+        </p>
+      </div>
 
       {/* Category sections */}
       {sectionData.map(
         (section, sectionIndex) =>
           section.products.length > 0 && (
-            <div key={section._id}>
+            <div key={section._id} {...(sectionIndex === 0 ? { id: "collections" } : {})}>
               <SectionHeading title={displayName(section.name)} />
               <ProductGrid products={section.products} priorityFirst={sectionIndex === 0 && featuredProducts.length === 0} />
               <div className="mt-8 text-center">

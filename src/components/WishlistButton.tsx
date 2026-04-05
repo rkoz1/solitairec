@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { isInWishlist, toggleWishlist } from "@/lib/wishlist";
 import { trackAnalytics } from "@/lib/analytics";
+import { showToast } from "@/lib/toast";
 
 interface WishlistButtonProps {
   productId: string;
@@ -28,6 +29,9 @@ export default function WishlistButton({ productId }: WishlistButtonProps) {
       product_id: productId,
       source: "product_page",
     });
+    if (nowIn) {
+      showToast("Saved — find your favourites in Bag", "success");
+    }
   }
 
   return (

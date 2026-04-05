@@ -11,6 +11,7 @@ import {
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { trackAnalytics } from "@/lib/analytics";
 import { clarityEvent, clarityTag } from "@/lib/clarity";
+import { showToast } from "@/lib/toast";
 
 interface ProductOption {
   name: string;
@@ -65,6 +66,9 @@ export default memo(function ProductCardActions({
       product_id: productId,
       source: "product_card",
     });
+    if (nowIn) {
+      showToast("Saved — find your favourites in Bag", "success");
+    }
   }
 
   function handleBag(e: React.MouseEvent) {
@@ -332,13 +336,16 @@ export default memo(function ProductCardActions({
       {/* Heart — top-right */}
       <button
         onClick={handleHeart}
-        className={`absolute top-2.5 right-2.5 z-20 w-7 h-7 lg:w-9 lg:h-9 flex items-center justify-center transition-opacity duration-200 ${
+        className={`absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 transition-opacity duration-200 ${
           inWishlist
             ? "opacity-100"
             : "opacity-60 lg:opacity-0 lg:group-hover:opacity-70"
         }`}
         aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
       >
+        <span className="hidden lg:block text-[9px] tracking-[0.15em] uppercase font-medium text-white drop-shadow-sm">
+          {inWishlist ? "Saved" : "Save"}
+        </span>
         <span
           className={`material-symbols-outlined text-[20px] lg:text-[24px] drop-shadow-sm ${
             inWishlist ? "text-secondary" : "text-white"
@@ -352,13 +359,16 @@ export default memo(function ProductCardActions({
       {/* Bag — bottom-right */}
       <button
         onClick={handleBag}
-        className={`absolute bottom-2.5 right-2.5 z-20 w-7 h-7 lg:w-9 lg:h-9 flex items-center justify-center transition-opacity duration-200 ${
+        className={`absolute bottom-2.5 right-2.5 z-20 flex items-center gap-1.5 transition-opacity duration-200 ${
           added
             ? "opacity-100"
             : "opacity-60 lg:opacity-0 lg:group-hover:opacity-70"
         }`}
         aria-label="Add to bag"
       >
+        <span className="hidden lg:block text-[9px] tracking-[0.15em] uppercase font-medium text-white drop-shadow-sm">
+          {added ? "Added" : "Add to Bag"}
+        </span>
         <span className={`material-symbols-outlined text-[20px] lg:text-[24px] drop-shadow-sm ${
           added ? "text-secondary" : "text-white"
         }`}

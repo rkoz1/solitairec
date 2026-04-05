@@ -151,7 +151,7 @@ export default function ProductInfo({
               {option.choices?.[0]?.value && /^(#|rgb)/.test(option.choices[0].value) ? (
                 /* Color option — swatch squares */
                 <div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 p-2 -m-2">
                     {option.choices?.map((choice) => {
                       const label = choice.description || choice.value || "";
                       const isSelected = selectedOptions[option.name ?? ""] === label;

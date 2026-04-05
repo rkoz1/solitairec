@@ -986,6 +986,7 @@ function SettingsTab() {
 export default function AccountPage() {
   const { member: ctxMember, isLoggedIn: ctxLoggedIn, loading: memberLoading } = useMember();
   const [activeTab, setActiveTab] = useState<Tab>("orders");
+  const [signingIn, setSigningIn] = useState(false);
 
   const memberName = ctxMember?.contact?.firstName ?? ctxMember?.profile?.nickname ?? "";
   const memberEmail = ctxMember?.loginEmail ?? ctxMember?.contact?.emails?.[0] ?? "";
@@ -1001,10 +1002,14 @@ export default function AccountPage() {
             Sign in to view your orders and manage your account.
           </p>
           <button
-            onClick={() => startLogin()}
-            className="mt-8 w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98]"
+            onClick={() => {
+              setSigningIn(true);
+              startLogin();
+            }}
+            disabled={signingIn}
+            className="mt-8 w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
           >
-            Sign In
+            {signingIn ? "Opening Sign In…" : "Sign In"}
           </button>
         </div>
       </section>
