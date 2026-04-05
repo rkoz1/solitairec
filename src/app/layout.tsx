@@ -16,6 +16,7 @@ import MetaPixel from "@/components/MetaPixel";
 import Clarity from "@/components/Clarity";
 import CookieConsent from "@/components/CookieConsent";
 import MaterialSymbols from "@/components/MaterialSymbols";
+import { MemberProvider } from "@/contexts/MemberContext";
 import { Analytics } from "@vercel/analytics/react";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -102,6 +103,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface font-sans">
+        <MemberProvider>
         <MaterialSymbols />
         <NavigationLoader />
         {/* Sticky header — marquee + nav + region bar flow naturally */}
@@ -202,6 +204,7 @@ export default async function RootLayout({
             </Link>
           </div>
         </nav>
+        </MemberProvider>
       </body>
     </html>
   );

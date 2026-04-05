@@ -15,7 +15,8 @@ import type {
   StripeExpressCheckoutElementShippingRateChangeEvent,
 } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
-import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
 import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
@@ -118,6 +119,7 @@ function ExpressCheckoutInner({
 }) {
   const stripe = useStripe();
   const elements = useElements();
+  const { member: ctxMember } = useMember();
   const [ready, setReady] = useState(false);
   const [processing, setProcessing] = useState(false);
 
@@ -225,14 +227,10 @@ function ExpressCheckoutInner({
         let wixVisitorId: string | undefined;
         let wixMemberId: string | undefined;
         try {
-          const wixClient = getBrowserWixClient();
-          await ensureVisitorTokens(wixClient);
-          const member = await wixClient.members.getCurrentMember({ fieldsets: ["FULL"] }).catch(() => null);
-          const memberData = member as { member?: { _id?: string } } | null;
-          if (memberData?.member?._id) {
-            wixMemberId = memberData.member._id;
+          if (ctxMember?._id) {
+            wixMemberId = ctxMember._id;
           } else {
-            // Extract visitor ID from tokens
+            const wixClient = getBrowserWixClient();
             const tokens = wixClient.auth.getTokens();
             const uid = tokens.accessToken?.value
               ? parseWixTokenUid(tokens.accessToken.value)

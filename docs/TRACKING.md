@@ -25,7 +25,9 @@ MetaPixel and Clarity are rendered inside `<CookieConsent>` in `src/app/layout.t
 
 ### How it works
 
-All tracking shares a single identity source: `getUserIdentity()` in `src/lib/analytics.ts`.
+**Member data** is fetched once via `MemberProvider` (`src/contexts/MemberContext.tsx`) and shared to all consumers via the `useMember()` hook. This replaces 9 independent `getCurrentMember()` calls with 1 shared call.
+
+**Token-level identity** (user ID, member vs visitor) is extracted via `getUserIdentity()` in `src/lib/analytics.ts`.
 
 **Wix token format:** Wix access tokens are NOT standard JWTs. They have format:
 ```

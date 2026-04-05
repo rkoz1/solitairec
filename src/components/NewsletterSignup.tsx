@@ -2,16 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { subscribeToNewsletter } from "@/app/newsletter/actions";
-import { isLoggedIn } from "@/lib/wix-auth";
-import {
-  getBrowserWixClient,
-  ensureVisitorTokens,
-} from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
 import { trackAnalytics } from "@/lib/analytics";
 
 const UNSUB_KEY = "solitairec_newsletter_unsub";
 
 export default function NewsletterSignup({ alwaysShow = false }: { alwaysShow?: boolean }) {
+  const { member, isLoggedIn, loading: memberLoading } = useMember();
   const [email, setEmail] = useState("");
   const [memberEmail, setMemberEmail] = useState<string | null>(null);
   const [status, setStatus] = useState<
@@ -21,47 +18,35 @@ export default function NewsletterSignup({ alwaysShow = false }: { alwaysShow?: 
 
   // Detect logged-in member and auto-check subscription
   useEffect(() => {
+    if (memberLoading) return;
+
     async function detect() {
-      // Check local opt-out
       if (localStorage.getItem(UNSUB_KEY)) {
         setStatus("idle");
         return;
       }
 
-      if (isLoggedIn()) {
-        try {
-          const wix = getBrowserWixClient();
-          await ensureVisitorTokens(wix);
-          const response = await wix.members.getCurrentMember({
-            fieldsets: ["FULL"],
-          });
-          const member = (response as unknown as { member?: Record<string, unknown> }).member ?? response;
-          const m = member as Record<string, unknown>;
-          const contact = m.contact as Record<string, unknown> | undefined;
-          const resolvedEmail = (m.loginEmail as string) ?? ((contact?.emails as string[])?.[0]) ?? "";
+      if (isLoggedIn && member) {
+        const resolvedEmail = member.loginEmail ?? member.contact?.emails?.[0] ?? "";
 
-          if (resolvedEmail) {
-            setMemberEmail(resolvedEmail);
-            // Check if already subscribed
-            const result = await subscribeToNewsletter(resolvedEmail);
-            if (result.success && result.error === "already_subscribed") {
-              setStatus("already");
-            } else if (result.success) {
-              setStatus("success");
-              setTimeout(() => setStatus("already"), 3000);
-            } else {
-              setStatus("idle");
-            }
-            return;
+        if (resolvedEmail) {
+          setMemberEmail(resolvedEmail);
+          const result = await subscribeToNewsletter(resolvedEmail);
+          if (result.success && result.error === "already_subscribed") {
+            setStatus("already");
+          } else if (result.success) {
+            setStatus("success");
+            setTimeout(() => setStatus("already"), 3000);
+          } else {
+            setStatus("idle");
           }
-        } catch {
-          // fall through to idle
+          return;
         }
       }
       setStatus("idle");
     }
     detect();
-  }, []);
+  }, [memberLoading, isLoggedIn, member]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

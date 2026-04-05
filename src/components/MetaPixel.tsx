@@ -1,83 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
-import { getBrowserWixClient } from "@/lib/wix-browser-client";
 import { resetUserIdentity, parseWixTokenUid } from "@/lib/analytics";
+import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
 export default function MetaPixel() {
   const pathname = usePathname();
-  const [userDataReady, setUserDataReady] = useState(false);
+  const { member, loading } = useMember();
+  const initializedRef = useRef(false);
 
-  // Fetch member data for Advanced Matching on mount
+  // Set up advanced matching once member data is available
   useEffect(() => {
-    if (!PIXEL_ID || typeof window === "undefined") return;
+    if (!PIXEL_ID || typeof window === "undefined" || loading || !window.fbq) return;
 
-    async function loadUserData() {
-      try {
-        const wix = getBrowserWixClient();
-        const tokens = wix.auth.getTokens();
-        if (!tokens.accessToken?.value) {
-          setUserDataReady(true);
-          return;
-        }
+    const advancedData: Record<string, string> = {};
 
-        const response = await wix.members
-          .getCurrentMember({ fieldsets: ["FULL"] })
-          .catch(() => null);
-        const res = response as {
-          member?: {
-            loginEmail?: string;
-            contact?: {
-              firstName?: string;
-              lastName?: string;
-              emails?: string[];
-              phones?: string[];
-            };
-          };
-        } | null;
+    // Attach external_id for cross-device matching
+    try {
+      const wix = getBrowserWixClient();
+      const tokens = wix.auth.getTokens();
+      const uid = tokens.accessToken?.value
+        ? parseWixTokenUid(tokens.accessToken.value)
+        : null;
+      if (uid) advancedData.external_id = uid;
+    } catch { /* ignore */ }
 
-        const member = res?.member;
-        if (window.fbq) {
-          const advancedData: Record<string, string> = {};
-
-          // Attach external_id for cross-device matching
-          const uid = tokens.accessToken?.value
-            ? parseWixTokenUid(tokens.accessToken.value)
-            : null;
-          if (uid) advancedData.external_id = uid;
-
-          if (member) {
-            const email =
-              member.loginEmail ?? member.contact?.emails?.[0];
-            if (email) advancedData.em = email;
-            const phone = member.contact?.phones?.[0];
-            if (phone) advancedData.ph = phone.replace(/\D/g, "");
-            if (member.contact?.firstName)
-              advancedData.fn = member.contact.firstName;
-            if (member.contact?.lastName)
-              advancedData.ln = member.contact.lastName;
-          }
-
-          if (Object.keys(advancedData).length > 0) {
-            window.fbq("init", PIXEL_ID, advancedData);
-          }
-        }
-      } catch {
-        // Not logged in or API unavailable — pixel works without advanced matching
-      }
-      setUserDataReady(true);
+    if (member) {
+      const email = member.loginEmail ?? member.contact?.emails?.[0];
+      if (email) advancedData.em = email;
+      const phone = member.contact?.phones?.[0];
+      if (phone) advancedData.ph = phone.replace(/\D/g, "");
+      if (member.contact?.firstName) advancedData.fn = member.contact.firstName;
+      if (member.contact?.lastName) advancedData.ln = member.contact.lastName;
     }
 
-    loadUserData();
+    if (Object.keys(advancedData).length > 0) {
+      window.fbq("init", PIXEL_ID, advancedData);
+    }
 
-    // Re-check on auth changes (also reset analytics identity cache)
+    initializedRef.current = true;
+  }, [member, loading]);
+
+  // Re-init on auth changes
+  useEffect(() => {
+    if (!PIXEL_ID) return;
     const handler = () => {
       resetUserIdentity();
-      loadUserData();
+      initializedRef.current = false;
     };
     window.addEventListener("auth-changed", handler);
     return () => window.removeEventListener("auth-changed", handler);
@@ -85,9 +59,9 @@ export default function MetaPixel() {
 
   // Fire PageView on route changes
   useEffect(() => {
-    if (!PIXEL_ID || !userDataReady || typeof window === "undefined" || !window.fbq) return;
+    if (!PIXEL_ID || !initializedRef.current || typeof window === "undefined" || !window.fbq) return;
     window.fbq("track", "PageView");
-  }, [pathname, userDataReady]);
+  }, [pathname, loading]);
 
   if (!PIXEL_ID) return null;
 

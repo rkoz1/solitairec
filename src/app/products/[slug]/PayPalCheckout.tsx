@@ -2,7 +2,8 @@
 
 import { useRef, useCallback } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { useMember } from "@/contexts/MemberContext";
 import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
@@ -40,6 +41,10 @@ function PayPalButtonsInner({
   selectedOptions,
   variantId,
 }: PayPalCheckoutProps) {
+  const { member: ctxMember } = useMember();
+  const memberRef = useRef(ctxMember);
+  memberRef.current = ctxMember;
+
   // Use refs so the PayPal callbacks always see the latest values
   const propsRef = useRef({ productId, selectedOptions, variantId });
   propsRef.current = { productId, selectedOptions, variantId };
@@ -77,13 +82,11 @@ function PayPalButtonsInner({
     let wixVisitorId: string | undefined;
     let wixMemberId: string | undefined;
     try {
-      const wixClient = getBrowserWixClient();
-      await ensureVisitorTokens(wixClient);
-      const member = await wixClient.members.getCurrentMember({ fieldsets: ["FULL"] }).catch(() => null);
-      const memberData = member as { member?: { _id?: string } } | null;
-      if (memberData?.member?._id) {
-        wixMemberId = memberData.member._id;
+      const currentMember = memberRef.current;
+      if (currentMember?._id) {
+        wixMemberId = currentMember._id;
       } else {
+        const wixClient = getBrowserWixClient();
         const tokens = wixClient.auth.getTokens();
         const uid = tokens.accessToken?.value
           ? parseWixTokenUid(tokens.accessToken.value)
