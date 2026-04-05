@@ -87,7 +87,8 @@ export default function HeroCarousel({
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover"
-                loading={i === 0 ? "eager" : "lazy"}
+                priority={i === 0}
+                fetchPriority={i === 0 ? "high" : "low"}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -137,7 +138,8 @@ export default function HeroCarousel({
                 fill
                 sizes="50vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
-                loading="eager"
+                priority
+                fetchPriority="high"
               />
             </div>
           </Link>

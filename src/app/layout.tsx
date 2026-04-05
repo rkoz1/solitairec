@@ -15,6 +15,7 @@ import Footer from "@/components/Footer";
 import MetaPixel from "@/components/MetaPixel";
 import Clarity from "@/components/Clarity";
 import CookieConsent from "@/components/CookieConsent";
+import MaterialSymbols from "@/components/MaterialSymbols";
 import { Analytics } from "@vercel/analytics/react";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -76,8 +77,13 @@ export default async function RootLayout({
         <link rel="alternate" hrefLang="en" href={SITE_URL} />
         <link rel="alternate" hrefLang="x-default" href={SITE_URL} />
         <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+        />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
         />
         <script
           type="application/ld+json"
@@ -96,6 +102,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface font-sans">
+        <MaterialSymbols />
         <NavigationLoader />
         {/* Sticky header — marquee + nav + region bar flow naturally */}
         <header className="sticky top-0 z-50">
