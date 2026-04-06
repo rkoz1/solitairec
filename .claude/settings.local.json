@@ -90,7 +90,9 @@
       "Bash(npm ls:*)",
       "Bash(grep:*)",
       "Bash(find /c/dev/solitairec/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec wc -l {} +)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "WebFetch(domain:developers.facebook.com)",
+      "WebFetch(domain:deepwiki.com)"
     ]
   }
 }
