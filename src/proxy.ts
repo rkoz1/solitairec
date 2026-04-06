@@ -15,7 +15,7 @@ const COOKIE_MAX_AGE = 90 * 24 * 60 * 60; // 90 days — matches Meta SDK
  *  - Use subdomain_index based on domain structure
  *  - Random _fbp uses Math.random() * 2147483647 (matches Meta SDK range)
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const existingFbc = request.cookies.get("_fbc")?.value;
   const existingFbp = request.cookies.get("_fbp")?.value;
 
