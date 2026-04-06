@@ -21,6 +21,7 @@ import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
 import { showToast } from "@/lib/toast";
+import { clarityEvent } from "@/lib/clarity";
 
 interface ExpressCheckoutProps {
   productId: string;
@@ -129,9 +130,8 @@ function ExpressCheckoutInner({
   const onClick = useCallback(
     (event: StripeExpressCheckoutElementClickEvent) => {
       trackMetaEvent("InitiateCheckout", { currency: "HKD" });
-      trackAnalytics("express_checkout_click", {
-        payment_method: "wallet",
-      });
+      trackAnalytics("express_checkout_click", { payment_method: "wallet" });
+      clarityEvent("initiate_checkout");
       event.resolve({
         emailRequired: true,
         shippingAddressRequired: true,
