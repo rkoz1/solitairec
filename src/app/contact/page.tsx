@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import ContactForm from "./ContactForm";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 export const metadata: Metadata = {
   title: "Contact",
   description:
     "Get in touch with SolitaireC. Reach us by email or Instagram DM, or send us a message directly.",
+  alternates: { canonical: `${SITE_URL}/contact` },
 };
 
 export default function ContactPage() {

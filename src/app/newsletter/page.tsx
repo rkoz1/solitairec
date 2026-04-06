@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import NewsletterSignup from "@/components/NewsletterSignup";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 export const metadata: Metadata = {
   title: "Newsletter",
   description:
     "Subscribe to the SolitaireC newsletter. Be the first to know about new arrivals, exclusive offers, and editorial stories.",
+  alternates: { canonical: `${SITE_URL}/newsletter` },
 };
 
 export default function NewsletterPage() {

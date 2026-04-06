@@ -5,10 +5,13 @@ import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 export const metadata: Metadata = {
   title: "Rewards Programme",
   description:
     "Earn points on every purchase. Redeem for exclusive rewards and discounts at SolitaireC.",
+  alternates: { canonical: `${SITE_URL}/loyalty` },
 };
 
 interface EarningRule {

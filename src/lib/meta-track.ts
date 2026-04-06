@@ -7,6 +7,8 @@
  * Purchase events are handled separately via the payment API routes.
  */
 
+import { getUserIdentity } from "@/lib/analytics";
+
 declare global {
   interface Window {
     fbq: ((...args: unknown[]) => void) & { queue?: unknown[] };
@@ -14,6 +16,29 @@ declare global {
 }
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+
+/** Cached user data for Meta matching — set by MetaPixel component. */
+let _cachedEmail: string | undefined;
+let _cachedPhone: string | undefined;
+let _cachedExternalId: string | undefined;
+
+/** Called by MetaPixel when member data becomes available. */
+export function setMetaUserData(data: {
+  email?: string;
+  phone?: string;
+  externalId?: string;
+}) {
+  if (data.email) _cachedEmail = data.email;
+  if (data.phone) _cachedPhone = data.phone;
+  if (data.externalId) _cachedExternalId = data.externalId;
+}
+
+/** Called on auth changes to clear cached data. */
+export function clearMetaUserData() {
+  _cachedEmail = undefined;
+  _cachedPhone = undefined;
+  _cachedExternalId = undefined;
+}
 
 interface MetaEventData {
   value?: number;
@@ -41,6 +66,14 @@ export function trackMetaEvent(
 ): void {
   if (!PIXEL_ID || typeof window === "undefined") return;
 
+  // Resolve user data: explicit params → cached → Wix token fallback
+  const email = userEmail ?? _cachedEmail;
+  let extId = externalId ?? _cachedExternalId;
+  if (!extId) {
+    const identity = getUserIdentity();
+    if (identity.user_id) extId = identity.user_id;
+  }
+
   const eventId = crypto.randomUUID();
 
   // 1. Fire browser pixel with eventID for deduplication
@@ -62,8 +95,9 @@ export function trackMetaEvent(
       searchString: data.search_string,
     },
     eventSourceUrl: window.location.href,
-    userEmail,
-    externalId,
+    userEmail: email,
+    userPhone: _cachedPhone,
+    externalId: extId,
   };
 
   fetch("/api/meta/capi", {

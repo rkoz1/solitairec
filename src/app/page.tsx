@@ -3,10 +3,13 @@ export const revalidate = 600;
 import type { Metadata } from "next";
 import Link from "next/link";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 export const metadata: Metadata = {
   title: "SOLITAIREC — Quality Korean and Japanese Fashion",
   description:
     "Curated selection of high-quality designer brands. Clothing, shoes, handbags, and accessories. Minimalistic and unique products from Hong Kong.",
+  alternates: { canonical: SITE_URL },
 };
 import ProductCard from "@/components/ProductCard";
 import HeroCarousel from "@/components/HeroCarousel";

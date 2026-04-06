@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { resetUserIdentity, parseWixTokenUid } from "@/lib/analytics";
+import { setMetaUserData, clearMetaUserData } from "@/lib/meta-track";
 import { getBrowserWixClient } from "@/lib/wix-browser-client";
 import { useMember } from "@/contexts/MemberContext";
 
@@ -67,6 +68,13 @@ export default function MetaPixel() {
       window.fbq("init", PIXEL_ID, advancedData);
     }
 
+    // Cache user data so all trackMetaEvent calls include it for CAPI matching
+    setMetaUserData({
+      email: userDataRef.current.email,
+      phone: member?.contact?.phones?.[0]?.replace(/\D/g, ""),
+      externalId: userDataRef.current.externalId,
+    });
+
     initializedRef.current = true;
   }, [member, loading]);
 
@@ -75,6 +83,7 @@ export default function MetaPixel() {
     if (!PIXEL_ID) return;
     const handler = () => {
       resetUserIdentity();
+      clearMetaUserData();
       userDataRef.current = {};
       initializedRef.current = false;
     };
