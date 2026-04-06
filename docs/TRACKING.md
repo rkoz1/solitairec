@@ -55,16 +55,17 @@ The payload (at dot-split index 3) contains `{ data: "<JSON string>" }` where th
 
 ### Event Flow
 
-Each standard event fires via **both** browser Pixel and server CAPI with a shared `eventId` for deduplication (via `trackMetaEvent()` in `src/lib/meta-track.ts`). Purchase events are handled separately through payment API routes.
+Each standard event fires via **both** browser Pixel and server CAPI with a shared `eventId` for deduplication (via `trackMetaEvent()` in `src/lib/meta-track.ts`).
 
 | Event | Trigger | Pixel | CAPI | Deduped | Files |
 |-------|---------|-------|------|---------|-------|
-| **PageView** | Every route change | Yes (MetaPixel.tsx useEffect) | No | N/A | `src/components/MetaPixel.tsx` |
+| **PageView** | Every route change | Yes (MetaPixel.tsx useEffect) | Yes (inline fetch in MetaPixel.tsx) | Yes (shared eventId) | `src/components/MetaPixel.tsx` |
 | **ViewContent** | Product page load | Yes | Yes | Yes (shared eventId) | `src/app/products/[slug]/TrackView.tsx` |
 | **AddToCart** | Add to bag button | Yes | Yes | Yes (shared eventId) | `src/app/products/[slug]/AddToCartButton.tsx` |
 | **Search** | Search results page | Yes | Yes | Yes (shared eventId) | `src/app/search/SearchClient.tsx` |
 | **InitiateCheckout** | Cart checkout / Express / PayPal | Yes | Yes | Yes (shared eventId) | `src/app/cart/page.tsx`, `ExpressCheckout.tsx`, `PayPalCheckout.tsx` |
-| **Purchase** | Payment confirmation | Yes (client) | Yes (server) | Yes (shared eventId) | `ExpressCheckout.tsx` + `api/stripe/confirm-order`, `PayPalCheckout.tsx` + `api/paypal/capture-order` |
+| **Purchase (cart)** | Wix checkout redirect back | Yes | Yes (via CAPI relay) | Yes (shared eventId) | `src/app/order-confirmation/page.tsx` |
+| **Purchase (express)** | Stripe/PayPal payment confirm | Yes (client) | Yes (direct server CAPI) | Yes (shared eventId) | `ExpressCheckout.tsx` + `api/stripe/confirm-order`, `PayPalCheckout.tsx` + `api/paypal/capture-order` |
 
 ### Event Data Requirements
 
@@ -74,7 +75,7 @@ Each standard event fires via **both** browser Pixel and server CAPI with a shar
 | AddToCart | content_ids, content_name, content_type, value, currency | value = product price in HKD |
 | Search | search_string | Query term |
 | InitiateCheckout | value, currency | value = cart subtotal |
-| Purchase | value, currency, content_ids, order_id, num_items | Sent server-side with email, fbc, fbp |
+| Purchase | value, currency, content_ids, content_type, order_id, num_items | Cart: via `trackMetaEvent()`. Express/PayPal: browser `trackEvent()` + server `sendCapiEvent()` with IP/UA/fbc/fbp |
 
 ### CAPI Relay Endpoint
 
@@ -227,5 +228,4 @@ In dev mode, tracking logs to console:
 - **Google Analytics 4** — critical for attribution and funnel visibility
 - **Google Ads conversion tag** — depends on GA4
 - **Sentry error monitoring** — catch checkout failures
-- **PageView CAPI** — currently only browser-side
 - **Consent API for Clarity** — required for EU visitors (`window.clarity("consent")`)
