@@ -182,7 +182,7 @@ export default async function ProductPage({ params }: Props) {
       )
       .map((item) => getWixImageUrl(item.image?.url, 800, 1067)) ?? [];
 
-  const allImages = [mainImage, ...additionalImages.slice(0, 5)];
+  const allImages = [mainImage, ...additionalImages];
 
   // Inject CMS fitting fallback if product lacks a "Fitting" section
   const hasFitting = product.additionalInfoSections?.some(
