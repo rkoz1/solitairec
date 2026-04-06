@@ -3,8 +3,8 @@
  * with a shared eventId for proper deduplication.
  *
  * Use this instead of trackEvent() from meta-pixel.ts for all standard
- * e-commerce events (ViewContent, AddToCart, Search, InitiateCheckout).
- * Purchase events are handled separately via the payment API routes.
+ * e-commerce events (ViewContent, AddToCart, Search, InitiateCheckout, Purchase).
+ * Express/PayPal Purchase events also fire CAPI directly from their API routes.
  */
 
 import { getUserIdentity } from "@/lib/analytics";
@@ -47,6 +47,7 @@ interface MetaEventData {
   content_name?: string;
   content_type?: string;
   num_items?: number;
+  order_id?: string;
   search_string?: string;
 }
 
@@ -92,6 +93,7 @@ export function trackMetaEvent(
       contentName: data.content_name,
       contentType: data.content_type,
       numItems: data.num_items,
+      orderId: data.order_id,
       searchString: data.search_string,
     },
     eventSourceUrl: window.location.href,

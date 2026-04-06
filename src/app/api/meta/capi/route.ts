@@ -19,6 +19,7 @@ export async function POST(request: Request) {
         contentName?: string;
         contentType?: string;
         numItems?: number;
+        orderId?: string;
         searchString?: string;
       };
       eventSourceUrl?: string;
