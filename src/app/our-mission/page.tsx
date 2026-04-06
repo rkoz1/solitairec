@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import NewsletterSignup from "@/components/NewsletterSignup";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 export const metadata: Metadata = {
   title: "Our Mission",
   description:
     "SolitaireC offers a curated selection of high-quality designer brands, minimalistic and unique products that embody effortlessly stylish sophistication.",
+  alternates: { canonical: `${SITE_URL}/our-mission` },
 };
 
 export default function OurMissionPage() {

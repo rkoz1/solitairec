@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import NewsletterSignup from "@/components/NewsletterSignup";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
+
 export const metadata: Metadata = {
   title: "Terms & Conditions",
   description:
     "Delivery, exchange, refund policies, and product care instructions for SolitaireC.",
+  alternates: { canonical: `${SITE_URL}/terms` },
 };
 
 export default function TermsPage() {
