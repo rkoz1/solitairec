@@ -4,10 +4,17 @@
  */
 
 import { createHash } from "crypto";
+import { fetchRetry } from "./fetch-retry";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 const ACCESS_TOKEN = process.env.META_CAPI_TOKEN;
 const API_VERSION = "v21.0";
+
+if (ACCESS_TOKEN && !ACCESS_TOKEN.startsWith("EAA")) {
+  console.warn(
+    "[Meta CAPI] WARNING: META_CAPI_TOKEN doesn't look like a Facebook access token (should start with 'EAA'). Check for accidental key= prefix or wrong token."
+  );
+}
 
 function hashSha256(value: string): string {
   return createHash("sha256").update(value.toLowerCase().trim()).digest("hex");
@@ -87,13 +94,15 @@ export async function sendCapiEvent(
   };
 
   try {
-    const res = await fetch(
-      `https://graph.facebook.com/${API_VERSION}/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: [event] }),
-      }
+    const res = await fetchRetry(() =>
+      fetch(
+        `https://graph.facebook.com/${API_VERSION}/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: [event] }),
+        }
+      )
     );
 
     if (!res.ok) {

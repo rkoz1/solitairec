@@ -3,6 +3,7 @@
 import { unstable_cache } from "next/cache";
 import { getNavCategories, type NavCategory } from "@/lib/collections";
 import { getServerWixClient } from "@/lib/wix-server-client";
+import { fetchRetry } from "@/lib/fetch-retry";
 import { getWixImageUrl } from "@/lib/wix-image";
 import { getProductCatalog } from "@/app/search/actions";
 
@@ -177,11 +178,13 @@ export const fetchSearchResults = unstable_cache(
     const allItems: unknown[] = [];
     for (let i = 0; i < ids.length; i += 50) {
       const batch = ids.slice(i, i + 50);
-      const { items } = await wix.products
-        .queryProducts()
-        .hasSome("_id", batch)
-        .limit(50)
-        .find();
+      const { items } = await fetchRetry(() =>
+        wix.products
+          .queryProducts()
+          .hasSome("_id", batch)
+          .limit(50)
+          .find()
+      );
       allItems.push(...items);
     }
 
@@ -211,53 +214,54 @@ export const fetchCollectionProducts = unstable_cache(
   async (
     slug: string,
     sort: "newest" | "price_asc" | "price_desc" = "newest"
-  ): Promise<CollectionData | null> => {
-    const wix = getServerWixClient();
+  ): Promise<CollectionData | null> =>
+    fetchRetry(async () => {
+      const wix = getServerWixClient();
 
-    const collectionResult = await wix.collections.getCollectionBySlug(slug);
-    const collection = collectionResult.collection;
-    if (!collection?._id) return null;
+      const collectionResult = await wix.collections.getCollectionBySlug(slug);
+      const collection = collectionResult.collection;
+      if (!collection?._id) return null;
 
-    // Paginate to get all products
-    const allItems: unknown[] = [];
-    let offset = 0;
-    const PAGE_SIZE = 100;
+      // Paginate to get all products
+      const allItems: unknown[] = [];
+      let offset = 0;
+      const PAGE_SIZE = 100;
 
-    const sortField =
-      sort === "price_asc" ? "price" :
-      sort === "price_desc" ? "price" :
-      "lastUpdated";
-    const sortDir = sort === "price_asc" ? "asc" : "desc";
+      const sortField =
+        sort === "price_asc" ? "price" :
+        sort === "price_desc" ? "price" :
+        "lastUpdated";
+      const sortDir = sort === "price_asc" ? "asc" : "desc";
 
-    while (true) {
-      let query = wix.products
-        .queryProducts()
-        .hasSome("collectionIds", [collection._id])
-        .limit(PAGE_SIZE)
-        .skip(offset);
+      while (true) {
+        let query = wix.products
+          .queryProducts()
+          .hasSome("collectionIds", [collection._id])
+          .limit(PAGE_SIZE)
+          .skip(offset);
 
-      if (sortDir === "asc") query = query.ascending(sortField);
-      else query = query.descending(sortField);
+        if (sortDir === "asc") query = query.ascending(sortField);
+        else query = query.descending(sortField);
 
-      const { items } = await query.find();
-      allItems.push(...items);
+        const { items } = await query.find();
+        allItems.push(...items);
 
-      if (items.length < PAGE_SIZE) break;
-      offset += PAGE_SIZE;
-    }
+        if (items.length < PAGE_SIZE) break;
+        offset += PAGE_SIZE;
+      }
 
-    const { products, allSizes, allColors, priceRange } =
-      extractProductDetails(allItems);
+      const { products, allSizes, allColors, priceRange } =
+        extractProductDetails(allItems);
 
-    return {
-      name: collection.name ?? "",
-      slug: collection.slug ?? "",
-      products,
-      availableSizes: allSizes,
-      availableColors: allColors,
-      priceRange,
-    };
-  },
+      return {
+        name: collection.name ?? "",
+        slug: collection.slug ?? "",
+        products,
+        availableSizes: allSizes,
+        availableColors: allColors,
+        priceRange,
+      };
+    }),
   ["collection-products-full"],
   { revalidate: 600, tags: ["collection-products"] }
 );

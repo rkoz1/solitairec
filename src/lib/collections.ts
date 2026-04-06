@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "./wix-server-client";
+import { fetchRetry } from "./fetch-retry";
 import { getWixImageUrl } from "./wix-image";
 
 /* ------------------------------------------------------------------ */
@@ -98,47 +99,50 @@ export interface NavCategory {
 /* ------------------------------------------------------------------ */
 
 export const getAllCollections = unstable_cache(
-  async (): Promise<CollectionInfo[]> => {
-    const wix = getServerWixClient();
-    const { items } = await wix.collections.queryCollections().limit(100).find();
+  async (): Promise<CollectionInfo[]> =>
+    fetchRetry(async () => {
+      const wix = getServerWixClient();
+      const { items } = await wix.collections.queryCollections().limit(100).find();
 
-    return items
-      .filter((c) => c.name && !EXCLUDED_NAMES.includes(c.name))
-      .map((c) => ({
-        _id: c._id ?? "",
-        name: c.name ?? "",
-        slug: c.slug ?? "",
-        productCount: c.numberOfProducts ?? 0,
-        imageUrl: c.media?.mainMedia?.image?.url
-          ? getWixImageUrl(c.media.mainMedia.image.url, 800, 400)
-          : undefined,
-      }));
-  },
+      return items
+        .filter((c) => c.name && !EXCLUDED_NAMES.includes(c.name))
+        .map((c) => ({
+          _id: c._id ?? "",
+          name: c.name ?? "",
+          slug: c.slug ?? "",
+          productCount: c.numberOfProducts ?? 0,
+          imageUrl: c.media?.mainMedia?.image?.url
+            ? getWixImageUrl(c.media.mainMedia.image.url, 800, 400)
+            : undefined,
+        }));
+    }),
   ["all-collections"],
   { revalidate: 3600, tags: ["collections"] }
 );
 
 export const getCollectionProducts = unstable_cache(
-  async (collectionId: string, limit: number = 20) => {
-    const wix = getServerWixClient();
-    const { items } = await wix.products
-      .queryProducts()
-      .hasSome("collectionIds", [collectionId])
-      .descending("lastUpdated")
-      .limit(limit)
-      .find();
-    return items;
-  },
+  async (collectionId: string, limit: number = 20) =>
+    fetchRetry(async () => {
+      const wix = getServerWixClient();
+      const { items } = await wix.products
+        .queryProducts()
+        .hasSome("collectionIds", [collectionId])
+        .descending("lastUpdated")
+        .limit(limit)
+        .find();
+      return items;
+    }),
   ["collection-products"],
   { revalidate: 600, tags: ["collection-products"] }
 );
 
 export const getCollectionBySlug = unstable_cache(
-  async (slug: string) => {
-    const wix = getServerWixClient();
-    const result = await wix.collections.getCollectionBySlug(slug);
-    return result.collection ?? null;
-  },
+  async (slug: string) =>
+    fetchRetry(async () => {
+      const wix = getServerWixClient();
+      const result = await wix.collections.getCollectionBySlug(slug);
+      return result.collection ?? null;
+    }),
   ["collection-by-slug"],
   { revalidate: 3600, tags: ["collections"] }
 );
