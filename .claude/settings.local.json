@@ -89,7 +89,8 @@
       "Bash(find ./src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"memberId\\\\|visitorId\" {} \\\\;)",
       "Bash(npm ls:*)",
       "Bash(grep:*)",
-      "Bash(find /c/dev/solitairec/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec wc -l {} +)"
+      "Bash(find /c/dev/solitairec/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec wc -l {} +)",
+      "Bash(git checkout:*)"
     ]
   }
 }

@@ -10,6 +10,7 @@ import {
 } from "@/lib/wix-browser-client";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { trackAnalytics } from "@/lib/analytics";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { clarityEvent, clarityTag } from "@/lib/clarity";
 import { showToast } from "@/lib/toast";
 
@@ -157,6 +158,13 @@ export default memo(function ProductCardActions({
       }
 
       window.dispatchEvent(new Event("cart-updated"));
+      trackMetaEvent("AddToCart", {
+        content_ids: [productId],
+        content_name: productName ?? "",
+        content_type: "product",
+        value: parseFloat(productPrice ?? "0"),
+        currency: "HKD",
+      });
       trackAnalytics("quick_add_to_cart", {
         product_id: productId,
         product_name: productName ?? "",

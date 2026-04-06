@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
+import { fetchRetry } from "@/lib/fetch-retry";
 import { getWixImageUrl } from "@/lib/wix-image";
 import { getAllCollections, CATEGORY_HIERARCHY, displayName } from "@/lib/collections";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
@@ -23,15 +24,16 @@ interface Props {
 }
 
 const getProduct = unstable_cache(
-  async (slug: string) => {
-    const wix = getServerWixClient();
-    const { items } = await wix.products
-      .queryProducts()
-      .eq("slug", slug)
-      .limit(1)
-      .find();
-    return items[0] ?? null;
-  },
+  async (slug: string) =>
+    fetchRetry(async () => {
+      const wix = getServerWixClient();
+      const { items } = await wix.products
+        .queryProducts()
+        .eq("slug", slug)
+        .limit(1)
+        .find();
+      return items[0] ?? null;
+    }),
   ["product-by-slug"],
   { revalidate: 600, tags: ["product-catalog"] }
 );

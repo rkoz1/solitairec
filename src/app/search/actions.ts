@@ -2,6 +2,7 @@
 
 import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
+import { fetchRetry } from "@/lib/fetch-retry";
 import { getWixImageUrl } from "@/lib/wix-image";
 
 export interface SearchResult {
@@ -29,11 +30,13 @@ async function fetchFullCatalog(): Promise<CatalogProduct[]> {
   const PAGE_SIZE = 100;
 
   while (true) {
-    const { items } = await wix.products
-      .queryProducts()
-      .limit(PAGE_SIZE)
-      .skip(offset)
-      .find();
+    const { items } = await fetchRetry(() =>
+      wix.products
+        .queryProducts()
+        .limit(PAGE_SIZE)
+        .skip(offset)
+        .find()
+    );
 
     for (const p of items) {
       // Skip out-of-stock products
