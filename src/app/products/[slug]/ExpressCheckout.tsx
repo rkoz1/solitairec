@@ -107,15 +107,17 @@ export default function ExpressCheckout(props: ExpressCheckoutProps) {
       }}
       key={clientSecret}
     >
-      <ExpressCheckoutInner paymentIntentId={paymentIntentId} />
+      <ExpressCheckoutInner paymentIntentId={paymentIntentId} productId={props.productId} />
     </Elements>
   );
 }
 
 function ExpressCheckoutInner({
   paymentIntentId,
+  productId,
 }: {
   paymentIntentId: string;
+  productId: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -252,7 +254,8 @@ function ExpressCheckoutInner({
           trackEvent("Purchase", {
             value: parseFloat(orderData.total?.replace(/[^0-9.]/g, "") || "0"),
             currency: "HKD",
-            content_ids: [paymentIntentId],
+            content_ids: [productId],
+            content_type: "product",
             order_id: String(orderData.orderNumber),
           }, eventId);
           sessionStorage.setItem("expressOrder", JSON.stringify(orderData));

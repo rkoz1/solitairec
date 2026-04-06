@@ -7,7 +7,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
-import { trackEvent, generateEventId } from "@/lib/meta-pixel";
+import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
 import { clarityEvent, clarityTag } from "@/lib/clarity";
 
@@ -106,12 +106,25 @@ export default function OrderConfirmationPage() {
             (found.priceSummary?.total?.amount ?? "0").replace(/[^0-9.]/g, "")
           );
           if (totalAmount > 0) {
-            trackEvent("Purchase", {
-              value: totalAmount,
-              currency: "HKD",
-              order_id: found.number?.toString(),
-              num_items: found.lineItems?.length ?? 0,
-            }, generateEventId());
+            const contentIds = (found.lineItems ?? [])
+              .map((li: { catalogReference?: { catalogItemId?: string } }) =>
+                li.catalogReference?.catalogItemId
+              )
+              .filter(Boolean) as string[];
+
+            trackMetaEvent(
+              "Purchase",
+              {
+                value: totalAmount,
+                currency: "HKD",
+                content_ids: contentIds,
+                content_type: "product",
+                order_id: found.number?.toString(),
+                num_items: found.lineItems?.length ?? 0,
+              },
+              found.buyerInfo?.email,
+              found.buyerInfo?.memberId ?? found.buyerInfo?.visitorId
+            );
             trackAnalytics("purchase", {
               order_number: found.number?.toString() ?? "",
               total: totalAmount,
