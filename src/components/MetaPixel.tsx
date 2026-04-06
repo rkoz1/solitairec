@@ -9,10 +9,28 @@ import { useMember } from "@/contexts/MemberContext";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
+/** Send a PageView to CAPI with a matching eventId for deduplication. */
+function sendPageViewCapi(eventId: string, userEmail?: string, externalId?: string) {
+  fetch("/api/meta/capi", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      eventName: "PageView",
+      eventId,
+      eventData: {},
+      eventSourceUrl: window.location.href,
+      userEmail,
+      externalId,
+    }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 export default function MetaPixel() {
   const pathname = usePathname();
   const { member, loading } = useMember();
   const initializedRef = useRef(false);
+  const userDataRef = useRef<{ email?: string; externalId?: string }>({});
 
   // Set up advanced matching once member data is available
   useEffect(() => {
@@ -27,12 +45,18 @@ export default function MetaPixel() {
       const uid = tokens.accessToken?.value
         ? parseWixTokenUid(tokens.accessToken.value)
         : null;
-      if (uid) advancedData.external_id = uid;
+      if (uid) {
+        advancedData.external_id = uid;
+        userDataRef.current.externalId = uid;
+      }
     } catch { /* ignore */ }
 
     if (member) {
       const email = member.loginEmail ?? member.contact?.emails?.[0];
-      if (email) advancedData.em = email;
+      if (email) {
+        advancedData.em = email;
+        userDataRef.current.email = email;
+      }
       const phone = member.contact?.phones?.[0];
       if (phone) advancedData.ph = phone.replace(/\D/g, "");
       if (member.contact?.firstName) advancedData.fn = member.contact.firstName;
@@ -51,16 +75,19 @@ export default function MetaPixel() {
     if (!PIXEL_ID) return;
     const handler = () => {
       resetUserIdentity();
+      userDataRef.current = {};
       initializedRef.current = false;
     };
     window.addEventListener("auth-changed", handler);
     return () => window.removeEventListener("auth-changed", handler);
   }, []);
 
-  // Fire PageView on route changes
+  // Fire PageView on route changes with deduplication eventID
   useEffect(() => {
     if (!PIXEL_ID || !initializedRef.current || typeof window === "undefined" || !window.fbq) return;
-    window.fbq("track", "PageView");
+    const eventId = crypto.randomUUID();
+    window.fbq("track", "PageView", {}, { eventID: eventId });
+    sendPageViewCapi(eventId, userDataRef.current.email, userDataRef.current.externalId);
   }, [pathname, loading]);
 
   if (!PIXEL_ID) return null;
@@ -81,7 +108,14 @@ export default function MetaPixel() {
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
             fbq('init', '${PIXEL_ID}');
-            fbq('track', 'PageView');
+            var __fbPageViewId = crypto.randomUUID();
+            fbq('track', 'PageView', {}, {eventID: __fbPageViewId});
+            fetch('/api/meta/capi', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({eventName:'PageView',eventId:__fbPageViewId,eventData:{},eventSourceUrl:location.href}),
+              keepalive: true
+            }).catch(function(){});
           `,
         }}
       />
