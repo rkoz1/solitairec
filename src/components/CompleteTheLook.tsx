@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
+import { fetchRetry } from "@/lib/fetch-retry";
 import ProductCard from "@/components/ProductCard";
 import { CATEGORY_HIERARCHY } from "@/lib/collections";
 
@@ -118,7 +119,7 @@ const getCachedRecommendedProducts = unstable_cache(
   async (
     currentProductId: string,
   ): Promise<{ products: Product[]; heading: string }> => {
-    return getRecommendedProducts(currentProductId);
+    return fetchRetry(() => getRecommendedProducts(currentProductId));
   },
   ["recommended-products"],
   { revalidate: 1800, tags: ["recommendations"] }

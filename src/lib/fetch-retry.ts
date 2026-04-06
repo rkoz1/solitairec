@@ -25,6 +25,10 @@ function isTransient(err: unknown): boolean {
   if (err instanceof TypeError && "runtimeError" in err) {
     return true;
   }
+  // Wix SDK errorTransformer crashes trying to JSON.stringify its own circular error
+  if (err instanceof TypeError && /circular structure/i.test((err as Error).message)) {
+    return true;
+  }
   return false;
 }
 
