@@ -8,6 +8,7 @@ import { trackMetaEvent } from "@/lib/meta-track";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
 import { showToast } from "@/lib/toast";
+import { clarityEvent } from "@/lib/clarity";
 
 interface PayPalCheckoutProps {
   productId: string;
@@ -53,9 +54,8 @@ function PayPalButtonsInner({
     const { productId, selectedOptions, variantId } = propsRef.current;
 
     trackMetaEvent("InitiateCheckout", { currency: "HKD" });
-    trackAnalytics("paypal_checkout_click", {
-      product_id: productId,
-    });
+    trackAnalytics("paypal_checkout_click", { product_id: productId });
+    clarityEvent("initiate_checkout");
 
     const res = await fetch("/api/paypal/create-order", {
       method: "POST",
