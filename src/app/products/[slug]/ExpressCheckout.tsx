@@ -255,6 +255,7 @@ function ExpressCheckoutInner({
             value: parseFloat(orderData.total?.replace(/[^0-9.]/g, "") || "0"),
             currency: "HKD",
             content_ids: [productId],
+            content_type: "product",
             order_id: String(orderData.orderNumber),
           }, eventId);
           sessionStorage.setItem("expressOrder", JSON.stringify(orderData));

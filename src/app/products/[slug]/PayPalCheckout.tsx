@@ -107,6 +107,8 @@ function PayPalButtonsInner({
       trackEvent("Purchase", {
         value: parseFloat(orderData.total?.replace(/[^0-9.]/g, "") || "0"),
         currency: "HKD",
+        content_ids: [propsRef.current.productId],
+        content_type: "product",
         order_id: String(orderData.orderNumber),
       }, eventId);
       sessionStorage.setItem("expressOrder", JSON.stringify(orderData));
