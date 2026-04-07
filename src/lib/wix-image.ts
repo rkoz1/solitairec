@@ -14,7 +14,8 @@ export function getWixImageUrl(
   }
 
   try {
-    return media.getScaledToFillImageUrl(wixMediaIdentifier, width, height, {});
+    const url = media.getScaledToFillImageUrl(wixMediaIdentifier, width, height, {});
+    return url.replace(/q_\d+/, "q_80").replace("enc_auto", "enc_avif");
   } catch {
     return `https://placehold.co/${width}x${height}/e2e2e2/999?text=No+Image`;
   }

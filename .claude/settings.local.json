@@ -94,7 +94,8 @@
       "WebFetch(domain:developers.facebook.com)",
       "WebFetch(domain:deepwiki.com)",
       "Bash(find:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(awk '{total += 1} END {print total \" external script tags\"}')"
     ]
   }
 }

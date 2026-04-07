@@ -10,6 +10,7 @@ interface HeroItem {
   slug: string;
   name: string;
   imageUrl: string;
+  mobileImageUrl?: string;
   price: string;
   priceAmount?: number;
 }
@@ -83,7 +84,7 @@ export default function HeroCarousel({
               }`}
             >
               <img
-                src={item.imageUrl}
+                src={item.mobileImageUrl ?? item.imageUrl}
                 alt={item.name}
                 loading={i === 0 ? "eager" : "lazy"}
                 fetchPriority={i === 0 ? "high" : "low"}

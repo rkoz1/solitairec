@@ -119,7 +119,7 @@ const getCachedRecommendedProducts = unstable_cache(
   async (
     currentProductId: string,
   ): Promise<{ products: Product[]; heading: string }> => {
-    return fetchRetry(() => getRecommendedProducts(currentProductId));
+    return getRecommendedProducts(currentProductId);
   },
   ["recommended-products"],
   { revalidate: 1800, tags: ["recommendations"] }
@@ -273,6 +273,7 @@ async function tryCrossCategoryMatch(
       allCollections.items.map((c) => [c._id ?? "", c.name ?? ""]),
     );
 
+    // Assertion safe: guarded by collectionIds.length check above; needed because fetchRetry closure breaks TS narrowing
     const colIds = current.collectionIds!;
     const { items } = await fetchRetry(() => wix.products
       .queryProducts()
@@ -311,6 +312,7 @@ async function trySameCollectionMatch(
     const current = currentItems[0];
     if (!current?.collectionIds?.length) return existing;
 
+    // Assertion safe: guarded by collectionIds.length check above; needed because fetchRetry closure breaks TS narrowing
     const colIds = current.collectionIds!;
     const { items } = await fetchRetry(() => wix.products
       .queryProducts()

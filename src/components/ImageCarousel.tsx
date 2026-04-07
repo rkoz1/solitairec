@@ -6,11 +6,13 @@ const MAX_DOTS = 7;
 
 interface ImageCarouselProps {
   images: string[];
+  mobileImages?: string[];
   productName: string;
 }
 
 export default function ImageCarousel({
   images,
+  mobileImages,
   productName,
 }: ImageCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -68,7 +70,7 @@ export default function ImageCarousel({
           <div key={i} className="w-full flex-shrink-0 snap-center">
             <div className="relative aspect-[3/4] bg-surface-container-low">
               <img
-                src={src}
+                src={mobileImages?.[i] ?? src}
                 alt={`${productName} ${i + 1}`}
                 loading={i === 0 ? "eager" : "lazy"}
                 fetchPriority={i === 0 ? "high" : undefined}
