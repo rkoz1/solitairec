@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { getWixImageUrl } from "@/lib/wix-image";
 import ProductCardActions from "./ProductCardActions";
 import Price from "./Price";
@@ -38,13 +37,11 @@ export default function ProductCard({
       {/* Image container — actions overlay here */}
       <div className="relative aspect-[3/4] overflow-hidden bg-surface-container-low" data-product-id={productId}>
         <Link href={`/products/${slug}`} className="absolute inset-0 z-10">
-          <Image
+          <img
             src={src}
             alt={name}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-            priority={priority}
+            loading={priority ? "eager" : "lazy"}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         </Link>
 

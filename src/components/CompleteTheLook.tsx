@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
+import { fetchRetry } from "@/lib/fetch-retry";
 import ProductCard from "@/components/ProductCard";
 import { CATEGORY_HIERARCHY } from "@/lib/collections";
 
@@ -65,10 +66,10 @@ async function getCurrentProductCategory(
   const sameCategoryNames = new Set<string>();
   if (!product.collectionIds?.length) return sameCategoryNames;
 
-  const allCollections = await wix.collections
+  const allCollections = await fetchRetry(() => wix.collections
     .queryCollections()
     .limit(50)
-    .find();
+    .find());
   const idToName = new Map(
     allCollections.items.map((c) => [c._id ?? "", c.name ?? ""]),
   );
@@ -130,11 +131,11 @@ async function getRecommendedProducts(
   const wix = getServerWixClient();
 
   // Fetch current product
-  const { items: currentItems } = await wix.products
+  const { items: currentItems } = await fetchRetry(() => wix.products
     .queryProducts()
     .eq("_id", currentProductId)
     .limit(1)
-    .find();
+    .find());
   const currentProduct = currentItems[0];
   if (!currentProduct) return { products: [], heading: "" };
 
@@ -143,10 +144,10 @@ async function getRecommendedProducts(
     wix,
     currentProduct,
   );
-  const allCollections = await wix.collections
+  const allCollections = await fetchRetry(() => wix.collections
     .queryCollections()
     .limit(50)
-    .find();
+    .find());
   const collectionIdToName = new Map(
     allCollections.items.map((c) => [c._id ?? "", c.name ?? ""]),
   );
@@ -197,7 +198,7 @@ async function tryWixRecommendations(
   try {
     // Discover available algorithms
     const { availableAlgorithms } =
-      await wix.recommendations.listAvailableAlgorithms();
+      await fetchRetry(() => wix.recommendations.listAvailableAlgorithms());
 
     if (!availableAlgorithms || availableAlgorithms.length === 0) return [];
 
@@ -217,7 +218,7 @@ async function tryWixRecommendations(
 
     if (algorithms.length === 0) return [];
 
-    const result = await wix.recommendations.getRecommendation(algorithms, {
+    const result = await fetchRetry(() => wix.recommendations.getRecommendation(algorithms, {
       items: [
         {
           catalogItemId: productId,
@@ -225,7 +226,7 @@ async function tryWixRecommendations(
         },
       ],
       minimumRecommendedItems: MIN_ITEMS,
-    });
+    }));
 
     const recItems = result.recommendation?.items ?? [];
     if (recItems.length === 0) return [];
@@ -235,11 +236,11 @@ async function tryWixRecommendations(
       .map((item) => item.catalogItemId)
       .filter(Boolean) as string[];
 
-    const { items } = await wix.products
+    const { items } = await fetchRetry(() => wix.products
       .queryProducts()
       .hasSome("_id", ids)
       .limit(MAX_ITEMS)
-      .find();
+      .find());
 
     return items.filter((p) => p._id !== productId);
   } catch (err) {
@@ -254,29 +255,31 @@ async function tryCrossCategoryMatch(
   existing: Product[],
 ): Promise<Product[]> {
   try {
-    const { items: currentItems } = await wix.products
+    const { items: currentItems } = await fetchRetry(() => wix.products
       .queryProducts()
       .eq("_id", productId)
       .limit(1)
-      .find();
+      .find());
 
     const current = currentItems[0];
     if (!current?.collectionIds?.length) return existing;
 
     const sameCategoryNames = await getCurrentProductCategory(wix, current);
-    const allCollections = await wix.collections
+    const allCollections = await fetchRetry(() => wix.collections
       .queryCollections()
       .limit(50)
-      .find();
+      .find());
     const idToName = new Map(
       allCollections.items.map((c) => [c._id ?? "", c.name ?? ""]),
     );
 
-    const { items } = await wix.products
+    // Assertion safe: guarded by collectionIds.length check above; needed because fetchRetry closure breaks TS narrowing
+    const colIds = current.collectionIds!;
+    const { items } = await fetchRetry(() => wix.products
       .queryProducts()
-      .hasSome("collectionIds", current.collectionIds)
+      .hasSome("collectionIds", colIds)
       .limit(20)
-      .find();
+      .find());
 
     const existingIds = new Set(existing.map((p) => p._id));
     const crossCat = items.filter((p) => {
@@ -300,20 +303,22 @@ async function trySameCollectionMatch(
   existing: Product[],
 ): Promise<Product[]> {
   try {
-    const { items: currentItems } = await wix.products
+    const { items: currentItems } = await fetchRetry(() => wix.products
       .queryProducts()
       .eq("_id", productId)
       .limit(1)
-      .find();
+      .find());
 
     const current = currentItems[0];
     if (!current?.collectionIds?.length) return existing;
 
-    const { items } = await wix.products
+    // Assertion safe: guarded by collectionIds.length check above; needed because fetchRetry closure breaks TS narrowing
+    const colIds = current.collectionIds!;
+    const { items } = await fetchRetry(() => wix.products
       .queryProducts()
-      .hasSome("collectionIds", current.collectionIds)
+      .hasSome("collectionIds", colIds)
       .limit(MAX_ITEMS + 1)
-      .find();
+      .find());
 
     const existingIds = new Set(existing.map((p) => p._id));
     const sameCol = items.filter(

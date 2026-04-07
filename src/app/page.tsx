@@ -82,24 +82,44 @@ export default async function HomePage() {
     getHomeSections(),
   ]);
 
-  // Fetch featured products if collection exists, randomise selection
-  const allFeatured = featured?._id
-    ? await getCollectionProducts(featured._id, 20)
-    : [];
+  // Fetch featured + all section products in a single parallel round
+  const [allFeatured, ...sectionProducts] = await Promise.all([
+    featured?._id
+      ? getCollectionProducts(featured._id, 20)
+      : Promise.resolve([]),
+    ...sections.map((section) => getCollectionProducts(section._id, 4)),
+  ]);
+
   const featuredProducts = allFeatured.length > 4
     ? allFeatured.sort(() => Math.random() - 0.5).slice(0, 4)
     : allFeatured;
 
-  // Fetch products for each home section in parallel
-  const sectionData = await Promise.all(
-    sections.map(async (section) => ({
-      ...section,
-      products: await getCollectionProducts(section._id, 4),
-    }))
-  );
+  const sectionData = sections.map((section, i) => ({
+    ...section,
+    products: sectionProducts[i],
+  }));
 
   return (
     <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
+      {/* Preload LCP hero image — separate links for mobile/desktop */}
+      {featuredProducts.length > 0 && (
+        <>
+          <link
+            rel="preload"
+            as="image"
+            href={getWixImageUrl(featuredProducts[0].media?.mainMedia?.image?.url, 640, 853)}
+            media="(max-width: 1023px)"
+            fetchPriority="high"
+          />
+          <link
+            rel="preload"
+            as="image"
+            href={getWixImageUrl(featuredProducts[0].media?.mainMedia?.image?.url, 1200, 1600)}
+            media="(min-width: 1024px)"
+            fetchPriority="high"
+          />
+        </>
+      )}
       {/* Hero — Featured products carousel + provenance */}
       {featuredProducts.length > 0 && (
         <div className="pt-4">
@@ -111,8 +131,13 @@ export default async function HomePage() {
               priceAmount: p.priceData?.price ?? undefined,
               imageUrl: getWixImageUrl(
                 p.media?.mainMedia?.image?.url,
-                1600,
-                2133
+                1200,
+                1600
+              ),
+              mobileImageUrl: getWixImageUrl(
+                p.media?.mainMedia?.image?.url,
+                640,
+                853
               ),
             }))}
           >

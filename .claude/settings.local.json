@@ -92,7 +92,10 @@
       "Bash(find /c/dev/solitairec/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec wc -l {} +)",
       "Bash(git checkout:*)",
       "WebFetch(domain:developers.facebook.com)",
-      "WebFetch(domain:deepwiki.com)"
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(find:*)",
+      "Bash(git show:*)",
+      "Bash(awk '{total += 1} END {print total \" external script tags\"}')"
     ]
   }
 }

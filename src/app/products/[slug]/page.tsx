@@ -2,7 +2,6 @@ export const revalidate = 600;
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
@@ -172,28 +171,32 @@ export default async function ProductPage({ params }: Props) {
     800,
     1067
   );
+  const mainImageMobile = getWixImageUrl(
+    product.media?.mainMedia?.image?.url,
+    640,
+    853
+  );
 
   const mainMediaUrl = product.media?.mainMedia?.image?.url;
-  const additionalImages =
-    product.media?.items
-      ?.filter(
-        (item) =>
-          item.image && item.image.url !== mainMediaUrl
-      )
-      .map((item) => getWixImageUrl(item.image?.url, 800, 1067)) ?? [];
+  const additionalMedia = product.media?.items?.filter(
+    (item) => item.image && item.image.url !== mainMediaUrl
+  ) ?? [];
+  const additionalImages = additionalMedia.map((item) => getWixImageUrl(item.image?.url, 800, 1067));
+  const additionalImagesMobile = additionalMedia.map((item) => getWixImageUrl(item.image?.url, 640, 853));
 
-  const allImages = [mainImage, ...additionalImages.slice(0, 5)];
+  const allImages = [mainImage, ...additionalImages];
+  const allMobileImages = [mainImageMobile, ...additionalImagesMobile];
 
-  // Inject CMS fitting fallback if product lacks a "Fitting" section
+  // Fetch fitting defaults, product categories, and collections in parallel
   const hasFitting = product.additionalInfoSections?.some(
     (s) => s.title?.toLowerCase() === "fitting"
   );
+  const [fittingDefaults, categories, allCols] = await Promise.all([
+    hasFitting ? Promise.resolve({} as Record<string, string>) : getFittingDefaults(),
+    hasFitting ? Promise.resolve([]) : getProductCategories(product.collectionIds ?? []),
+    getAllCollections(),
+  ]);
   if (!hasFitting) {
-    const [fittingDefaults, categories] = await Promise.all([
-      getFittingDefaults(),
-      getProductCategories(product.collectionIds ?? []),
-    ]);
-    // Try most specific category first (e.g. "Skirts"), then parent (e.g. "Dresses")
     const fallbackDesc = categories.reduce<string | undefined>(
       (found, cat) => found ?? fittingDefaults[cat],
       undefined
@@ -212,7 +215,6 @@ export default async function ProductPage({ params }: Props) {
     { name: "Home", url: siteUrl },
   ];
   {
-    const allCols = await getAllCollections();
     const colMap = new Map(allCols.map((c) => [c._id, c]));
     const prodCols = (product.collectionIds ?? [])
       .map((id) => colMap.get(id))
@@ -286,6 +288,8 @@ export default async function ProductPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
+      <link rel="preload" as="image" href={mainImageMobile} media="(max-width: 1023px)" fetchPriority="high" />
+      <link rel="preload" as="image" href={mainImage} media="(min-width: 1024px)" fetchPriority="high" />
       <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:max-w-6xl lg:mx-auto lg:px-8 lg:pt-8">
         {/* Image gallery */}
         <div className="relative">
@@ -293,6 +297,7 @@ export default async function ProductPage({ params }: Props) {
           <div className="lg:hidden">
             <ImageCarousel
               images={allImages}
+              mobileImages={allMobileImages}
               productName={product.name ?? "Product"}
             />
           </div>
@@ -303,13 +308,12 @@ export default async function ProductPage({ params }: Props) {
                 key={i}
                 className="relative aspect-[3/4] bg-surface-container-low"
               >
-                <Image
+                <img
                   src={src}
                   alt={`${product.name ?? "Product"} ${i + 1}`}
-                  fill
-                  sizes="50vw"
-                  className="object-cover"
-                  priority={i === 0}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : undefined}
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>
             ))}

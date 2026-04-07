@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /cart
-Disallow: /checkout
-Disallow: /account
-Disallow: /order-confirmation
-Disallow: /auth
-
-Sitemap: https://solitairec.com/sitemap.xml

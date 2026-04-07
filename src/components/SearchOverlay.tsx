@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import Image from "next/image";
 import { searchProducts, type SearchResult } from "@/app/search/actions";
 import { trackAnalytics } from "@/lib/analytics";
 import { clarityTag } from "@/lib/clarity";
@@ -186,12 +185,11 @@ export default function SearchOverlay() {
                   className="flex gap-4 py-3 group"
                 >
                   <div className="shrink-0 w-16 h-[85px] bg-surface-container-low relative">
-                    <Image
+                    <img
                       src={product.imageUrl}
                       alt={product.name}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex-1 flex flex-col justify-center min-w-0">

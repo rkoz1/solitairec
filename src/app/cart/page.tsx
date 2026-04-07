@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import {
   getBrowserWixClient,
   ensureVisitorTokens,
@@ -362,12 +361,11 @@ function BagTab() {
               href={productUrl}
               className="shrink-0 w-16 h-[85px] bg-surface-container relative"
             >
-              <Image
+              <img
                 src={imageSrc}
                 alt={item.productName?.original ?? "Product"}
-                fill
-                sizes="64px"
-                className="object-cover"
+                loading="lazy"
+                className="absolute inset-0 w-full h-full object-cover"
               />
             </Link>
 
@@ -737,12 +735,11 @@ function WishlistTab() {
                 href={`/products/${product.slug}`}
                 className="shrink-0 w-16 h-[85px] bg-surface-container relative"
               >
-                <Image
+                <img
                   src={product.imageUrl}
                   alt={product.name}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               </Link>
 
@@ -1041,12 +1038,11 @@ function RecentlyViewedTab() {
                 href={`/products/${product.slug}`}
                 className="shrink-0 w-16 h-[85px] bg-surface-container relative"
               >
-                <Image
+                <img
                   src={product.imageUrl}
                   alt={product.name}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               </Link>
 
