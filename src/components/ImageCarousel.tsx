@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import Image from "next/image";
 
 const MAX_DOTS = 7;
 
@@ -68,13 +67,12 @@ export default function ImageCarousel({
         {images.map((src, i) => (
           <div key={i} className="w-full flex-shrink-0 snap-center">
             <div className="relative aspect-[3/4] bg-surface-container-low">
-              <Image
+              <img
                 src={src}
                 alt={`${productName} ${i + 1}`}
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-                priority={i === 0}
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchPriority={i === 0 ? "high" : undefined}
+                className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
           </div>

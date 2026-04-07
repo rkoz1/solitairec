@@ -2,7 +2,6 @@ export const revalidate = 600;
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
@@ -286,6 +285,7 @@ export default async function ProductPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
+      <link rel="preload" as="image" href={mainImage} fetchPriority="high" />
       <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:max-w-6xl lg:mx-auto lg:px-8 lg:pt-8">
         {/* Image gallery */}
         <div className="relative">
@@ -303,13 +303,12 @@ export default async function ProductPage({ params }: Props) {
                 key={i}
                 className="relative aspect-[3/4] bg-surface-container-low"
               >
-                <Image
+                <img
                   src={src}
                   alt={`${product.name ?? "Product"} ${i + 1}`}
-                  fill
-                  sizes="50vw"
-                  className="object-cover"
-                  priority={i === 0}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : undefined}
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>
             ))}

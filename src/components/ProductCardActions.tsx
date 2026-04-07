@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, memo } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
 import { isInWishlist, toggleWishlist } from "@/lib/wishlist";
 import {
   getBrowserWixClient,
@@ -213,12 +212,11 @@ export default memo(function ProductCardActions({
             <div className="flex gap-4 lg:gap-6 px-6 lg:px-8 pt-6 lg:pt-8 pb-4">
               {productImage && (
                 <div className="shrink-0 w-20 h-[107px] lg:w-28 lg:h-[150px] bg-surface-container-low relative">
-                  <Image
+                  <img
                     src={productImage}
                     alt={productName ?? ""}
-                    fill
-                    sizes="(max-width: 1024px) 80px, 112px"
-                    className="object-cover"
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
                 </div>
               )}

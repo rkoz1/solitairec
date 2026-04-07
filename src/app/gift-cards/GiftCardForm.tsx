@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import {
   getBrowserWixClient,
   ensureVisitorTokens,
@@ -164,13 +163,11 @@ export default function GiftCardForm() {
         className="relative aspect-[1748/1240] bg-surface-container-low mb-8"
         data-gift-card-image
       >
-        <Image
+        <img
           src={GIFT_CARD_IMAGE}
           alt="SolitaireC Gift Card"
-          fill
-          className="object-cover"
-          sizes="(max-width: 672px) 100vw, 672px"
-          priority
+          loading="eager"
+          className="absolute inset-0 w-full h-full object-cover"
         />
       </div>
 

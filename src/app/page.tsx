@@ -100,6 +100,15 @@ export default async function HomePage() {
 
   return (
     <section className="px-5 lg:px-10 xl:max-w-7xl xl:mx-auto">
+      {/* Preload LCP hero image */}
+      {featuredProducts.length > 0 && (
+        <link
+          rel="preload"
+          as="image"
+          href={getWixImageUrl(featuredProducts[0].media?.mainMedia?.image?.url, 1600, 2133)}
+          fetchPriority="high"
+        />
+      )}
       {/* Hero — Featured products carousel + provenance */}
       {featuredProducts.length > 0 && (
         <div className="pt-4">
