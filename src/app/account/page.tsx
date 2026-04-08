@@ -10,6 +10,8 @@ import {
 import { useMember } from "@/contexts/MemberContext";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import { showToast } from "@/lib/toast";
+import { trackMetaEvent } from "@/lib/meta-track";
+import { clarityEvent } from "@/lib/clarity";
 import type { orders as ordersType } from "@wix/ecom";
 
 type Order = ordersType.Order;
@@ -1003,13 +1005,15 @@ export default function AccountPage() {
           </p>
           <button
             onClick={() => {
+              trackMetaEvent("Lead", {});
+              clarityEvent("login_attempt");
               setSigningIn(true);
               startLogin();
             }}
             disabled={signingIn}
             className="mt-8 w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
           >
-            {signingIn ? "Opening Sign In…" : "Sign In"}
+            {signingIn ? "Opening Sign In…" : "Sign In / Create Account"}
           </button>
         </div>
       </section>

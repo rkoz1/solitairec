@@ -58,12 +58,14 @@ interface MetaEventData {
  * @param data - Event data (value, currency, content_ids, etc.)
  * @param userEmail - Optional logged-in user email for better matching
  * @param externalId - Optional Wix member/visitor ID for cross-device matching
+ * @param options - Optional overrides: eventId for dedup, fbc/fbp for cookie preservation
  */
 export function trackMetaEvent(
   eventName: string,
   data: MetaEventData,
   userEmail?: string,
-  externalId?: string
+  externalId?: string,
+  options?: { eventId?: string; fbc?: string; fbp?: string }
 ): void {
   if (!PIXEL_ID || typeof window === "undefined") return;
 
@@ -75,7 +77,7 @@ export function trackMetaEvent(
     if (identity.user_id) extId = identity.user_id;
   }
 
-  const eventId = crypto.randomUUID();
+  const eventId = options?.eventId ?? crypto.randomUUID();
 
   // 1. Fire browser pixel with eventID for deduplication
   if (window.fbq) {
@@ -100,6 +102,8 @@ export function trackMetaEvent(
     userEmail: email,
     userPhone: _cachedPhone,
     externalId: extId,
+    ...(options?.fbc ? { fbc: options.fbc } : {}),
+    ...(options?.fbp ? { fbp: options.fbp } : {}),
   };
 
   fetch("/api/meta/capi", {

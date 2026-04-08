@@ -11,6 +11,16 @@ import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
 import { clarityEvent, clarityTag } from "@/lib/clarity";
 
+/** Deterministic eventId from order ID — must match webhook's server-side hash. */
+async function purchaseEventId(orderId: string): Promise<string> {
+  const data = new TextEncoder().encode("purchase-" + orderId);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  const hex = Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return hex.slice(0, 36);
+}
+
 interface OrderSummary {
   orderNumber: string;
   total: string;
@@ -102,38 +112,63 @@ export default function OrderConfirmationPage() {
           });
 
           // Track Purchase for cart checkout (Wix redirect flow)
-          const totalAmount = parseFloat(
-            (found.priceSummary?.total?.amount ?? "0").replace(/[^0-9.]/g, "")
-          );
-          if (totalAmount > 0) {
-            const contentIds = (found.lineItems ?? [])
-              .map((li: { catalogReference?: { catalogItemId?: string } }) =>
-                li.catalogReference?.catalogItemId
-              )
-              .filter(Boolean) as string[];
+          const foundOrderId = found._id ?? orderId ?? "";
+          const dedupKey = `tracked_purchase_${foundOrderId}`;
 
-            trackMetaEvent(
-              "Purchase",
-              {
-                value: totalAmount,
-                currency: "HKD",
-                content_ids: contentIds,
-                content_type: "product",
-                order_id: found.number?.toString(),
-                num_items: found.lineItems?.length ?? 0,
-              },
-              found.buyerInfo?.email,
-              found.buyerInfo?.memberId ?? found.buyerInfo?.visitorId
+          // Idempotency: skip if already tracked (e.g. page refresh)
+          if (!sessionStorage.getItem(dedupKey)) {
+            const totalAmount = parseFloat(
+              (found.priceSummary?.total?.amount ?? "0").replace(/[^0-9.]/g, "")
             );
-            trackAnalytics("purchase", {
-              order_number: found.number?.toString() ?? "",
-              total: totalAmount,
-              item_count: found.lineItems?.length ?? 0,
-              source: "cart",
-            });
-            clarityEvent("purchase");
-            clarityTag("purchased", true);
-            clarityTag("order_value", totalAmount);
+            if (totalAmount > 0) {
+              const contentIds = (found.lineItems ?? [])
+                .map((li: { catalogReference?: { catalogItemId?: string } }) =>
+                  li.catalogReference?.catalogItemId
+                )
+                .filter(Boolean) as string[];
+
+              // Deterministic eventId matching the webhook's hash for Meta dedup
+              const eventId = await purchaseEventId(foundOrderId);
+
+              // Recover _fbc/_fbp saved before Wix redirect
+              let storedFbc: string | undefined;
+              let storedFbp: string | undefined;
+              try {
+                const raw = sessionStorage.getItem("meta_cookies");
+                if (raw) {
+                  const parsed = JSON.parse(raw);
+                  storedFbc = parsed.fbc;
+                  storedFbp = parsed.fbp;
+                  sessionStorage.removeItem("meta_cookies");
+                }
+              } catch { /* ignore */ }
+
+              trackMetaEvent(
+                "Purchase",
+                {
+                  value: totalAmount,
+                  currency: "HKD",
+                  content_ids: contentIds,
+                  content_type: "product",
+                  order_id: found.number?.toString(),
+                  num_items: found.lineItems?.length ?? 0,
+                },
+                found.buyerInfo?.email,
+                found.buyerInfo?.memberId ?? found.buyerInfo?.visitorId,
+                { eventId, fbc: storedFbc, fbp: storedFbp }
+              );
+              trackAnalytics("purchase", {
+                order_number: found.number?.toString() ?? "",
+                total: totalAmount,
+                item_count: found.lineItems?.length ?? 0,
+                source: "cart",
+              });
+              clarityEvent("purchase");
+              clarityTag("purchased", true);
+              clarityTag("order_value", totalAmount);
+
+              sessionStorage.setItem(dedupKey, "1");
+            }
           }
         }
       } catch (err) {
