@@ -12,6 +12,8 @@ import {
   type BusinessInfo,
 } from "@/app/chat/actions";
 import { useMember } from "@/contexts/MemberContext";
+import { trackMetaEvent } from "@/lib/meta-track";
+import { clarityEvent } from "@/lib/clarity";
 
 const CONV_KEY_PREFIX = "solitairec_chat_conv_";
 
@@ -194,6 +196,7 @@ export default function WixChat() {
 
     try {
       await sendChatMessage(conversationId, text);
+      clarityEvent("chat_message_sent");
       const msgs = await listChatMessages(conversationId);
       setMessages(msgs);
     } catch (err) {
@@ -280,7 +283,16 @@ export default function WixChat() {
       {/* Chat button */}
       {!fullscreen && (
         <button
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            const willOpen = !open;
+            setOpen(willOpen);
+            if (willOpen) {
+              trackMetaEvent("Lead", {});
+              clarityEvent("chat_opened");
+            } else {
+              clarityEvent("chat_closed");
+            }
+          }}
           aria-label={open ? "Close chat" : "Chat with us"}
           className="fixed right-4 bottom-20 z-[51] w-12 h-12 bg-on-surface text-on-primary flex items-center justify-center shadow-lg transition-all active:scale-95 hover:bg-secondary"
         >

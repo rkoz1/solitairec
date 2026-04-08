@@ -123,6 +123,8 @@ export async function POST(request: Request) {
         eventData,
         userData,
         eventSourceUrl
+      ).then(() =>
+        console.log(`[wix-order webhook] Purchase CAPI accepted for order #${orderNumber}`)
       ).catch((err) =>
         console.error("[wix-order webhook] Purchase CAPI error:", err)
       );
@@ -139,6 +141,8 @@ export async function POST(request: Request) {
         eventData,
         userData,
         eventSourceUrl
+      ).then(() =>
+        console.log(`[wix-order webhook] WixOrderPlaced CAPI accepted for order #${orderNumber}`)
       ).catch((err) =>
         console.error("[wix-order webhook] WixOrderPlaced CAPI error:", err)
       );
