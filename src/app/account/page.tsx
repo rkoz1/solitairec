@@ -230,8 +230,11 @@ function OrderRow({ order }: { order: Order }) {
 function OrdersTab() {
   const [orderList, setOrderList] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isLoggedIn, loading: memberLoading } = useMember();
 
   useEffect(() => {
+    if (memberLoading || !isLoggedIn) return;
+
     async function fetchOrders() {
       try {
         const wix = getBrowserWixClient();
@@ -247,7 +250,7 @@ function OrdersTab() {
       }
     }
     fetchOrders();
-  }, []);
+  }, [isLoggedIn, memberLoading]);
 
   if (loading) return <LoadingIndicator />;
 
@@ -966,17 +969,111 @@ function AddressesTab() {
 /* ------------------------------------------------------------------ */
 
 function SettingsTab() {
+  const { member: ctxMember, loading: memberLoading } = useMember();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (memberLoading || !ctxMember || loaded) return;
+    setFirstName(ctxMember.contact?.firstName ?? "");
+    setLastName(ctxMember.contact?.lastName ?? "");
+    setPhone(ctxMember.contact?.phones?.[0] ?? "");
+    setLoaded(true);
+  }, [ctxMember, memberLoading, loaded]);
+
+  async function saveProfile() {
+    if (!ctxMember?._id) return;
+    setSaving(true);
+    try {
+      const wix = getBrowserWixClient();
+      await wix.members.updateMember(ctxMember._id, {
+        contact: {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phones: phone.trim() ? [phone.trim()] : [],
+        },
+      });
+      showToast("Profile updated.", "success");
+      window.dispatchEvent(new Event("auth-changed"));
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      showToast("Unable to update profile. Please try again.", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputClass =
+    "w-full bg-surface-container-low px-4 py-3.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-secondary/40 transition-shadow";
+  const labelClass =
+    "block text-[10px] tracking-[0.2em] uppercase text-on-surface-variant mb-2";
+
   return (
-    <div className="mt-8 max-w-md">
-      <p className="text-sm leading-relaxed text-on-surface-variant">
-        You are currently signed in.
-      </p>
-      <button
-        onClick={() => startLogout()}
-        className="mt-8 w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98]"
-      >
-        Sign Out
-      </button>
+    <div className="mt-8 max-w-md space-y-10">
+      {/* Profile section */}
+      <div>
+        <h3 className="text-[10px] tracking-[0.25em] uppercase font-medium text-on-surface mb-6">
+          Profile
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>First Name</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="First name"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Last Name</label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Last name"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Phone</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+852 1234 5678"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Email</label>
+            <p className="px-4 py-3.5 text-sm text-on-surface-variant bg-surface-container-low/50">
+              {ctxMember?.loginEmail ?? "—"}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={saveProfile}
+          disabled={saving}
+          className="mt-6 w-full bg-on-surface text-on-primary py-4 text-xs tracking-[0.25em] font-bold uppercase transition-transform active:scale-[0.98] disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+
+      {/* Sign out section */}
+      <div className="pt-6 border-t border-outline-variant/20">
+        <button
+          onClick={() => startLogout()}
+          className="w-full border border-outline-variant/30 text-on-surface-variant py-4 text-xs tracking-[0.25em] font-medium uppercase hover:text-on-surface transition-colors"
+        >
+          Sign Out
+        </button>
+      </div>
     </div>
   );
 }
