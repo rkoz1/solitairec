@@ -173,9 +173,10 @@ export default async function RootLayout({
 
         {/* Analytics — Vercel Analytics is privacy-friendly (ungated) */}
         <Analytics />
-        {/* Tracking scripts gated behind cookie consent */}
+        {/* Clarity loads unconditionally (uses Consent API V2 for cookie control) */}
+        <Clarity />
+        {/* Meta Pixel gated behind cookie consent */}
         <CookieConsent>
-          <Clarity />
           <MetaPixel />
         </CookieConsent>
 

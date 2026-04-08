@@ -9,7 +9,7 @@ import {
 } from "@/lib/wix-browser-client";
 import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
-import { clarityEvent, clarityTag } from "@/lib/clarity";
+import { clarityEvent, clarityTag, clarityUpgrade } from "@/lib/clarity";
 
 /** Deterministic eventId from order ID — must match webhook's server-side hash. */
 async function purchaseEventId(orderId: string): Promise<string> {
@@ -57,6 +57,7 @@ export default function OrderConfirmationPage() {
             source: "express",
           });
           clarityEvent("purchase");
+          clarityUpgrade("purchase");
           clarityTag("purchased", true);
           clarityTag("order_value", data.total ?? "");
           sessionStorage.removeItem("expressOrder");
@@ -164,6 +165,7 @@ export default function OrderConfirmationPage() {
                 source: "cart",
               });
               clarityEvent("purchase");
+              clarityUpgrade("purchase");
               clarityTag("purchased", true);
               clarityTag("order_value", totalAmount);
 

@@ -5,14 +5,10 @@ import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { getUserIdentity, resetUserIdentity } from "@/lib/analytics";
 import { useMember } from "@/contexts/MemberContext";
-
-declare global {
-  interface Window {
-    clarity?: (...args: unknown[]) => void;
-  }
-}
+import { clarityConsent } from "@/lib/clarity";
 
 const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_ID;
+const CONSENT_KEY = "cookie_consent";
 
 interface MemberLike {
   _id?: string;
@@ -20,16 +16,11 @@ interface MemberLike {
   contact?: { firstName?: string; lastName?: string };
 }
 
-function identifyWithClarity(member: MemberLike | null) {
-  if (!window.clarity) {
-    if (process.env.NODE_ENV === "development") console.debug("[Clarity] window.clarity not available");
-    return;
-  }
+function identifyWithClarity(member: MemberLike | null, pathname: string) {
+  if (!window.clarity) return;
+
   const { user_id, user_type } = getUserIdentity();
-  if (!user_id) {
-    if (process.env.NODE_ENV === "development") console.debug("[Clarity] getUserIdentity returned null:", { user_id, user_type });
-    return;
-  }
+  if (!user_id) return;
 
   let clarityId = user_id;
   let friendlyName: string | undefined;
@@ -46,42 +37,76 @@ function identifyWithClarity(member: MemberLike | null) {
 
   const resolvedName = friendlyName ?? (user_type === "member" ? "Member" : "Visitor");
 
-  if (process.env.NODE_ENV === "development") {
-    console.debug("[Clarity] identify:", { clarityId, friendlyName: resolvedName, user_type });
-  }
-
-  window.clarity("identify", clarityId, undefined, undefined, resolvedName);
+  // Pass pathname as custom-page-id for per-page filtering in dashboard
+  window.clarity("identify", clarityId, undefined, pathname, resolvedName);
   window.clarity("set", "user_type", user_type ?? "visitor");
   if (user_type === "member") {
     window.clarity("set", "member_id", clarityId);
   }
 }
 
+/**
+ * Clarity component — loads unconditionally in cookieless mode.
+ * Uses Consent API V2: full tracking only after cookie consent is accepted.
+ * Rendered outside CookieConsent wrapper in layout.tsx.
+ */
 export default function Clarity() {
   const pathname = usePathname();
   const { member, loading } = useMember();
 
+  // Signal consent state on mount and when it changes
+  useEffect(() => {
+    if (!CLARITY_ID) return;
+    const consent = typeof window !== "undefined"
+      ? localStorage.getItem(CONSENT_KEY)
+      : null;
+    if (consent === "accepted") {
+      clarityConsent(true);
+    } else if (consent === "rejected") {
+      clarityConsent(false);
+    }
+    // No call if null (undecided) — Clarity stays in cookieless mode
+  }, []);
+
+  // Listen for consent changes from CookieConsent component
+  useEffect(() => {
+    if (!CLARITY_ID) return;
+    const handler = () => {
+      const consent = localStorage.getItem(CONSENT_KEY);
+      if (consent === "accepted") clarityConsent(true);
+      else if (consent === "rejected") clarityConsent(false);
+    };
+    window.addEventListener("consent-changed", handler);
+    return () => window.removeEventListener("consent-changed", handler);
+  }, []);
+
   // Identify on every route change + when member data arrives
   useEffect(() => {
     if (!CLARITY_ID || loading) return;
-    const timer = setTimeout(() => identifyWithClarity(member), 600);
-    return () => clearTimeout(timer);
+    // No timeout needed — the Clarity inline snippet defines window.clarity
+    // as a queue function immediately, so calls are buffered until the full
+    // script loads.
+    identifyWithClarity(member, pathname);
   }, [pathname, member, loading]);
 
-  // Re-identify on login/logout
+  // Re-identify immediately on login/logout (don't wait for route change)
   useEffect(() => {
     if (!CLARITY_ID) return;
-    const handler = () => resetUserIdentity();
+    const handler = () => {
+      resetUserIdentity();
+      // Re-identify with fresh identity
+      identifyWithClarity(null, pathname);
+    };
     window.addEventListener("auth-changed", handler);
     return () => window.removeEventListener("auth-changed", handler);
-  }, []);
+  }, [pathname]);
 
   if (!CLARITY_ID) return null;
 
   return (
     <Script
       id="microsoft-clarity"
-      strategy="lazyOnload"
+      strategy="afterInteractive"
       dangerouslySetInnerHTML={{
         __html: `
           (function(c,l,a,r,i,t,y){

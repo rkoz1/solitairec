@@ -218,6 +218,8 @@ function BagTab() {
       product_name: item?.productName?.original ?? "",
       quantity: item?.quantity ?? 1,
     });
+    clarityEvent("remove_from_cart");
+    clarityTag("last_removed_product", item?.productName?.original ?? "");
     try {
       const wix = getBrowserWixClient();
       await wix.currentCart.removeLineItemsFromCurrentCart([lineItemId]);
