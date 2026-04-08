@@ -54,5 +54,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CollectionPage({ params }: Props) {
   const { slug } = await params;
   const initialData = await fetchCollectionProducts(slug);
-  return <CollectionClient slug={slug} initialData={initialData} />;
+  const collection = await getCollectionBySlug(slug);
+  const name = displayName(collection?.name ?? slug);
+
+  // Build ItemList JSON-LD for the collection
+  const itemListElements = (initialData?.products ?? []).slice(0, 30).map((p, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    url: `${SITE_URL}/products/${p.slug}`,
+    name: p.name,
+  }));
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name,
+            url: `${SITE_URL}/collections/${slug}`,
+            mainEntity: {
+              "@type": "ItemList",
+              numberOfItems: initialData?.products.length ?? 0,
+              itemListElement: itemListElements,
+            },
+          }),
+        }}
+      />
+      <CollectionClient slug={slug} initialData={initialData} />
+    </>
+  );
 }

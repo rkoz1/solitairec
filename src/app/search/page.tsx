@@ -16,6 +16,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       title: "Search",
       description: "Search the SOLITAIREC collection for luxury clothing and accessories.",
       alternates: { canonical: `${SITE_URL}/search` },
+      robots: { index: false, follow: true },
     };
   }
 
@@ -23,6 +24,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     title: `Results for "${query}"`,
     description: `Shop results for "${query}" at SOLITAIREC. Find curated designer pieces.`,
     alternates: { canonical: `${SITE_URL}/search?q=${encodeURIComponent(query)}` },
+    robots: { index: false, follow: true },
     openGraph: {
       title: `Results for "${query}" | SOLITAIREC`,
       description: `Shop results for "${query}" at SOLITAIREC.`,

@@ -129,7 +129,12 @@ function ExpressCheckoutInner({
 
   const onClick = useCallback(
     (event: StripeExpressCheckoutElementClickEvent) => {
-      trackMetaEvent("InitiateCheckout", { currency: "HKD" });
+      trackMetaEvent("InitiateCheckout", {
+        currency: "HKD",
+        content_ids: [productId],
+        content_type: "product",
+        num_items: 1,
+      });
       trackAnalytics("express_checkout_click", { payment_method: "wallet" });
       clarityEvent("initiate_checkout");
       event.resolve({
@@ -224,6 +229,13 @@ function ExpressCheckoutInner({
           setProcessing(false);
           return;
         }
+
+        // Payment info confirmed
+        trackMetaEvent("AddPaymentInfo", {
+          currency: "HKD",
+          content_ids: [productId],
+          content_type: "product",
+        });
 
         // Get Wix visitor/member ID to associate order with this session
         let wixVisitorId: string | undefined;

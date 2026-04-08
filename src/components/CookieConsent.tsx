@@ -16,7 +16,8 @@ function getStoredConsent(): Consent {
 
 /**
  * Cookie consent banner + gated script loader.
- * Renders children (MetaPixel, Clarity) only when user has accepted.
+ * Renders children (MetaPixel) only when user has accepted.
+ * Clarity loads unconditionally (uses Consent API V2 for cookie control).
  * Vercel Analytics is ungated (privacy-friendly, no cookies).
  */
 export default function CookieConsent({
@@ -35,11 +36,13 @@ export default function CookieConsent({
   function accept() {
     localStorage.setItem(CONSENT_KEY, "accepted");
     setConsent("accepted");
+    window.dispatchEvent(new Event("consent-changed"));
   }
 
   function reject() {
     localStorage.setItem(CONSENT_KEY, "rejected");
     setConsent("rejected");
+    window.dispatchEvent(new Event("consent-changed"));
   }
 
   // Show banner only when mounted and no consent stored

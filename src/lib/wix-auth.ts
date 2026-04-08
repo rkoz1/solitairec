@@ -9,6 +9,9 @@ const TOKENS_KEY = "wix_tokens";
  */
 export async function startLogin() {
   const wix = getBrowserWixClient();
+  // Must use window.location.origin (not NEXT_PUBLIC_SITE_URL) because
+  // OAuth PKCE data is stored in sessionStorage on the current origin.
+  // A different origin would lose the sessionStorage data after redirect.
   const redirectUri = `${window.location.origin}/auth/callback`;
 
   const oauthData = wix.auth.generateOAuthData(redirectUri, window.location.href);

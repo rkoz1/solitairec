@@ -135,8 +135,8 @@ export default function GiftCardForm() {
           await wix.redirects.createRedirectSession({
             ecomCheckout: { checkoutId },
             callbacks: {
-              thankYouPageUrl: `${window.location.origin}/order-confirmation`,
-              postFlowUrl: `${window.location.origin}/gift-cards`,
+              thankYouPageUrl: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/order-confirmation`,
+              postFlowUrl: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/gift-cards`,
             },
           });
 

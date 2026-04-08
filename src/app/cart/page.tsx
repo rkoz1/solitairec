@@ -218,6 +218,8 @@ function BagTab() {
       product_name: item?.productName?.original ?? "",
       quantity: item?.quantity ?? 1,
     });
+    clarityEvent("remove_from_cart");
+    clarityTag("last_removed_product", item?.productName?.original ?? "");
     try {
       const wix = getBrowserWixClient();
       await wix.currentCart.removeLineItemsFromCurrentCart([lineItemId]);
@@ -275,7 +277,16 @@ function BagTab() {
 
   async function handleCheckout() {
     setCheckingOut(true);
-    trackMetaEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
+    const checkoutContentIds = (cartData?.lineItems ?? [])
+      .map((li) => li.catalogReference?.catalogItemId)
+      .filter(Boolean) as string[];
+    trackMetaEvent("InitiateCheckout", {
+      currency: "HKD",
+      value: subtotalNum,
+      content_ids: checkoutContentIds,
+      content_type: "product",
+      num_items: cartData?.lineItems?.length ?? 0,
+    });
     trackAnalytics("initiate_checkout", {
       item_count: cartData?.lineItems?.length ?? 0,
       cart_total: subtotalNum,
@@ -295,13 +306,23 @@ function BagTab() {
       const { redirectSession } = await wix.redirects.createRedirectSession({
         ecomCheckout: { checkoutId },
         callbacks: {
-          thankYouPageUrl: `${window.location.origin}/order-confirmation`,
-          postFlowUrl: `${window.location.origin}/cart`,
+          thankYouPageUrl: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/order-confirmation`,
+          postFlowUrl: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/cart`,
         },
       });
 
       const redirectUrl = redirectSession?.fullUrl;
       if (!redirectUrl) throw new Error("No redirect URL returned");
+
+      // Save Meta cookies before leaving solitairec.com (different subdomain loses them)
+      try {
+        const cookies = document.cookie;
+        const fbc = cookies.match(/(?:^|;\s*)_fbc=([^;]*)/)?.[1];
+        const fbp = cookies.match(/(?:^|;\s*)_fbp=([^;]*)/)?.[1];
+        if (fbc || fbp) {
+          sessionStorage.setItem("meta_cookies", JSON.stringify({ fbc, fbp }));
+        }
+      } catch { /* ignore */ }
 
       window.dispatchEvent(new Event("cart-updated"));
       window.location.href = redirectUrl;

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Logo Generator — SOLITAIREC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 40px; gap: 40px; font-family: sans-serif; }
+    .label { font-size: 12px; color: #666; letter-spacing: 0.1em; text-transform: uppercase; }
+    /* 512x512 logo for Organization schema */
+    .logo-512 {
+      width: 512px; height: 512px;
+      background: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-512 span {
+      font-family: 'Noto Serif', serif;
+      font-weight: 700;
+      font-size: 38px;
+      letter-spacing: 0.3em;
+      color: #000000;
+    }
+    /* 192x192 variant */
+    .logo-192 {
+      width: 192px; height: 192px;
+      background: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-192 span {
+      font-family: 'Noto Serif', serif;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: 0.3em;
+      color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <p class="label">Logo 512x512 — right-click > Save image as > logo.png</p>
+  <div class="logo-512"><span>SOLITAIREC</span></div>
+
+  <p class="label">Logo 192x192 (for PWA/favicon)</p>
+  <div class="logo-192"><span>SOLITAIREC</span></div>
+
+  <p class="label" style="max-width:500px; text-align:center; margin-top:20px; line-height:1.8">
+    Instructions:<br>
+    1. Right-click the 512x512 box above<br>
+    2. Use your browser's screenshot tool (or Windows Snipping Tool) to capture it at exactly 512x512<br>
+    3. Save as <code>logo.png</code> in <code>public/</code> folder<br>
+    <br>
+    Or: open DevTools > select the element > right-click > "Capture node screenshot"
+  </p>
+</body>
+</html>

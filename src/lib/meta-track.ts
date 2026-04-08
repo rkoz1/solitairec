@@ -21,16 +21,22 @@ const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 let _cachedEmail: string | undefined;
 let _cachedPhone: string | undefined;
 let _cachedExternalId: string | undefined;
+let _cachedFirstName: string | undefined;
+let _cachedLastName: string | undefined;
 
 /** Called by MetaPixel when member data becomes available. */
 export function setMetaUserData(data: {
   email?: string;
   phone?: string;
   externalId?: string;
+  firstName?: string;
+  lastName?: string;
 }) {
   if (data.email) _cachedEmail = data.email;
   if (data.phone) _cachedPhone = data.phone;
   if (data.externalId) _cachedExternalId = data.externalId;
+  if (data.firstName) _cachedFirstName = data.firstName;
+  if (data.lastName) _cachedLastName = data.lastName;
 }
 
 /** Called on auth changes to clear cached data. */
@@ -38,6 +44,8 @@ export function clearMetaUserData() {
   _cachedEmail = undefined;
   _cachedPhone = undefined;
   _cachedExternalId = undefined;
+  _cachedFirstName = undefined;
+  _cachedLastName = undefined;
 }
 
 interface MetaEventData {
@@ -58,12 +66,14 @@ interface MetaEventData {
  * @param data - Event data (value, currency, content_ids, etc.)
  * @param userEmail - Optional logged-in user email for better matching
  * @param externalId - Optional Wix member/visitor ID for cross-device matching
+ * @param options - Optional overrides: eventId for dedup, fbc/fbp for cookie preservation
  */
 export function trackMetaEvent(
   eventName: string,
   data: MetaEventData,
   userEmail?: string,
-  externalId?: string
+  externalId?: string,
+  options?: { eventId?: string; fbc?: string; fbp?: string }
 ): void {
   if (!PIXEL_ID || typeof window === "undefined") return;
 
@@ -75,7 +85,7 @@ export function trackMetaEvent(
     if (identity.user_id) extId = identity.user_id;
   }
 
-  const eventId = crypto.randomUUID();
+  const eventId = options?.eventId ?? crypto.randomUUID();
 
   // 1. Fire browser pixel with eventID for deduplication
   if (window.fbq) {
@@ -100,6 +110,10 @@ export function trackMetaEvent(
     userEmail: email,
     userPhone: _cachedPhone,
     externalId: extId,
+    firstName: _cachedFirstName,
+    lastName: _cachedLastName,
+    ...(options?.fbc ? { fbc: options.fbc } : {}),
+    ...(options?.fbp ? { fbp: options.fbp } : {}),
   };
 
   fetch("/api/meta/capi", {

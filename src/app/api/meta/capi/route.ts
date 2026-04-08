@@ -9,7 +9,7 @@ import { sendCapiEvent } from "@/lib/meta-capi";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { eventName, eventId, eventData, eventSourceUrl, userEmail, userPhone, externalId } = body as {
+    const { eventName, eventId, eventData, eventSourceUrl, userEmail, userPhone, externalId, firstName, lastName, fbc: bodyFbc, fbp: bodyFbp } = body as {
       eventName: string;
       eventId: string;
       eventData: {
@@ -26,6 +26,10 @@ export async function POST(request: Request) {
       userEmail?: string;
       userPhone?: string;
       externalId?: string;
+      firstName?: string;
+      lastName?: string;
+      fbc?: string;
+      fbp?: string;
     };
 
     if (!eventName || !eventId) {
@@ -37,10 +41,10 @@ export async function POST(request: Request) {
     const ip = forwardedFor?.split(",")[0]?.trim() ?? "";
     const userAgent = request.headers.get("user-agent") ?? "";
 
-    // Read _fbc and _fbp cookies
+    // Read _fbc and _fbp: prefer body overrides (preserved pre-redirect), fall back to cookies
     const cookieHeader = request.headers.get("cookie") ?? "";
-    const fbc = parseCookie(cookieHeader, "_fbc");
-    const fbp = parseCookie(cookieHeader, "_fbp");
+    const fbc = bodyFbc || parseCookie(cookieHeader, "_fbc");
+    const fbp = bodyFbp || parseCookie(cookieHeader, "_fbp");
 
     // Fire-and-forget to Meta CAPI
     sendCapiEvent(
@@ -50,6 +54,8 @@ export async function POST(request: Request) {
       {
         email: userEmail,
         phone: userPhone,
+        firstName,
+        lastName,
         externalId,
         ip,
         userAgent,

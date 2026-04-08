@@ -96,10 +96,13 @@ export async function sendCapiEvent(
   try {
     const res = await fetchRetry(() =>
       fetch(
-        `https://graph.facebook.com/${API_VERSION}/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
+        `https://graph.facebook.com/${API_VERSION}/${PIXEL_ID}/events`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${ACCESS_TOKEN}`,
+          },
           body: JSON.stringify({ data: [event] }),
         }
       )

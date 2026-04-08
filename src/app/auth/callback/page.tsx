@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { handleCallback } from "@/lib/wix-auth";
+import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { trackMetaEvent } from "@/lib/meta-track";
+import { trackAnalytics } from "@/lib/analytics";
+import { clarityEvent, clarityTag } from "@/lib/clarity";
 import LoadingIndicator from "@/components/LoadingIndicator";
 
 export default function AuthCallbackPage() {
@@ -11,8 +15,37 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    handleCallback().then((result) => {
+    handleCallback().then(async (result) => {
       if (result.success) {
+        // Fire auth tracking events
+        try {
+          const wix = getBrowserWixClient();
+          const resp = await wix.members.getCurrentMember({ fieldsets: ["FULL"] });
+          const member = (resp as { member?: typeof resp }).member ?? resp;
+
+          const email = member?.loginEmail;
+          const memberId = member?._id;
+
+          // Detect new signup: member created within the last 2 minutes
+          const isNewSignup =
+            member?._createdDate &&
+            Date.now() - new Date(member._createdDate).getTime() < 2 * 60 * 1000;
+
+          if (isNewSignup) {
+            trackMetaEvent("CompleteRegistration", { currency: "HKD" }, email, memberId);
+            trackAnalytics("signup", { method: "wix_oauth" });
+            clarityEvent("sign_up_success");
+            clarityTag("signup_completed", true);
+          } else {
+            trackAnalytics("login", { method: "wix_oauth" });
+          }
+
+          trackMetaEvent("Lead", {}, email, memberId);
+          clarityEvent("login_success");
+        } catch {
+          // Don't block redirect if tracking fails
+        }
+
         router.push("/account");
       } else {
         setError(result.error ?? "Authentication failed.");
