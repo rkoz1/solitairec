@@ -6,6 +6,7 @@ import Link from "next/link";
 import { handleCallback } from "@/lib/wix-auth";
 import { getBrowserWixClient } from "@/lib/wix-browser-client";
 import { trackMetaEvent } from "@/lib/meta-track";
+import { trackAnalytics } from "@/lib/analytics";
 import { clarityEvent, clarityTag } from "@/lib/clarity";
 import LoadingIndicator from "@/components/LoadingIndicator";
 
@@ -32,8 +33,11 @@ export default function AuthCallbackPage() {
 
           if (isNewSignup) {
             trackMetaEvent("CompleteRegistration", { currency: "HKD" }, email, memberId);
+            trackAnalytics("signup", { method: "wix_oauth" });
             clarityEvent("sign_up_success");
             clarityTag("signup_completed", true);
+          } else {
+            trackAnalytics("login", { method: "wix_oauth" });
           }
 
           trackMetaEvent("Lead", {}, email, memberId);

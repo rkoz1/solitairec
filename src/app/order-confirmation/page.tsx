@@ -52,9 +52,8 @@ export default function OrderConfirmationPage() {
           });
           trackAnalytics("purchase", {
             order_number: String(data.orderNumber ?? ""),
-            total: data.total ?? "",
-            item_count: data.itemCount ?? 1,
-            source: "express",
+            total: parseFloat((data.total ?? "0").replace(/[^0-9.]/g, "")),
+            currency: "HKD",
           });
           clarityEvent("purchase");
           clarityUpgrade("purchase");
@@ -161,8 +160,7 @@ export default function OrderConfirmationPage() {
               trackAnalytics("purchase", {
                 order_number: found.number?.toString() ?? "",
                 total: totalAmount,
-                item_count: found.lineItems?.length ?? 0,
-                source: "cart",
+                currency: "HKD",
               });
               clarityEvent("purchase");
               clarityUpgrade("purchase");

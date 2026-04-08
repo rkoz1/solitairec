@@ -79,11 +79,17 @@ export function trackAnalytics(
 ): void {
   if (typeof window === "undefined") return;
 
-  const { user_id, user_type } = getUserIdentity();
   const enriched: AnalyticsProperties = { ...properties };
-  if (user_id) {
-    enriched.user_id = user_id;
-    enriched.user_type = user_type;
+
+  // Vercel Analytics allows max 5 properties per event.
+  // Only attach user identity if it won't exceed the limit.
+  const propCount = Object.keys(enriched).length;
+  if (propCount <= 3) {
+    const { user_id, user_type } = getUserIdentity();
+    if (user_id) {
+      enriched.user_id = user_id;
+      enriched.user_type = user_type;
+    }
   }
 
   if (process.env.NODE_ENV === "development") {

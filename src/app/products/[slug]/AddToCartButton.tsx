@@ -63,10 +63,9 @@ export default function AddToCartButton({
         currency: "HKD",
       });
       trackAnalytics("add_to_cart", {
-        product_id: productId,
         product_name: productName ?? "",
-        variant_id: variantId ?? null,
-        source: "product_page",
+        price: productPrice ? parseFloat(productPrice) : 0,
+        currency: "HKD",
       });
       clarityEvent("add_to_cart");
       clarityTag("last_added_product", productName ?? "");
