@@ -227,6 +227,7 @@ export const fetchCollectionProducts = unstable_cache(
       let offset = 0;
       const PAGE_SIZE = 100;
 
+      // Wix REST API supports createdDate sorting but SDK types are too restrictive — cast to bypass
       const sortField =
         sort === "price_asc" ? "price" :
         sort === "price_desc" ? "price" :
@@ -240,8 +241,8 @@ export const fetchCollectionProducts = unstable_cache(
           .limit(PAGE_SIZE)
           .skip(offset);
 
-        if (sortDir === "asc") query = query.ascending(sortField);
-        else query = query.descending(sortField);
+        if (sortDir === "asc") query = query.ascending(sortField as any);
+        else query = query.descending(sortField as any);
 
         const { items } = await query.find();
         allItems.push(...items);
