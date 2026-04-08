@@ -124,10 +124,11 @@ export const getCollectionProducts = unstable_cache(
   async (collectionId: string, limit: number = 20) =>
     fetchRetry(async () => {
       const wix = getServerWixClient();
+      // Wix REST API supports createdDate sorting but SDK types are too restrictive — cast to bypass
       const { items } = await wix.products
         .queryProducts()
         .hasSome("collectionIds", [collectionId])
-        .descending("createdDate")
+        .descending("createdDate" as any)
         .limit(limit)
         .find();
       return items;
