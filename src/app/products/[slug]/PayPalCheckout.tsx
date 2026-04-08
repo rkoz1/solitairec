@@ -134,7 +134,7 @@ function PayPalButtonsInner({
   }, []);
 
   return (
-    <div className="mt-3 [&_iframe]:!rounded-none">
+    <div className="relative mt-3 [&_iframe]:!rounded-none" style={{ zIndex: 1 }}>
       <PayPalButtons
         style={{
           layout: "vertical",
