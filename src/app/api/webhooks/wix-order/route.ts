@@ -76,10 +76,18 @@ export async function POST(request: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const contentName = (lineItems as any)[0]?.productName?.original ?? "Product";
 
-    // Buyer data for Meta matching
+    // Buyer data for Meta matching — extract as much as possible for EMQ
     const buyerEmail = order.buyerInfo?.email;
     const buyerExternalId =
       order.buyerInfo?.memberId ?? order.buyerInfo?.visitorId;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const billing = (order as any).billingInfo;
+    const billingContact = billing?.contactDetails ?? billing?.address?.contactDetails;
+    const billingAddress = billing?.address ?? billing?.address?.address;
+    const buyerFirstName = billingContact?.firstName ?? undefined;
+    const buyerLastName = billingContact?.lastName ?? undefined;
+    const buyerPhone = billingContact?.phone ?? undefined;
 
     // Deterministic eventId — must match what order-confirmation page uses
     const purchaseEventId = createHash("sha256")
@@ -100,6 +108,9 @@ export async function POST(request: Request) {
     const userData = {
       email: buyerEmail,
       externalId: buyerExternalId,
+      firstName: buyerFirstName,
+      lastName: buyerLastName,
+      phone: buyerPhone,
     };
 
     const eventSourceUrl = `${SITE_URL}/order-confirmation`;

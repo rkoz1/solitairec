@@ -53,7 +53,12 @@ function PayPalButtonsInner({
   const createOrder = useCallback(async (): Promise<string> => {
     const { productId, selectedOptions, variantId } = propsRef.current;
 
-    trackMetaEvent("InitiateCheckout", { currency: "HKD" });
+    trackMetaEvent("InitiateCheckout", {
+      currency: "HKD",
+      content_ids: [productId],
+      content_type: "product",
+      num_items: 1,
+    });
     trackAnalytics("paypal_checkout_click", { product_id: productId });
     clarityEvent("initiate_checkout");
 
@@ -78,6 +83,13 @@ function PayPalButtonsInner({
   }, []);
 
   const onApprove = useCallback(async (data: { orderID: string }) => {
+    // Payment approved by PayPal
+    trackMetaEvent("AddPaymentInfo", {
+      currency: "HKD",
+      content_ids: [propsRef.current.productId],
+      content_type: "product",
+    });
+
     // Get Wix visitor/member ID to associate order with this session
     let wixVisitorId: string | undefined;
     let wixMemberId: string | undefined;

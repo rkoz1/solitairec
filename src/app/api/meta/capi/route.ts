@@ -9,7 +9,7 @@ import { sendCapiEvent } from "@/lib/meta-capi";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { eventName, eventId, eventData, eventSourceUrl, userEmail, userPhone, externalId, fbc: bodyFbc, fbp: bodyFbp } = body as {
+    const { eventName, eventId, eventData, eventSourceUrl, userEmail, userPhone, externalId, firstName, lastName, fbc: bodyFbc, fbp: bodyFbp } = body as {
       eventName: string;
       eventId: string;
       eventData: {
@@ -26,6 +26,8 @@ export async function POST(request: Request) {
       userEmail?: string;
       userPhone?: string;
       externalId?: string;
+      firstName?: string;
+      lastName?: string;
       fbc?: string;
       fbp?: string;
     };
@@ -52,6 +54,8 @@ export async function POST(request: Request) {
       {
         email: userEmail,
         phone: userPhone,
+        firstName,
+        lastName,
         externalId,
         ip,
         userAgent,

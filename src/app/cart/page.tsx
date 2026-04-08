@@ -277,7 +277,16 @@ function BagTab() {
 
   async function handleCheckout() {
     setCheckingOut(true);
-    trackMetaEvent("InitiateCheckout", { currency: "HKD", value: subtotalNum });
+    const checkoutContentIds = (cartData?.lineItems ?? [])
+      .map((li) => li.catalogReference?.catalogItemId)
+      .filter(Boolean) as string[];
+    trackMetaEvent("InitiateCheckout", {
+      currency: "HKD",
+      value: subtotalNum,
+      content_ids: checkoutContentIds,
+      content_type: "product",
+      num_items: cartData?.lineItems?.length ?? 0,
+    });
     trackAnalytics("initiate_checkout", {
       item_count: cartData?.lineItems?.length ?? 0,
       cart_total: subtotalNum,

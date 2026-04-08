@@ -73,6 +73,8 @@ export default function MetaPixel() {
       email: userDataRef.current.email,
       phone: member?.contact?.phones?.[0]?.replace(/\D/g, ""),
       externalId: userDataRef.current.externalId,
+      firstName: member?.contact?.firstName ?? undefined,
+      lastName: member?.contact?.lastName ?? undefined,
     });
 
     initializedRef.current = true;
@@ -93,11 +95,11 @@ export default function MetaPixel() {
 
   // Fire PageView on route changes with deduplication eventID
   useEffect(() => {
-    if (!PIXEL_ID || !initializedRef.current || typeof window === "undefined" || !window.fbq) return;
+    if (!PIXEL_ID || typeof window === "undefined" || !window.fbq) return;
     const eventId = crypto.randomUUID();
     window.fbq("track", "PageView", {}, { eventID: eventId });
     sendPageViewCapi(eventId, userDataRef.current.email, userDataRef.current.externalId);
-  }, [pathname, loading]);
+  }, [pathname]);
 
   if (!PIXEL_ID) return null;
 
@@ -117,14 +119,6 @@ export default function MetaPixel() {
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
             fbq('init', '${PIXEL_ID}');
-            var __fbPageViewId = crypto.randomUUID();
-            fbq('track', 'PageView', {}, {eventID: __fbPageViewId});
-            fetch('/api/meta/capi', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({eventName:'PageView',eventId:__fbPageViewId,eventData:{},eventSourceUrl:location.href}),
-              keepalive: true
-            }).catch(function(){});
           `,
         }}
       />

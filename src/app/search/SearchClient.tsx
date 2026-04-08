@@ -42,12 +42,19 @@ export default function SearchClient() {
     loadResults();
   }, [loadResults]);
 
+  // Track Meta Search event once per query (not when data arrives)
   useEffect(() => {
     if (query.trim()) {
       trackMetaEvent("Search", { search_string: query });
+    }
+  }, [query]);
+
+  // Track analytics with result count after data loads
+  useEffect(() => {
+    if (query.trim() && data) {
       trackAnalytics("search_page_view", {
         query,
-        result_count: data?.products.length ?? 0,
+        result_count: data.products.length,
       });
     }
   }, [query, data]);
