@@ -127,7 +127,7 @@ export const getCollectionProducts = unstable_cache(
       const { items } = await wix.products
         .queryProducts()
         .hasSome("collectionIds", [collectionId])
-        .descending("lastUpdated")
+        .descending("createdDate")
         .limit(limit)
         .find();
       return items;

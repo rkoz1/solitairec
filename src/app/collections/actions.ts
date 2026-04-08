@@ -230,7 +230,7 @@ export const fetchCollectionProducts = unstable_cache(
       const sortField =
         sort === "price_asc" ? "price" :
         sort === "price_desc" ? "price" :
-        "lastUpdated";
+        "createdDate";
       const sortDir = sort === "price_asc" ? "asc" : "desc";
 
       while (true) {
