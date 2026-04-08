@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OG Image Generator — SOLITAIREC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #e0e0e0; display: flex; flex-direction: column; align-items: center; padding: 40px; gap: 60px; font-family: sans-serif; }
+    .label { font-size: 12px; color: #666; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: -40px; }
+
+    /* Option A: Minimal clean */
+    .og-a {
+      width: 1200px; height: 630px;
+      background: #ffffff;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+      position: relative;
+    }
+    .og-a .brand {
+      font-family: 'Noto Serif', serif;
+      font-weight: 700;
+      font-size: 64px;
+      letter-spacing: 0.3em;
+      color: #000000;
+    }
+    .og-a .divider {
+      width: 60px; height: 2px; background: #96482d;
+    }
+    .og-a .tagline {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 16px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #666666;
+    }
+    .og-a .url {
+      position: absolute;
+      bottom: 32px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      color: #999999;
+    }
+
+    /* Option B: Dark/moody */
+    .og-b {
+      width: 1200px; height: 630px;
+      background: #0a0a0a;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+      position: relative;
+    }
+    .og-b .brand {
+      font-family: 'Noto Serif', serif;
+      font-weight: 700;
+      font-size: 64px;
+      letter-spacing: 0.3em;
+      color: #ffffff;
+    }
+    .og-b .divider {
+      width: 60px; height: 2px; background: #96482d;
+    }
+    .og-b .tagline {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 16px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #888888;
+    }
+    .og-b .url {
+      position: absolute;
+      bottom: 32px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      color: #555555;
+    }
+
+    /* Option C: Brand color accent */
+    .og-c {
+      width: 1200px; height: 630px;
+      background: #f9f9f9;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .og-c::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+      background: #96482d;
+    }
+    .og-c::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 6px;
+      background: #96482d;
+    }
+    .og-c .brand {
+      font-family: 'Noto Serif', serif;
+      font-weight: 700;
+      font-size: 64px;
+      letter-spacing: 0.3em;
+      color: #000000;
+    }
+    .og-c .subtitle {
+      font-family: 'Noto Serif', serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 20px;
+      color: #96482d;
+    }
+    .og-c .tagline {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #888888;
+      margin-top: 8px;
+    }
+    .og-c .url {
+      position: absolute;
+      bottom: 28px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      color: #aaaaaa;
+    }
+  </style>
+</head>
+<body>
+  <p class="label">Option A — Minimal White (recommended)</p>
+  <div class="og-a">
+    <span class="brand">SOLITAIREC</span>
+    <div class="divider"></div>
+    <span class="tagline">Curated Designer Fashion from Hong Kong</span>
+    <span class="url">solitairec.com</span>
+  </div>
+
+  <p class="label">Option B — Dark/Luxury</p>
+  <div class="og-b">
+    <span class="brand">SOLITAIREC</span>
+    <div class="divider"></div>
+    <span class="tagline">Curated Designer Fashion from Hong Kong</span>
+    <span class="url">solitairec.com</span>
+  </div>
+
+  <p class="label">Option C — Brand Accent</p>
+  <div class="og-c">
+    <span class="brand">SOLITAIREC</span>
+    <span class="subtitle">Editorial Luxury</span>
+    <span class="tagline">Korean &amp; Japanese Fashion from Hong Kong</span>
+    <span class="url">solitairec.com</span>
+  </div>
+
+  <p class="label" style="max-width:600px; text-align:center; margin-top:20px; line-height:1.8">
+    Instructions:<br>
+    1. Pick the option you like<br>
+    2. Open DevTools (F12) > select the div > right-click > "Capture node screenshot"<br>
+    3. Save as <code>og-default.jpg</code> in <code>public/</code> folder<br>
+    <br>
+    The image should be exactly 1200x630.<br>
+    This is what people see when your site is shared on WhatsApp, iMessage, Facebook, Twitter, LinkedIn, etc.
+  </p>
+</body>
+</html>

@@ -98,7 +98,8 @@
       "Bash(awk '{total += 1} END {print total \" external script tags\"}')",
       "Bash(head -100 /c/dev/solitairec/src/lib/meta-*.ts)",
       "WebFetch(domain:support.wix.com)",
-      "WebFetch(domain:sleekflow.io)"
+      "WebFetch(domain:sleekflow.io)",
+      "WebFetch(domain:shop.solitairec.com)"
     ]
   }
 }
