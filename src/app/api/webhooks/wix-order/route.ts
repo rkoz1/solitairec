@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const orderNumber = body.orderNumber;
+    const orderNumber = body.orderNumber ?? body.data?.orderNumber;
 
     if (!orderNumber) {
       console.error("[wix-order webhook] No orderNumber in payload:", body);
