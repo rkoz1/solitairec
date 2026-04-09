@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { handleCallback } from "@/lib/wix-auth";
-import { getBrowserWixClient } from "@/lib/wix-browser-client";
+import { getBrowserWixClient, ensureVisitorTokens } from "@/lib/wix-browser-client";
+import { addItemToCart, type CartItemInput } from "@/lib/cart";
+import { syncWishlistOnLogin } from "@/lib/wishlist";
 import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
 import { clarityEvent, clarityTag } from "@/lib/clarity";
 import LoadingIndicator from "@/components/LoadingIndicator";
+
+const CART_BEFORE_LOGIN_KEY = "cart_before_login";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -17,9 +21,10 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     handleCallback().then(async (result) => {
       if (result.success) {
+        const wix = getBrowserWixClient();
+
         // Fire auth tracking events
         try {
-          const wix = getBrowserWixClient();
           const resp = await wix.members.getCurrentMember({ fieldsets: ["FULL"] });
           const member = (resp as { member?: typeof resp }).member ?? resp;
 
@@ -44,6 +49,29 @@ export default function AuthCallbackPage() {
           clarityEvent("login_success");
         } catch {
           // Don't block redirect if tracking fails
+        }
+
+        // Merge visitor cart into member cart
+        try {
+          const savedCart = sessionStorage.getItem(CART_BEFORE_LOGIN_KEY);
+          if (savedCart) {
+            const items: CartItemInput[] = JSON.parse(savedCart);
+            await ensureVisitorTokens(wix);
+            for (const item of items) {
+              await addItemToCart(wix, item);
+            }
+            sessionStorage.removeItem(CART_BEFORE_LOGIN_KEY);
+            window.dispatchEvent(new Event("cart-updated"));
+          }
+        } catch {
+          // Don't block redirect if cart merge fails
+        }
+
+        // Sync wishlist: merge localStorage with Wix server
+        try {
+          await syncWishlistOnLogin(wix);
+        } catch {
+          // Don't block redirect if wishlist sync fails
         }
 
         router.push("/account");

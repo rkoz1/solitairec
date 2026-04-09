@@ -3,12 +3,14 @@ import { Noto_Serif, Inter } from "next/font/google";
 import Link from "next/link";
 import NavigationDrawer from "@/components/NavigationDrawer";
 import CartBadge from "@/components/CartBadge";
+import WishlistBadge from "@/components/WishlistBadge";
 import BottomNav from "@/components/BottomNav";
 import SearchOverlay from "@/components/SearchOverlay";
 import NavigationLoader from "@/components/NavigationLoader";
 import WixChat from "@/components/WixChat";
 import MarqueeBanner from "@/components/MarqueeBanner";
 import FlyToCart from "@/components/FlyToCart";
+import FlyToWishlist from "@/components/FlyToWishlist";
 import Toast from "@/components/Toast";
 import RegionSelector from "@/components/RegionSelector";
 import DesktopNav from "@/components/DesktopNav";
@@ -148,7 +150,10 @@ export default async function RootLayout({
                   SOLITAIREC
                 </span>
               </Link>
-              <SearchOverlay />
+              <div className="flex items-center gap-1">
+                <WishlistBadge />
+                <SearchOverlay />
+              </div>
             </nav>
             {/* Desktop nav */}
             <nav className="hidden lg:flex items-center justify-between px-10 h-14">
@@ -168,6 +173,7 @@ export default async function RootLayout({
                   <span className="material-symbols-outlined text-[22px]">redeem</span>
                 </Link>
                 <SearchOverlay />
+                <WishlistBadge />
                 <CartBadge />
                 <Link
                   href="/account"
@@ -194,6 +200,7 @@ export default async function RootLayout({
 
         {/* Cart feedback animation */}
         <FlyToCart />
+        <FlyToWishlist />
         <Toast />
 
         {/* Chat widget */}
