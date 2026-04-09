@@ -68,6 +68,15 @@ export default memo(function ProductCardActions({
     });
     if (nowIn) {
       showToast("Saved — find your favourites in Bag", "success");
+      window.dispatchEvent(
+        new CustomEvent("wishlist-item-added", {
+          detail: {
+            imageUrl: productImage ?? "",
+            sourceX: e.clientX,
+            sourceY: e.clientY,
+          },
+        })
+      );
     }
   }
 

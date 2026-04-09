@@ -1,14 +1,41 @@
-import { getBrowserWixClient, resetClient } from "./wix-browser-client";
+import { getBrowserWixClient, resetClient, ensureVisitorTokens } from "./wix-browser-client";
+import type { cart } from "@wix/ecom";
 
 const OAUTH_DATA_KEY = "wix_oauth_data";
 const TOKENS_KEY = "wix_tokens";
+const CART_BEFORE_LOGIN_KEY = "cart_before_login";
 
 /**
  * Start the Wix OAuth login flow.
- * Generates PKCE data, stores it in sessionStorage, and redirects to Wix login page.
+ * Snapshots the visitor cart to sessionStorage, then redirects to Wix login page.
  */
 export async function startLogin() {
   const wix = getBrowserWixClient();
+
+  // Save visitor cart so we can merge it into the member cart after login
+  try {
+    const tokens = wix.auth.getTokens();
+    if (tokens.accessToken?.value) {
+      const cart = await wix.currentCart.getCurrentCart();
+      const items = (cart?.lineItems ?? []).map((li: cart.LineItem) => ({
+        productId: li.catalogReference?.catalogItemId,
+        quantity: li.quantity ?? 1,
+        selectedOptions: Object.fromEntries(
+          (li.descriptionLines ?? [])
+            .filter((d) => d.name?.original && (d.plainText?.original || d.colorInfo?.original))
+            .map((d) => [d.name!.original!, d.plainText?.original ?? d.colorInfo?.original ?? ""])
+        ),
+        variantId: li.catalogReference?.options?.variantId,
+        manageVariants: li.catalogReference?.appId === "215238eb-22a5-4c36-9e7b-e7c08025e04e",
+      }));
+      if (items.length > 0) {
+        sessionStorage.setItem(CART_BEFORE_LOGIN_KEY, JSON.stringify(items));
+      }
+    }
+  } catch {
+    // Don't block login if cart snapshot fails
+  }
+
   // Must use window.location.origin (not NEXT_PUBLIC_SITE_URL) because
   // OAuth PKCE data is stored in sessionStorage on the current origin.
   // A different origin would lose the sessionStorage data after redirect.
