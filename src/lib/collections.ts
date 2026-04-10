@@ -121,14 +121,13 @@ export const getAllCollections = unstable_cache(
 );
 
 export const getCollectionProducts = unstable_cache(
-  async (collectionId: string, limit: number = 20) =>
+  async (collectionId: string, limit: number = 20, sortBy: "createdDate" | "lastUpdated" = "createdDate") =>
     fetchRetry(async () => {
       const wix = getServerWixClient();
-      // Wix REST API supports createdDate sorting but SDK types are too restrictive — cast to bypass
       const { items } = await wix.products
         .queryProducts()
         .hasSome("collectionIds", [collectionId])
-        .descending("createdDate" as any)
+        .descending(sortBy as any)
         .limit(limit)
         .find();
       return items;
@@ -201,7 +200,7 @@ export async function getHomeSections() {
   const byName = new Map(all.map((c) => [c.name, c]));
 
   // Show these categories on the home page (in order)
-  const HOME_SECTIONS = ["New Arrivals", "Top", "Bags", "Shoes", "Dresses"];
+  const HOME_SECTIONS = ["New Arrivals", "Top", "Bottoms", "Dresses", "Outer", "Bags", "Shoes"];
 
   return HOME_SECTIONS.map((name) => byName.get(name)).filter(
     Boolean,

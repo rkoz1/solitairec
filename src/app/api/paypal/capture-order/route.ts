@@ -258,6 +258,10 @@ export async function POST(request: Request) {
           userAgent,
           fbc,
           fbp,
+          zipCode: paypalAddress?.postal_code ?? undefined,
+          city: paypalAddress?.admin_area_2 ?? undefined,
+          state: paypalAddress?.admin_area_1 ?? undefined,
+          country: paypalAddress?.country_code ?? undefined,
         },
         eventSourceUrl
       ).catch(() => {});

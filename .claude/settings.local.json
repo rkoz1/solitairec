@@ -99,7 +99,16 @@
       "Bash(head -100 /c/dev/solitairec/src/lib/meta-*.ts)",
       "WebFetch(domain:support.wix.com)",
       "WebFetch(domain:sleekflow.io)",
-      "WebFetch(domain:shop.solitairec.com)"
+      "WebFetch(domain:shop.solitairec.com)",
+      "Bash(awk '{print $NF}')",
+      "Bash(netstat -ano)",
+      "Bash(tasklist //FI \"PID eq 28988\")",
+      "Bash(tasklist /FI \"PID eq 28988\")",
+      "Bash(wmic process:*)",
+      "Bash(cmd.exe //c \"tasklist /FI \\\\\"PID eq 28988\\\\\"\")",
+      "Bash(taskkill //F //PID 28988)",
+      "Bash(taskkill /F /PID 28988)",
+      "Bash(kill -9 28988)"
     ]
   }
 }

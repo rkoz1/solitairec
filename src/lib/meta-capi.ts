@@ -41,6 +41,10 @@ interface UserData {
   userAgent?: string;
   fbc?: string;
   fbp?: string;
+  zipCode?: string;
+  city?: string;
+  state?: string;
+  country?: string;
 }
 
 export async function sendCapiEvent(
@@ -70,6 +74,10 @@ export async function sendCapiEvent(
         : {}),
       ...(userData.fbc ? { fbc: userData.fbc } : {}),
       ...(userData.fbp ? { fbp: userData.fbp } : {}),
+      ...(userData.zipCode ? { zp: [hashSha256(userData.zipCode)] } : {}),
+      ...(userData.city ? { ct: [hashSha256(userData.city)] } : {}),
+      ...(userData.state ? { st: [hashSha256(userData.state)] } : {}),
+      ...(userData.country ? { country: [hashSha256(userData.country)] } : {}),
     },
     custom_data: {
       ...(eventData.value !== undefined ? { value: eventData.value } : {}),
