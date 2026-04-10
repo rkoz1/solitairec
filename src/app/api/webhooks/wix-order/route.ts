@@ -89,6 +89,14 @@ export async function POST(request: Request) {
     const buyerLastName = billingContact?.lastName ?? undefined;
     const buyerPhone = billingContact?.phone ?? undefined;
 
+    // Address fields for Meta EMQ matching
+    const shippingAddress = (order as any).shippingInfo?.logistics?.shippingDestination?.address;
+    const addressSource = billingAddress ?? shippingAddress;
+    const buyerZipCode = addressSource?.postalCode ?? undefined;
+    const buyerCity = addressSource?.city ?? undefined;
+    const buyerState = addressSource?.subdivision?.split("-")?.[1] ?? addressSource?.subdivision ?? undefined;
+    const buyerCountry = addressSource?.country ?? undefined;
+
     // Deterministic eventId — must match what order-confirmation page uses
     const purchaseEventId = createHash("sha256")
       .update("purchase-" + order._id)
@@ -111,6 +119,10 @@ export async function POST(request: Request) {
       firstName: buyerFirstName,
       lastName: buyerLastName,
       phone: buyerPhone,
+      zipCode: buyerZipCode,
+      city: buyerCity,
+      state: buyerState,
+      country: buyerCountry,
     };
 
     const eventSourceUrl = `${SITE_URL}/order-confirmation`;

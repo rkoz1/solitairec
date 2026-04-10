@@ -243,6 +243,10 @@ export async function POST(request: Request) {
           userAgent,
           fbc,
           fbp,
+          zipCode: shippingAddr?.postal_code ?? undefined,
+          city: shippingAddr?.city ?? undefined,
+          state: shippingAddr?.state ?? undefined,
+          country: shippingAddr?.country ?? undefined,
         },
         eventSourceUrl
       ).catch(() => {});
