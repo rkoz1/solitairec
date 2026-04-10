@@ -38,25 +38,6 @@ function getInvisibleCaptchaKey(): string | null {
   }
 }
 
-async function getInvisibleCaptchaToken(siteKey: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!window.grecaptcha) {
-      reject(new Error("reCAPTCHA not loaded"));
-      return;
-    }
-    window.grecaptcha.ready(async () => {
-      try {
-        const token = await window.grecaptcha.execute(siteKey, {
-          action: "login",
-        });
-        resolve(token);
-      } catch (err) {
-        reject(err);
-      }
-    });
-  });
-}
-
 const ERROR_MESSAGES: Record<string, string> = {
   invalidEmail: "No account found with this email.",
   invalidPassword: "Incorrect password.",
@@ -91,8 +72,7 @@ function handleStateMachine(
     case "SILENT_CAPTCHA_REQUIRED":
       setResult({
         state: "error",
-        message:
-          "Captcha challenge required. The invisible reCAPTCHA was not accepted.",
+        message: "Captcha validation failed. Please try again.",
       });
       break;
     case "FAILURE": {
@@ -127,18 +107,27 @@ export default function AuthTestPage() {
   const oauthDataRef = useRef<any>(null);
 
   useEffect(() => {
-    const key = getInvisibleCaptchaKey();
-    setCaptchaSiteKey(key);
+    setCaptchaSiteKey(getInvisibleCaptchaKey());
   }, []);
 
   const onRecaptchaLoad = useCallback(() => {
     setRecaptchaReady(true);
   }, []);
 
-  async function getCaptchaTokens() {
+  async function getCaptchaTokens(action: string) {
     if (!captchaSiteKey || !recaptchaReady) return undefined;
     try {
-      const token = await getInvisibleCaptchaToken(captchaSiteKey);
+      const token = await new Promise<string>((resolve, reject) => {
+        window.grecaptcha.ready(async () => {
+          try {
+            resolve(
+              await window.grecaptcha.execute(captchaSiteKey!, { action }),
+            );
+          } catch (err) {
+            reject(err);
+          }
+        });
+      });
       return { invisibleRecaptchaToken: token };
     } catch {
       return undefined;
@@ -162,9 +151,9 @@ export default function AuthTestPage() {
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
-      const captchaTokens = await getCaptchaTokens();
 
       if (mode === "login") {
+        const captchaTokens = await getCaptchaTokens("login");
         const response = await wix.auth.login({
           email,
           password,
@@ -174,6 +163,7 @@ export default function AuthTestPage() {
           completeLogin(sessionToken, email),
         );
       } else {
+        const captchaTokens = await getCaptchaTokens("signup");
         const response = await wix.auth.register({
           email,
           password,
@@ -202,12 +192,12 @@ export default function AuthTestPage() {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
 
-      const redirectUri = `${window.location.origin}/auth/callback`;
+      const redirectUri = `${window.location.origin}/dev/auth-test/callback`;
       const oauthData = wix.auth.generateOAuthData(redirectUri);
       oauthDataRef.current = oauthData;
 
       const { authUrl } = await wix.auth.getAuthUrl(oauthData, {
-        responseMode: "web_message",
+        prompt: "login",
       });
 
       const popup = window.open(
@@ -225,10 +215,11 @@ export default function AuthTestPage() {
       }
 
       function onMessage(event: MessageEvent) {
-        // Wix posts back the auth code via postMessage
-        if (!event.data?.code && !event.data?.error) return;
+        if (event.origin !== window.location.origin) return;
+        if (event.data?.source !== "wix-auth-callback") return;
 
         window.removeEventListener("message", onMessage);
+        clearInterval(pollTimer);
 
         if (event.data.error) {
           setResult({
@@ -241,7 +232,7 @@ export default function AuthTestPage() {
         const { code, state } = event.data;
         const storedOauthData = oauthDataRef.current;
 
-        if (!storedOauthData) {
+        if (!storedOauthData || !code) {
           setResult({ state: "error", message: "Missing OAuth data." });
           return;
         }
@@ -266,7 +257,6 @@ export default function AuthTestPage() {
 
       window.addEventListener("message", onMessage);
 
-      // Poll for popup close (user may close it manually)
       const pollTimer = setInterval(() => {
         if (popup.closed) {
           clearInterval(pollTimer);
@@ -294,17 +284,60 @@ export default function AuthTestPage() {
           onLoad={onRecaptchaLoad}
         />
       )}
-      <main className="min-h-screen bg-surface flex items-center justify-center px-4 pb-20">
+
+      <main className="min-h-screen bg-surface flex items-center justify-center px-4 pb-20 pt-10">
         <div className="w-full max-w-sm">
           <h1 className="font-serif italic text-2xl tracking-tight text-on-surface text-center">
-            {mode === "login" ? "Sign In" : "Create Account"}
+            Welcome
           </h1>
           <div className="mt-3 mx-auto w-12 h-[2px] bg-secondary" />
-          <p className="mt-4 text-center text-[10px] tracking-[0.25em] uppercase font-medium text-secondary">
-            Hidden test page — Direct SDK auth
+          <p className="mt-4 text-center text-sm leading-relaxed text-on-surface-variant">
+            {mode === "login"
+              ? "Sign in to your account"
+              : "Create your account to get started"}
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-10 space-y-5">
+          {/* Social buttons */}
+          <div className="mt-8 space-y-3">
+            <button
+              type="button"
+              onClick={handleSocialLogin}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-3 border border-outline-variant/30 bg-surface-container-lowest py-4 text-xs tracking-[0.15em] uppercase font-medium text-on-surface active:scale-[0.98] disabled:opacity-50 transition-colors hover:bg-surface-container-low"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+              Continue with Google
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSocialLogin}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-3 border border-outline-variant/30 bg-surface-container-lowest py-4 text-xs tracking-[0.15em] uppercase font-medium text-on-surface active:scale-[0.98] disabled:opacity-50 transition-colors hover:bg-surface-container-low"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
+                <path fill="#1877F2" d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.026 4.388 11.022 10.125 11.927v-8.437H7.078v-3.49h3.047V9.41c0-3.026 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.971H15.83c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796v8.437C19.612 23.095 24 18.1 24 12.073z" />
+              </svg>
+              Continue with Facebook
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="mt-8 flex items-center gap-4">
+            <div className="flex-1 h-px bg-surface-container-high" />
+            <span className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
+              or continue with email
+            </span>
+            <div className="flex-1 h-px bg-surface-container-high" />
+          </div>
+
+          {/* Email form */}
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {mode === "register" && (
               <div className="flex gap-3">
                 <div className="flex-1">
@@ -358,13 +391,16 @@ export default function AuthTestPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-surface-container-low px-4 py-3.5 text-sm text-on-surface outline-none focus:ring-1 focus:ring-outline placeholder:text-on-surface-variant/40"
+                placeholder={
+                  mode === "register" ? "Create a password" : undefined
+                }
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase active:scale-[0.98] disabled:opacity-50"
+              className="w-full bg-on-surface text-on-primary py-5 text-xs tracking-[0.25em] font-bold uppercase active:scale-[0.98] disabled:opacity-50 transition-opacity"
             >
               {isLoading
                 ? "Please wait..."
@@ -374,19 +410,20 @@ export default function AuthTestPage() {
             </button>
           </form>
 
-          <p className="mt-4 text-center text-xs text-on-surface-variant">
+          {/* Mode toggle */}
+          <p className="mt-5 text-center text-xs text-on-surface-variant">
             {mode === "login" ? (
               <>
-                No account?{" "}
+                New here?{" "}
                 <button
                   type="button"
                   onClick={() => {
                     setMode("register");
                     setResult({ state: "idle" });
                   }}
-                  className="underline underline-offset-4"
+                  className="underline underline-offset-4 font-medium"
                 >
-                  Create one
+                  Create an account
                 </button>
               </>
             ) : (
@@ -398,34 +435,12 @@ export default function AuthTestPage() {
                     setMode("login");
                     setResult({ state: "idle" });
                   }}
-                  className="underline underline-offset-4"
+                  className="underline underline-offset-4 font-medium"
                 >
                   Sign in
                 </button>
               </>
             )}
-          </p>
-
-          {/* Divider */}
-          <div className="mt-8 flex items-center gap-4">
-            <div className="flex-1 h-px bg-surface-container-high" />
-            <span className="text-[10px] tracking-[0.2em] uppercase text-on-surface-variant">
-              or
-            </span>
-            <div className="flex-1 h-px bg-surface-container-high" />
-          </div>
-
-          {/* Social login via Wix popup */}
-          <button
-            type="button"
-            onClick={handleSocialLogin}
-            disabled={isLoading}
-            className="mt-8 w-full border border-outline-variant/30 bg-surface-container-lowest py-4 text-xs tracking-[0.2em] uppercase font-medium text-on-surface active:scale-[0.98] disabled:opacity-50"
-          >
-            Continue with Google / Social
-          </button>
-          <p className="mt-2 text-center text-[10px] text-on-surface-variant/50">
-            Opens Wix login popup with social providers
           </p>
 
           {/* Result messages */}
@@ -451,18 +466,6 @@ export default function AuthTestPage() {
               <p className="text-sm text-red-800">{result.message}</p>
             </div>
           )}
-
-          <div className="mt-10 text-center text-[10px] tracking-[0.15em] text-on-surface-variant/50 space-y-1">
-            <p>This page is not linked anywhere. For testing only.</p>
-            <p>
-              Captcha:{" "}
-              {captchaSiteKey
-                ? recaptchaReady
-                  ? "invisible reCAPTCHA loaded"
-                  : "loading reCAPTCHA..."
-                : "no site key found"}
-            </p>
-          </div>
         </div>
       </main>
     </>
