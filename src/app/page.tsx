@@ -87,7 +87,9 @@ export default async function HomePage() {
     featured?._id
       ? getCollectionProducts(featured._id, 20)
       : Promise.resolve([]),
-    ...sections.map((section) => getCollectionProducts(section._id, 4)),
+    ...sections.map((section) =>
+      getCollectionProducts(section._id, 4, section.name === "New Arrivals" ? "lastUpdated" : "createdDate")
+    ),
   ]);
 
   const featuredProducts = allFeatured.length > 4
