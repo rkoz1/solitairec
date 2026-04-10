@@ -201,7 +201,7 @@ export async function getHomeSections() {
   const byName = new Map(all.map((c) => [c.name, c]));
 
   // Show these categories on the home page (in order)
-  const HOME_SECTIONS = ["New Arrivals", "Top", "Bags", "Shoes", "Dresses"];
+  const HOME_SECTIONS = ["New Arrivals", "Top", "Bottoms", "Dresses", "Outer", "Bags", "Shoes"];
 
   return HOME_SECTIONS.map((name) => byName.get(name)).filter(
     Boolean,
