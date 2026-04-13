@@ -108,7 +108,9 @@
       "Bash(cmd.exe //c \"tasklist /FI \\\\\"PID eq 28988\\\\\"\")",
       "Bash(taskkill //F //PID 28988)",
       "Bash(taskkill /F /PID 28988)",
-      "Bash(kill -9 28988)"
+      "Bash(kill -9 28988)",
+      "WebFetch(domain:www.facebook.com)",
+      "Bash(npm test:*)"
     ]
   }
 }

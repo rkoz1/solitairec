@@ -10,8 +10,16 @@ import { useMember } from "@/contexts/MemberContext";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
+interface PageViewUser {
+  email?: string;
+  phone?: string;
+  externalId?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
 /** Send a PageView to CAPI with a matching eventId for deduplication. */
-function sendPageViewCapi(eventId: string, userEmail?: string, externalId?: string) {
+function sendPageViewCapi(eventId: string, user: PageViewUser) {
   fetch("/api/meta/capi", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -20,26 +28,52 @@ function sendPageViewCapi(eventId: string, userEmail?: string, externalId?: stri
       eventId,
       eventData: {},
       eventSourceUrl: window.location.href,
-      userEmail,
-      externalId,
+      userEmail: user.email,
+      userPhone: user.phone,
+      externalId: user.externalId,
+      firstName: user.firstName,
+      lastName: user.lastName,
     }),
     keepalive: true,
   }).catch(() => {});
 }
 
+/** Wait for window.fbq to exist, up to 2 seconds. Handles the race where
+ *  a React effect runs before the inline <Script> has executed. */
+function whenFbqReady(cb: () => void) {
+  let attempts = 0;
+  const tick = () => {
+    if (typeof window !== "undefined" && typeof window.fbq === "function") {
+      cb();
+      return;
+    }
+    if (++attempts >= 20) return; // 20 × 100ms = 2s cap
+    setTimeout(tick, 100);
+  };
+  tick();
+}
+
+function firePageView(user: PageViewUser) {
+  const eventId = crypto.randomUUID();
+  window.fbq("track", "PageView", {}, { eventID: eventId });
+  sendPageViewCapi(eventId, user);
+}
+
 export default function MetaPixel() {
   const pathname = usePathname();
   const { member, loading } = useMember();
-  const initializedRef = useRef(false);
-  const userDataRef = useRef<{ email?: string; externalId?: string }>({});
+  const firedFirstRef = useRef(false);
+  const lastPathRef = useRef<string | null>(null);
+  const userRef = useRef<PageViewUser>({});
 
-  // Set up advanced matching once member data is available
+  // Effect A: init with advanced matching + first PageView, gated on !loading
   useEffect(() => {
-    if (!PIXEL_ID || typeof window === "undefined" || loading || !window.fbq) return;
+    if (!PIXEL_ID || typeof window === "undefined" || loading) return;
 
     const advancedData: Record<string, string> = {};
+    const user: PageViewUser = {};
 
-    // Attach external_id for cross-device matching
+    // external_id from Wix JWT
     try {
       const wix = getBrowserWixClient();
       const tokens = wix.auth.getTokens();
@@ -48,58 +82,89 @@ export default function MetaPixel() {
         : null;
       if (uid) {
         advancedData.external_id = uid;
-        userDataRef.current.externalId = uid;
+        user.externalId = uid;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
+    // Member-level data (logged-in users only)
     if (member) {
       const email = member.loginEmail ?? member.contact?.emails?.[0];
       if (email) {
         advancedData.em = email;
-        userDataRef.current.email = email;
+        user.email = email;
       }
-      const phone = member.contact?.phones?.[0];
-      if (phone) advancedData.ph = phone.replace(/\D/g, "");
-      if (member.contact?.firstName) advancedData.fn = member.contact.firstName;
-      if (member.contact?.lastName) advancedData.ln = member.contact.lastName;
+      const rawPhone = member.contact?.phones?.[0];
+      if (rawPhone) {
+        const digits = rawPhone.replace(/\D/g, "");
+        advancedData.ph = digits;
+        user.phone = digits;
+      }
+      if (member.contact?.firstName) {
+        advancedData.fn = member.contact.firstName;
+        user.firstName = member.contact.firstName;
+      }
+      if (member.contact?.lastName) {
+        advancedData.ln = member.contact.lastName;
+        user.lastName = member.contact.lastName;
+      }
     }
 
-    if (Object.keys(advancedData).length > 0) {
+    userRef.current = user;
+    setMetaUserData(user);
+
+    whenFbqReady(() => {
+      // Always re-init (empty advancedData is valid; FB SDK merges keys idempotently).
       window.fbq("init", PIXEL_ID, advancedData);
-    }
-
-    // Cache user data so all trackMetaEvent calls include it for CAPI matching
-    setMetaUserData({
-      email: userDataRef.current.email,
-      phone: member?.contact?.phones?.[0]?.replace(/\D/g, ""),
-      externalId: userDataRef.current.externalId,
-      firstName: member?.contact?.firstName ?? undefined,
-      lastName: member?.contact?.lastName ?? undefined,
+      if (!firedFirstRef.current) {
+        firePageView(user);
+        firedFirstRef.current = true;
+        lastPathRef.current = pathname;
+      }
     });
+  }, [loading, member, pathname]);
 
-    initializedRef.current = true;
-  }, [member, loading]);
+  // Effect B: SPA navigation PageViews after the first fire
+  useEffect(() => {
+    if (!PIXEL_ID || !firedFirstRef.current) return;
+    if (lastPathRef.current === pathname) return;
+    whenFbqReady(() => {
+      firePageView(userRef.current);
+      lastPathRef.current = pathname;
+    });
+  }, [pathname]);
 
-  // Re-init on auth changes
+  // Effect C: safety timeout — if member fetch hangs, still fire PageView after 3s
+  useEffect(() => {
+    if (!PIXEL_ID) return;
+    const t = setTimeout(() => {
+      if (firedFirstRef.current) return;
+      whenFbqReady(() => {
+        if (firedFirstRef.current) return;
+        window.fbq("init", PIXEL_ID, {});
+        firePageView(userRef.current);
+        firedFirstRef.current = true;
+        lastPathRef.current = pathname;
+      });
+    }, 3000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auth change: reset state so next member load re-inits + re-fires
   useEffect(() => {
     if (!PIXEL_ID) return;
     const handler = () => {
       resetUserIdentity();
       clearMetaUserData();
-      userDataRef.current = {};
-      initializedRef.current = false;
+      userRef.current = {};
+      firedFirstRef.current = false;
+      lastPathRef.current = null;
     };
     window.addEventListener("auth-changed", handler);
     return () => window.removeEventListener("auth-changed", handler);
   }, []);
-
-  // Fire PageView on route changes with deduplication eventID
-  useEffect(() => {
-    if (!PIXEL_ID || typeof window === "undefined" || !window.fbq) return;
-    const eventId = crypto.randomUUID();
-    window.fbq("track", "PageView", {}, { eventID: eventId });
-    sendPageViewCapi(eventId, userDataRef.current.email, userDataRef.current.externalId);
-  }, [pathname]);
 
   if (!PIXEL_ID) return null;
 
@@ -107,7 +172,7 @@ export default function MetaPixel() {
     <>
       <Script
         id="meta-pixel"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             !function(f,b,e,v,n,t,s)
@@ -123,6 +188,11 @@ export default function MetaPixel() {
         }}
       />
       <noscript>
+        {/* eslint-disable-next-line @next/next/no-img-element --
+            Facebook no-JS fallback tracking beacon, not a user-visible image.
+            next/image cannot be used: it would rewrite the URL through
+            /_next/image, breaking the Facebook endpoint, and React components
+            inside <noscript> are SSR-only (users with JS disabled can't hydrate). */}
         <img
           height="1"
           width="1"
