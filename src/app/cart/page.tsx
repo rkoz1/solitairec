@@ -22,7 +22,7 @@ import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { useDisplayCurrency } from "@/components/Price";
 import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
-import { clarityEvent, clarityTag } from "@/lib/clarity";
+import { clarityEvent, clarityTag, clarityUpgrade, clarityConsent } from "@/lib/clarity";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -293,6 +293,7 @@ function BagTab() {
     });
     clarityEvent("initiate_checkout");
     clarityTag("checkout_value", subtotalNum);
+    clarityUpgrade("checkout");
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);
@@ -323,6 +324,9 @@ function BagTab() {
           sessionStorage.setItem("meta_cookies", JSON.stringify({ fbc, fbp }));
         }
       } catch { /* ignore */ }
+
+      // Re-signal consent so Clarity sets cookies before leaving for Wix checkout
+      clarityConsent(true);
 
       window.dispatchEvent(new Event("cart-updated"));
       window.location.href = redirectUrl;

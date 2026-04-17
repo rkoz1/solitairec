@@ -10,7 +10,7 @@ import {
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { trackAnalytics } from "@/lib/analytics";
 import { trackMetaEvent } from "@/lib/meta-track";
-import { clarityEvent, clarityTag } from "@/lib/clarity";
+import { clarityEvent, clarityTag, clarityUpgrade } from "@/lib/clarity";
 import { showToast } from "@/lib/toast";
 
 interface ProductOption {
@@ -180,6 +180,7 @@ export default memo(function ProductCardActions({
       });
       clarityEvent("add_to_cart");
       clarityTag("last_added_product", productName ?? "");
+      clarityUpgrade("add_to_cart");
 
       // Fly-to-cart animation
       const cardEl = document.querySelector(`[data-product-id="${productId}"]`);

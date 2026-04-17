@@ -114,6 +114,13 @@ export default function Clarity() {
             t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
             y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
           })(window,document,"clarity","script","${CLARITY_ID}");
+          // Signal consent immediately so Clarity's first request knows the state
+          // (avoids race where React useEffect fires after session starts cookieless)
+          try {
+            var cs = localStorage.getItem("cookie_consent");
+            if (cs === "accepted") window.clarity("consentv2", { analytical: true });
+            else if (cs === "rejected") window.clarity("consentv2", { analytical: false });
+          } catch(e) {}
         `,
       }}
     />

@@ -9,7 +9,7 @@ import { showToast } from "@/lib/toast";
 import { addItemToCart } from "@/lib/cart";
 import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
-import { clarityEvent, clarityTag } from "@/lib/clarity";
+import { clarityEvent, clarityTag, clarityUpgrade } from "@/lib/clarity";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -69,6 +69,7 @@ export default function AddToCartButton({
       });
       clarityEvent("add_to_cart");
       clarityTag("last_added_product", productName ?? "");
+      clarityUpgrade("add_to_cart");
 
       // Fly-to-cart animation
       const btn = document.querySelector("[data-add-to-cart]");
