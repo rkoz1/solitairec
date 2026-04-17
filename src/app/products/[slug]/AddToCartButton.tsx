@@ -57,10 +57,11 @@ export default function AddToCartButton({
 
       trackMetaEvent("AddToCart", {
         content_ids: [productId],
-        content_name: productName,
+        content_name: productName ?? "",
         content_type: "product",
         value: productPrice ? parseFloat(productPrice) : undefined,
         currency: "HKD",
+        num_items: 1,
       });
       trackAnalytics("add_to_cart", {
         product_name: productName ?? "",

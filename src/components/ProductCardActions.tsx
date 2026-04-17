@@ -172,6 +172,7 @@ export default memo(function ProductCardActions({
         content_type: "product",
         value: parseFloat(productPrice ?? "0"),
         currency: "HKD",
+        num_items: 1,
       });
       trackAnalytics("quick_add_to_cart", {
         product_id: productId,
