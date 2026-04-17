@@ -15,16 +15,11 @@ function getStoredConsent(): Consent {
 }
 
 /**
- * Cookie consent banner + gated script loader.
- * Renders children (MetaPixel) only when user has accepted.
- * Clarity loads unconditionally (uses Consent API V2 for cookie control).
+ * Cookie consent banner.
+ * Clarity and Meta Pixel handle consent internally via the consent-changed event.
  * Vercel Analytics is ungated (privacy-friendly, no cookies).
  */
-export default function CookieConsent({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function CookieConsent() {
   const [consent, setConsent] = useState<Consent>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -48,43 +43,37 @@ export default function CookieConsent({
   // Show banner only when mounted and no consent stored
   const showBanner = mounted && consent === null;
 
-  return (
-    <>
-      {/* Only load tracking scripts after consent */}
-      {consent === "accepted" && children}
+  if (!showBanner) return null;
 
-      {/* Banner */}
-      {showBanner && (
-        <div className="fixed bottom-0 left-0 right-0 z-[100] lg:bottom-6 lg:left-6 lg:right-auto lg:max-w-sm">
-          <div className="bg-white shadow-lg border-t border-outline-variant/20 lg:border lg:border-outline-variant/20 px-6 py-5">
-            <p className="text-[11px] leading-relaxed tracking-wide text-on-surface-variant">
-              We use cookies for analytics and to improve your experience.
-              See our{" "}
-              <Link
-                href="/privacy"
-                className="underline underline-offset-2 text-on-surface hover:text-secondary transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              .
-            </p>
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={accept}
-                className="flex-1 bg-on-surface text-on-primary py-2.5 text-[10px] tracking-[0.2em] uppercase font-bold transition-transform active:scale-[0.98]"
-              >
-                Accept
-              </button>
-              <button
-                onClick={reject}
-                className="flex-1 border border-outline-variant/30 text-on-surface-variant py-2.5 text-[10px] tracking-[0.2em] uppercase font-medium hover:text-on-surface transition-colors"
-              >
-                Decline
-              </button>
-            </div>
-          </div>
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-[100] lg:bottom-6 lg:left-6 lg:right-auto lg:max-w-sm">
+      <div className="bg-white shadow-lg border-t border-outline-variant/20 lg:border lg:border-outline-variant/20 px-6 py-5">
+        <p className="text-[11px] leading-relaxed tracking-wide text-on-surface-variant">
+          We use cookies for analytics and to improve your experience.
+          See our{" "}
+          <Link
+            href="/privacy"
+            className="underline underline-offset-2 text-on-surface hover:text-secondary transition-colors"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+        <div className="mt-4 flex gap-3">
+          <button
+            onClick={accept}
+            className="flex-1 bg-on-surface text-on-primary py-2.5 text-[10px] tracking-[0.2em] uppercase font-bold transition-transform active:scale-[0.98]"
+          >
+            Accept
+          </button>
+          <button
+            onClick={reject}
+            className="flex-1 border border-outline-variant/30 text-on-surface-variant py-2.5 text-[10px] tracking-[0.2em] uppercase font-medium hover:text-on-surface transition-colors"
+          >
+            Decline
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }

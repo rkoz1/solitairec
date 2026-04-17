@@ -210,10 +210,10 @@ export default async function RootLayout({
         <Analytics />
         {/* Clarity loads unconditionally (uses Consent API V2 for cookie control) */}
         <Clarity />
-        {/* Meta Pixel gated behind cookie consent */}
-        <CookieConsent>
-          <MetaPixel />
-        </CookieConsent>
+        {/* Meta Pixel loads unconditionally (uses fbq consent API for cookie control) */}
+        <MetaPixel />
+        {/* Cookie consent banner — Clarity and Meta handle consent via consent-changed event */}
+        <CookieConsent />
 
         {/* Fixed bottom navigation — mobile only */}
         <BottomNav />
