@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { sendCapiEvent } from "@/lib/meta-capi";
+import { ga4ServerPurchase } from "@/lib/ga4";
 import { getServerWixClient } from "@/lib/wix-server-client";
 
 const WEBHOOK_SECRET = process.env.WIX_WEBHOOK_SECRET;
@@ -159,8 +160,30 @@ export async function POST(request: Request) {
         console.error("[wix-order webhook] WixOrderPlaced CAPI error:", err)
       );
 
+      // Fire GA4 Measurement Protocol purchase (server-side backstop for ad blockers / bounced sessions)
+      // Deduplicated with client-side via transaction_id (order number)
+      const ga4ClientId = buyerEmail
+        ? createHash("sha256").update(buyerEmail.toLowerCase().trim()).digest("hex")
+        : buyerExternalId ?? `wix-order-${order._id}`;
+
+      ga4ServerPurchase(
+        ga4ClientId,
+        orderNumber.toString(),
+        contentIds.map((id, i) => ({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          item_id: id,
+          item_name: (lineItems as any)[i]?.productName?.original ?? "Product",
+        })),
+        totalAmount,
+        currency,
+      ).then(() =>
+        console.log(`[wix-order webhook] GA4 purchase accepted for order #${orderNumber}`)
+      ).catch((err) =>
+        console.error("[wix-order webhook] GA4 purchase error:", err)
+      );
+
       console.log(
-        `[wix-order webhook] Fired Purchase + WixOrderPlaced for order #${orderNumber} (${currency} ${totalAmount})`
+        `[wix-order webhook] Fired Purchase + WixOrderPlaced + GA4 for order #${orderNumber} (${currency} ${totalAmount})`
       );
     } else {
       console.warn(

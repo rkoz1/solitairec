@@ -123,6 +123,7 @@ describe("MetaPixel", () => {
     setMetaUserData.mockClear();
     clearMetaUserData.mockClear();
     resetUserIdentity.mockClear();
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -385,5 +386,72 @@ describe("MetaPixel", () => {
     expect(fetchMock).not.toHaveBeenCalled();
 
     process.env.NEXT_PUBLIC_META_PIXEL_ID = prev;
+  });
+
+  it("grants consent on mount when localStorage has accepted", async () => {
+    localStorage.setItem("cookie_consent", "accepted");
+    const fbq = installFbq();
+    installFetch();
+    const { default: MetaPixel } = await import("../MetaPixel");
+
+    render(<MetaPixel />);
+    await flushRetries();
+
+    const consentCalls = fbq.mock.calls.filter(
+      (c) => c[0] === "consent" && c[1] === "grant",
+    );
+    expect(consentCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("does not grant consent on mount when undecided", async () => {
+    // No localStorage value
+    const fbq = installFbq();
+    installFetch();
+    const { default: MetaPixel } = await import("../MetaPixel");
+
+    render(<MetaPixel />);
+    await flushRetries();
+
+    const grantCalls = fbq.mock.calls.filter(
+      (c) => c[0] === "consent" && c[1] === "grant",
+    );
+    expect(grantCalls).toHaveLength(0);
+  });
+
+  it("grants consent on consent-changed event", async () => {
+    const fbq = installFbq();
+    installFetch();
+    const { default: MetaPixel } = await import("../MetaPixel");
+
+    render(<MetaPixel />);
+    await flushRetries();
+
+    // Simulate consent acceptance
+    localStorage.setItem("cookie_consent", "accepted");
+    window.dispatchEvent(new Event("consent-changed"));
+    await flushRetries();
+
+    const grantCalls = fbq.mock.calls.filter(
+      (c) => c[0] === "consent" && c[1] === "grant",
+    );
+    expect(grantCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("revokes consent on consent-changed event with rejected", async () => {
+    const fbq = installFbq();
+    installFetch();
+    const { default: MetaPixel } = await import("../MetaPixel");
+
+    render(<MetaPixel />);
+    await flushRetries();
+
+    localStorage.setItem("cookie_consent", "rejected");
+    window.dispatchEvent(new Event("consent-changed"));
+    await flushRetries();
+
+    const revokeCalls = fbq.mock.calls.filter(
+      (c) => c[0] === "consent" && c[1] === "revoke",
+    );
+    expect(revokeCalls.length).toBeGreaterThanOrEqual(1);
   });
 });

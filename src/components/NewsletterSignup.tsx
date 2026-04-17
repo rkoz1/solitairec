@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { subscribeToNewsletter } from "@/app/newsletter/actions";
 import { useMember } from "@/contexts/MemberContext";
-import { trackAnalytics } from "@/lib/analytics";
-import { trackMetaEvent } from "@/lib/meta-track";
+import { trackGenerateLead } from "@/lib/tracking";
 
 const UNSUB_KEY = "solitairec_newsletter_unsub";
 
@@ -65,8 +64,7 @@ export default function NewsletterSignup({ alwaysShow = false }: { alwaysShow?: 
     } else if (result.success) {
       setStatus("success");
       setEmail("");
-      trackAnalytics("newsletter_subscribe", { source: alwaysShow ? "newsletter_page" : "footer" });
-      trackMetaEvent("Lead", {}, submitEmail);
+      trackGenerateLead({ email: submitEmail, source: alwaysShow ? "newsletter_page" : "footer" });
       setTimeout(() => setStatus("already"), 4000);
     } else {
       setStatus("error");

@@ -4,11 +4,10 @@ import { useRef, useCallback } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getBrowserWixClient } from "@/lib/wix-browser-client";
 import { useMember } from "@/contexts/MemberContext";
-import { trackMetaEvent } from "@/lib/meta-track";
+import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/tracking";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
 import { showToast } from "@/lib/toast";
-import { clarityEvent } from "@/lib/clarity";
 
 interface PayPalCheckoutProps {
   productId: string;
@@ -53,14 +52,10 @@ function PayPalButtonsInner({
   const createOrder = useCallback(async (): Promise<string> => {
     const { productId, selectedOptions, variantId } = propsRef.current;
 
-    trackMetaEvent("InitiateCheckout", {
-      currency: "HKD",
-      content_ids: [productId],
-      content_type: "product",
-      num_items: 1,
+    trackInitiateCheckout({
+      items: [{ productId, productName: "", price: 0, quantity: 1 }],
+      value: 0,
     });
-    trackAnalytics("paypal_checkout_click", { product_id: productId });
-    clarityEvent("initiate_checkout");
 
     const res = await fetch("/api/paypal/create-order", {
       method: "POST",
@@ -84,11 +79,7 @@ function PayPalButtonsInner({
 
   const onApprove = useCallback(async (data: { orderID: string }) => {
     // Payment approved by PayPal
-    trackMetaEvent("AddPaymentInfo", {
-      currency: "HKD",
-      content_ids: [propsRef.current.productId],
-      content_type: "product",
-    });
+    trackAddPaymentInfo({ productIds: [propsRef.current.productId] });
 
     // Get Wix visitor/member ID to associate order with this session
     let wixVisitorId: string | undefined;

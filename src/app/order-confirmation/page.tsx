@@ -7,19 +7,7 @@ import {
   getBrowserWixClient,
   ensureVisitorTokens,
 } from "@/lib/wix-browser-client";
-import { trackMetaEvent } from "@/lib/meta-track";
-import { trackAnalytics } from "@/lib/analytics";
-import { clarityEvent, clarityTag, clarityUpgrade } from "@/lib/clarity";
-
-/** Deterministic eventId from order ID — must match webhook's server-side hash. */
-async function purchaseEventId(orderId: string): Promise<string> {
-  const data = new TextEncoder().encode("purchase-" + orderId);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  const hex = Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return hex.slice(0, 36);
-}
+import { trackPurchase } from "@/lib/tracking";
 
 interface OrderSummary {
   orderNumber: string;
@@ -50,15 +38,12 @@ export default function OrderConfirmationPage() {
             status: data.status ?? "APPROVED",
             date: data.date ?? "",
           });
-          trackAnalytics("purchase", {
-            order_number: String(data.orderNumber ?? ""),
-            total: parseFloat((data.total ?? "0").replace(/[^0-9.]/g, "")),
-            currency: "HKD",
-          });
-          clarityEvent("purchase");
-          clarityUpgrade("purchase");
-          clarityTag("purchased", true);
-          clarityTag("order_value", data.total ?? "");
+          trackPurchase({
+            orderId: String(data.orderNumber ?? ""),
+            orderNumber: String(data.orderNumber ?? ""),
+            items: [],
+            value: parseFloat((data.total ?? "0").replace(/[^0-9.]/g, "")),
+          }).catch(() => {});
           sessionStorage.removeItem("expressOrder");
         }
       } catch {
@@ -111,65 +96,24 @@ export default function OrderConfirmationPage() {
               : "",
           });
 
-          // Track Purchase for cart checkout (Wix redirect flow)
+          // Track Purchase — dedup, Meta eventId hash, fbc/fbp recovery all handled internally
           const foundOrderId = found._id ?? orderId ?? "";
-          const dedupKey = `tracked_purchase_${foundOrderId}`;
-
-          // Idempotency: skip if already tracked (e.g. page refresh)
-          if (!sessionStorage.getItem(dedupKey)) {
-            const totalAmount = parseFloat(
-              (found.priceSummary?.total?.amount ?? "0").replace(/[^0-9.]/g, "")
-            );
-            if (totalAmount > 0) {
-              const contentIds = (found.lineItems ?? [])
-                .map((li: { catalogReference?: { catalogItemId?: string } }) =>
-                  li.catalogReference?.catalogItemId
-                )
-                .filter(Boolean) as string[];
-
-              // Deterministic eventId matching the webhook's hash for Meta dedup
-              const eventId = await purchaseEventId(foundOrderId);
-
-              // Recover _fbc/_fbp saved before Wix redirect
-              let storedFbc: string | undefined;
-              let storedFbp: string | undefined;
-              try {
-                const raw = sessionStorage.getItem("meta_cookies");
-                if (raw) {
-                  const parsed = JSON.parse(raw);
-                  storedFbc = parsed.fbc;
-                  storedFbp = parsed.fbp;
-                  sessionStorage.removeItem("meta_cookies");
-                }
-              } catch { /* ignore */ }
-
-              trackMetaEvent(
-                "Purchase",
-                {
-                  value: totalAmount,
-                  currency: "HKD",
-                  content_ids: contentIds,
-                  content_type: "product",
-                  order_id: found.number?.toString(),
-                  num_items: found.lineItems?.length ?? 0,
-                },
-                found.buyerInfo?.email,
-                found.buyerInfo?.memberId ?? found.buyerInfo?.visitorId,
-                { eventId, fbc: storedFbc, fbp: storedFbp }
-              );
-              trackAnalytics("purchase", {
-                order_number: found.number?.toString() ?? "",
-                total: totalAmount,
-                currency: "HKD",
-              });
-              clarityEvent("purchase");
-              clarityUpgrade("purchase");
-              clarityTag("purchased", true);
-              clarityTag("order_value", totalAmount);
-
-              sessionStorage.setItem(dedupKey, "1");
-            }
-          }
+          const totalAmount = parseFloat(
+            (found.priceSummary?.total?.amount ?? "0").replace(/[^0-9.]/g, "")
+          );
+          await trackPurchase({
+            orderId: foundOrderId,
+            orderNumber: found.number?.toString() ?? "",
+            items: (found.lineItems ?? []).map(
+              (li: { catalogReference?: { catalogItemId?: string }; productName?: { original?: string } }) => ({
+                productId: li.catalogReference?.catalogItemId ?? "",
+                productName: li.productName?.original ?? "",
+              }),
+            ),
+            value: totalAmount,
+            email: found.buyerInfo?.email,
+            buyerId: found.buyerInfo?.memberId ?? found.buyerInfo?.visitorId,
+          });
         }
       } catch (err) {
         console.error("Failed to fetch order:", err);

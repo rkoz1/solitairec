@@ -20,9 +20,9 @@ import FreeShippingBar from "@/components/FreeShippingBar";
 import { showToast } from "@/lib/toast";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { useDisplayCurrency } from "@/components/Price";
-import { trackMetaEvent } from "@/lib/meta-track";
 import { trackAnalytics } from "@/lib/analytics";
-import { clarityEvent, clarityTag, clarityUpgrade, clarityConsent } from "@/lib/clarity";
+import { clarityEvent, clarityTag, clarityConsent } from "@/lib/clarity";
+import { trackInitiateCheckout } from "@/lib/tracking";
 
 type Cart = cart.Cart;
 type LineItem = cart.LineItem;
@@ -277,23 +277,15 @@ function BagTab() {
 
   async function handleCheckout() {
     setCheckingOut(true);
-    const checkoutContentIds = (cartData?.lineItems ?? [])
-      .map((li) => li.catalogReference?.catalogItemId)
-      .filter(Boolean) as string[];
-    trackMetaEvent("InitiateCheckout", {
-      currency: "HKD",
+    trackInitiateCheckout({
+      items: (cartData?.lineItems ?? []).map((li) => ({
+        productId: li.catalogReference?.catalogItemId ?? "",
+        productName: li.productName?.original ?? "",
+        price: parseFloat((li.price?.amount ?? "0").toString()),
+        quantity: li.quantity ?? 1,
+      })),
       value: subtotalNum,
-      content_ids: checkoutContentIds,
-      content_type: "product",
-      num_items: cartData?.lineItems?.length ?? 0,
     });
-    trackAnalytics("initiate_checkout", {
-      item_count: cartData?.lineItems?.length ?? 0,
-      cart_total: subtotalNum,
-    });
-    clarityEvent("initiate_checkout");
-    clarityTag("checkout_value", subtotalNum);
-    clarityUpgrade("checkout");
     try {
       const wix = getBrowserWixClient();
       await ensureVisitorTokens(wix);

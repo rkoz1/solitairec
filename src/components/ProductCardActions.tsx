@@ -9,8 +9,7 @@ import {
 } from "@/lib/wix-browser-client";
 import { addItemToCart, buildStockKey } from "@/lib/cart";
 import { trackAnalytics } from "@/lib/analytics";
-import { trackMetaEvent } from "@/lib/meta-track";
-import { clarityEvent, clarityTag, clarityUpgrade } from "@/lib/clarity";
+import { trackAddToCart } from "@/lib/tracking";
 import { showToast } from "@/lib/toast";
 
 interface ProductOption {
@@ -166,22 +165,11 @@ export default memo(function ProductCardActions({
       }
 
       window.dispatchEvent(new Event("cart-updated"));
-      trackMetaEvent("AddToCart", {
-        content_ids: [productId],
-        content_name: productName ?? "",
-        content_type: "product",
-        value: parseFloat(productPrice ?? "0"),
-        currency: "HKD",
-        num_items: 1,
+      trackAddToCart({
+        productId,
+        productName: productName ?? "",
+        price: parseFloat(productPrice ?? "0"),
       });
-      trackAnalytics("quick_add_to_cart", {
-        product_id: productId,
-        product_name: productName ?? "",
-        source: "product_card",
-      });
-      clarityEvent("add_to_cart");
-      clarityTag("last_added_product", productName ?? "");
-      clarityUpgrade("add_to_cart");
 
       // Fly-to-cart animation
       const cardEl = document.querySelector(`[data-product-id="${productId}"]`);
