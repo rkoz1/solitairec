@@ -2,7 +2,7 @@ export const revalidate = 1800;
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { unstable_cache } from "next/cache";
+import { safeCache } from "@/lib/fetch-retry";
 import { getServerWixClient } from "@/lib/wix-server-client";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
@@ -37,7 +37,7 @@ interface Reward {
   };
 }
 
-const getLoyaltyData = unstable_cache(
+const getLoyaltyData = safeCache(
   async () => {
     try {
       const wix = getServerWixClient();

@@ -3,9 +3,8 @@ export const revalidate = 600;
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
-import { fetchRetry } from "@/lib/fetch-retry";
+import { fetchRetry, safeCache } from "@/lib/fetch-retry";
 import { getWixImageUrl } from "@/lib/wix-image";
 import { getAllCollections, CATEGORY_HIERARCHY, displayName } from "@/lib/collections";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
@@ -22,7 +21,7 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-const getProduct = unstable_cache(
+const getProduct = safeCache(
   async (slug: string) =>
     fetchRetry(async () => {
       const wix = getServerWixClient();
@@ -78,7 +77,7 @@ function richContentToHtml(nodes: RichContentNode[]): string {
   }).join("");
 }
 
-const getFittingDefaults = unstable_cache(
+const getFittingDefaults = safeCache(
   async (): Promise<Record<string, string>> => {
     const wix = getServerWixClient();
     const result = await wix.dataItems.query("Fitting").find();

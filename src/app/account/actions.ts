@@ -1,6 +1,6 @@
 "use server";
 
-import { unstable_cache } from "next/cache";
+import { safeCache } from "@/lib/fetch-retry";
 import { getServerWixClient } from "@/lib/wix-server-client";
 
 export interface AvailableReward {
@@ -11,7 +11,7 @@ export interface AvailableReward {
   restrictedToTierId?: string;
 }
 
-export const getAvailableRewards = unstable_cache(
+export const getAvailableRewards = safeCache(
   async (): Promise<AvailableReward[]> => {
     try {
       const wix = getServerWixClient();
@@ -91,7 +91,7 @@ export interface TierInfo {
   baseTierName: string;
 }
 
-export const getTierInfo = unstable_cache(
+export const getTierInfo = safeCache(
   async (): Promise<TierInfo> => {
     try {
       const wix = getServerWixClient();

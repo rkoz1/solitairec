@@ -1,10 +1,10 @@
 "use server";
 
-import { unstable_cache } from "next/cache";
+import { safeCache } from "@/lib/fetch-retry";
 import { getServerWixClient } from "@/lib/wix-server-client";
 import type { ShippingRegionData, ShippingRegion } from "@/lib/shipping-regions";
 
-export const getFreeShippingThreshold = unstable_cache(
+export const getFreeShippingThreshold = safeCache(
   async (): Promise<number> => {
     try {
       const wix = getServerWixClient();
@@ -106,7 +106,7 @@ function getRegionDisplayName(title: string, countries: string[]): string {
   return title;
 }
 
-export const getShippingRegions = unstable_cache(
+export const getShippingRegions = safeCache(
   async (): Promise<ShippingRegionData> => {
     try {
       const wix = getServerWixClient();
@@ -192,7 +192,7 @@ export interface CurrencyInfo {
   symbol: string;
 }
 
-export const getSupportedCurrencies = unstable_cache(
+export const getSupportedCurrencies = safeCache(
   async (): Promise<CurrencyInfo[]> => {
     try {
       const wix = getServerWixClient();
@@ -209,7 +209,7 @@ export const getSupportedCurrencies = unstable_cache(
   { revalidate: 86400, tags: ["currencies"] }
 );
 
-export const getConversionRate = unstable_cache(
+export const getConversionRate = safeCache(
   async (toCurrency: string): Promise<{ rate: number; symbol: string }> => {
     if (toCurrency === "HKD") return { rate: 1, symbol: "HK$" };
 

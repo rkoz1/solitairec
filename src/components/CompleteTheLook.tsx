@@ -1,6 +1,5 @@
-import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "@/lib/wix-server-client";
-import { fetchRetry } from "@/lib/fetch-retry";
+import { fetchRetry, safeCache } from "@/lib/fetch-retry";
 import ProductCard from "@/components/ProductCard";
 import { CATEGORY_HIERARCHY } from "@/lib/collections";
 
@@ -115,7 +114,7 @@ function filterOutSameCategory(
   });
 }
 
-const getCachedRecommendedProducts = unstable_cache(
+const getCachedRecommendedProducts = safeCache(
   async (
     currentProductId: string,
   ): Promise<{ products: Product[]; heading: string }> => {
