@@ -1,11 +1,11 @@
-import { unstable_cache } from "next/cache";
+import { safeCache } from "@/lib/fetch-retry";
 import { getServerWixClient } from "@/lib/wix-server-client";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 }
 
-const getBannerContent = unstable_cache(
+const getBannerContent = safeCache(
   async () => {
     try {
       const wix = getServerWixClient();

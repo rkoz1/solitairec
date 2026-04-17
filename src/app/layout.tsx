@@ -17,6 +17,7 @@ import DesktopNav from "@/components/DesktopNav";
 import Footer from "@/components/Footer";
 import MetaPixel from "@/components/MetaPixel";
 import Clarity from "@/components/Clarity";
+import GA4 from "@/components/GA4";
 import CookieConsent from "@/components/CookieConsent";
 import MaterialSymbols from "@/components/MaterialSymbols";
 import { MemberProvider } from "@/contexts/MemberContext";
@@ -210,10 +211,12 @@ export default async function RootLayout({
         <Analytics />
         {/* Clarity loads unconditionally (uses Consent API V2 for cookie control) */}
         <Clarity />
-        {/* Meta Pixel gated behind cookie consent */}
-        <CookieConsent>
-          <MetaPixel />
-        </CookieConsent>
+        {/* GA4 loads unconditionally (Consent Mode v2 — denied by default, cookieless pings for modeling) */}
+        <GA4 />
+        {/* Meta Pixel loads unconditionally (uses fbq consent API for cookie control) */}
+        <MetaPixel />
+        {/* Cookie consent banner — Clarity and Meta handle consent via consent-changed event */}
+        <CookieConsent />
 
         {/* Fixed bottom navigation — mobile only */}
         <BottomNav />

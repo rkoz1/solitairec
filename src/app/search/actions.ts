@@ -1,6 +1,6 @@
 "use server";
 
-import { unstable_cache } from "next/cache";
+import { safeCache } from "@/lib/fetch-retry";
 import { getServerWixClient } from "@/lib/wix-server-client";
 import { fetchRetry } from "@/lib/fetch-retry";
 import { getWixImageUrl } from "@/lib/wix-image";
@@ -61,7 +61,7 @@ async function fetchFullCatalog(): Promise<CatalogProduct[]> {
   return allProducts;
 }
 
-export const getProductCatalog = unstable_cache(
+export const getProductCatalog = safeCache(
   fetchFullCatalog,
   ["product-catalog"],
   { revalidate: 600, tags: ["product-catalog"] }

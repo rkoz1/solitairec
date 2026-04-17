@@ -1,6 +1,5 @@
-import { unstable_cache } from "next/cache";
 import { getServerWixClient } from "./wix-server-client";
-import { fetchRetry } from "./fetch-retry";
+import { fetchRetry, safeCache } from "./fetch-retry";
 import { getWixImageUrl } from "./wix-image";
 
 /* ------------------------------------------------------------------ */
@@ -98,7 +97,7 @@ export interface NavCategory {
 /*  Data fetching                                                     */
 /* ------------------------------------------------------------------ */
 
-export const getAllCollections = unstable_cache(
+export const getAllCollections = safeCache(
   async (): Promise<CollectionInfo[]> =>
     fetchRetry(async () => {
       const wix = getServerWixClient();
@@ -120,7 +119,7 @@ export const getAllCollections = unstable_cache(
   { revalidate: 3600, tags: ["collections"] }
 );
 
-export const getCollectionProducts = unstable_cache(
+export const getCollectionProducts = safeCache(
   async (collectionId: string, limit: number = 20, sortBy: "createdDate" | "lastUpdated" = "createdDate") =>
     fetchRetry(async () => {
       const wix = getServerWixClient();
@@ -136,7 +135,7 @@ export const getCollectionProducts = unstable_cache(
   { revalidate: 600, tags: ["collection-products"] }
 );
 
-export const getCollectionBySlug = unstable_cache(
+export const getCollectionBySlug = safeCache(
   async (slug: string) =>
     fetchRetry(async () => {
       const wix = getServerWixClient();

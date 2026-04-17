@@ -59,12 +59,38 @@ function firePageView(user: PageViewUser) {
   sendPageViewCapi(eventId, user);
 }
 
+const CONSENT_KEY = "cookie_consent";
+
 export default function MetaPixel() {
   const pathname = usePathname();
   const { member, loading } = useMember();
   const firedFirstRef = useRef(false);
   const lastPathRef = useRef<string | null>(null);
   const userRef = useRef<PageViewUser>({});
+
+  // Signal consent state on mount (pixel loaded with consent revoked by default)
+  useEffect(() => {
+    if (!PIXEL_ID) return;
+    const consent = localStorage.getItem(CONSENT_KEY);
+    if (consent === "accepted") {
+      whenFbqReady(() => window.fbq("consent", "grant"));
+    }
+    // If rejected or undecided, leave revoked (set in inline script)
+  }, []);
+
+  // Listen for consent changes from CookieConsent component
+  useEffect(() => {
+    if (!PIXEL_ID) return;
+    const handler = () => {
+      const consent = localStorage.getItem(CONSENT_KEY);
+      whenFbqReady(() => {
+        if (consent === "accepted") window.fbq("consent", "grant");
+        else window.fbq("consent", "revoke");
+      });
+    };
+    window.addEventListener("consent-changed", handler);
+    return () => window.removeEventListener("consent-changed", handler);
+  }, []);
 
   // Effect A: init with advanced matching + first PageView, gated on !loading
   useEffect(() => {
@@ -183,7 +209,14 @@ export default function MetaPixel() {
             t.src=v;s=b.getElementsByTagName(e)[0];
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('consent', 'revoke');
             fbq('init', '${PIXEL_ID}');
+            // Signal consent immediately (same pattern as Clarity)
+            try {
+              if (localStorage.getItem("cookie_consent") === "accepted") {
+                fbq('consent', 'grant');
+              }
+            } catch(e) {}
           `,
         }}
       />

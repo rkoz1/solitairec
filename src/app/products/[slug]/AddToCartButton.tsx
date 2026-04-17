@@ -7,9 +7,7 @@ import {
 } from "@/lib/wix-browser-client";
 import { showToast } from "@/lib/toast";
 import { addItemToCart } from "@/lib/cart";
-import { trackMetaEvent } from "@/lib/meta-track";
-import { trackAnalytics } from "@/lib/analytics";
-import { clarityEvent, clarityTag } from "@/lib/clarity";
+import { trackAddToCart } from "@/lib/tracking";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -55,20 +53,11 @@ export default function AddToCartButton({
 
       window.dispatchEvent(new Event("cart-updated"));
 
-      trackMetaEvent("AddToCart", {
-        content_ids: [productId],
-        content_name: productName,
-        content_type: "product",
-        value: productPrice ? parseFloat(productPrice) : undefined,
-        currency: "HKD",
-      });
-      trackAnalytics("add_to_cart", {
-        product_name: productName ?? "",
+      trackAddToCart({
+        productId,
+        productName: productName ?? "",
         price: productPrice ? parseFloat(productPrice) : 0,
-        currency: "HKD",
       });
-      clarityEvent("add_to_cart");
-      clarityTag("last_added_product", productName ?? "");
 
       // Fly-to-cart animation
       const btn = document.querySelector("[data-add-to-cart]");

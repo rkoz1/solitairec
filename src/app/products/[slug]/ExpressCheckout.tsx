@@ -17,11 +17,10 @@ import type {
 import { getStripe } from "@/lib/stripe-client";
 import { getBrowserWixClient } from "@/lib/wix-browser-client";
 import { useMember } from "@/contexts/MemberContext";
-import { trackMetaEvent } from "@/lib/meta-track";
+import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/tracking";
 import { trackEvent, generateEventId } from "@/lib/meta-pixel";
 import { trackAnalytics, parseWixTokenUid } from "@/lib/analytics";
 import { showToast } from "@/lib/toast";
-import { clarityEvent } from "@/lib/clarity";
 
 interface ExpressCheckoutProps {
   productId: string;
@@ -129,14 +128,10 @@ function ExpressCheckoutInner({
 
   const onClick = useCallback(
     (event: StripeExpressCheckoutElementClickEvent) => {
-      trackMetaEvent("InitiateCheckout", {
-        currency: "HKD",
-        content_ids: [productId],
-        content_type: "product",
-        num_items: 1,
+      trackInitiateCheckout({
+        items: [{ productId, productName: "", price: 0, quantity: 1 }],
+        value: 0,
       });
-      trackAnalytics("express_checkout_click", { payment_method: "wallet" });
-      clarityEvent("initiate_checkout");
       event.resolve({
         emailRequired: true,
         shippingAddressRequired: true,
@@ -231,11 +226,7 @@ function ExpressCheckoutInner({
         }
 
         // Payment info confirmed
-        trackMetaEvent("AddPaymentInfo", {
-          currency: "HKD",
-          content_ids: [productId],
-          content_type: "product",
-        });
+        trackAddPaymentInfo({ productIds: [productId] });
 
         // Get Wix visitor/member ID to associate order with this session
         let wixVisitorId: string | undefined;

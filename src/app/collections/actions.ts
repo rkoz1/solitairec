@@ -1,9 +1,8 @@
 "use server";
 
-import { unstable_cache } from "next/cache";
 import { getNavCategories, type NavCategory } from "@/lib/collections";
 import { getServerWixClient } from "@/lib/wix-server-client";
-import { fetchRetry } from "@/lib/fetch-retry";
+import { fetchRetry, safeCache } from "@/lib/fetch-retry";
 import { getWixImageUrl } from "@/lib/wix-image";
 import { getProductCatalog } from "@/app/search/actions";
 
@@ -134,7 +133,7 @@ function extractProductDetails(items: unknown[]): {
   };
 }
 
-export const fetchSearchResults = unstable_cache(
+export const fetchSearchResults = safeCache(
   async (
     query: string,
     sort: "relevance" | "price_asc" | "price_desc" = "relevance"
@@ -210,7 +209,7 @@ export const fetchSearchResults = unstable_cache(
   { revalidate: 600, tags: ["search-results", "product-catalog"] }
 );
 
-export const fetchCollectionProducts = unstable_cache(
+export const fetchCollectionProducts = safeCache(
   async (
     slug: string,
     sort: "newest" | "price_asc" | "price_desc" = "newest"

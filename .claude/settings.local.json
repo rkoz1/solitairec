@@ -110,7 +110,17 @@
       "Bash(taskkill /F /PID 28988)",
       "Bash(kill -9 28988)",
       "WebFetch(domain:www.facebook.com)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git -C /c/dev/solitairec log --oneline src/proxy.ts)",
+      "Bash(git -C /c/dev/solitairec show bd574d5 --name-only)",
+      "Bash(git -C /c/dev/solitairec show bd574d5)",
+      "Bash(sed 's/=.*//')",
+      "Bash(kill %1)",
+      "WebFetch(domain:developers.google.com)",
+      "WebFetch(domain:blog.cloud66.com)",
+      "WebFetch(domain:support.google.com)",
+      "WebFetch(domain:help.littledata.io)",
+      "WebFetch(domain:optimizesmart.com)"
     ]
   }
 }

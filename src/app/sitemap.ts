@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
-import { unstable_cache } from "next/cache";
+import { safeCache } from "@/lib/fetch-retry";
 import { getServerWixClient } from "@/lib/wix-server-client";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://solitairec.com";
 
-const getSitemapData = unstable_cache(
+const getSitemapData = safeCache(
   async () => {
     const wix = getServerWixClient();
     const entries: { url: string; lastModified?: string; changeFrequency: string; priority: number }[] = [];
